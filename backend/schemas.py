@@ -9,7 +9,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +54,47 @@ class RecommendedAction(str, Enum):
 # ---------------------------------------------------------------------------
 # Request Models
 # ---------------------------------------------------------------------------
+
+class MeasurementDataSchema(BaseModel):
+    """Strictly typed schema for threat detection measurement payloads."""
+    measurement_counts: dict[str, int] = Field(description="Raw measurement counts")
+    fidelity: float = Field(ge=0.0, le=1.0, description="Quantum state fidelity")
+    measured_qber: float | None = Field(default=None, ge=0.0, le=1.0)
+    sent_bits: list[int] | None = Field(default=None, description="Sequence of sent bits")
+    received_bits: list[int] | None = Field(default=None, description="Sequence of received bits")
+    sent_bases: list[str] | None = Field(default=None, description="Sequence of sent Pauli bases")
+    received_bases: list[str] | None = Field(default=None, description="Sequence of received Pauli bases")
+    expected_distribution: dict[str, float] | None = None
+    session_id: str | None = None
+
+    @field_validator("sent_bits", "received_bits", mode="before")
+    @classmethod
+    def validate_bits_sequence(cls, v: Any) -> Any:
+        if v is None:
+            return v
+        if not isinstance(v, (list, tuple)):
+            raise ValueError("Must be a list or sequence of binary integers, not a scalar.")
+        for b in v:
+            if b not in (0, 1):
+                raise ValueError(f"Bit values must be 0 or 1. Got: {b}")
+        return list(v)
+
+    @field_validator("sent_bases", "received_bases", mode="before")
+    @classmethod
+    def validate_bases_sequence(cls, v: Any) -> Any:
+        if v is None:
+            return v
+        if not isinstance(v, (list, tuple)):
+            raise ValueError("Must be a list or sequence of basis strings ('X', 'Z').")
+        for b in v:
+            if str(b).upper() not in ("X", "Z"):
+                raise ValueError(f"Bases must be 'X' or 'Z'. Got: {b}")
+        return [str(b).upper() for b in v]
+
+
+class DetectRequest(BaseModel):
+    measurement_data: MeasurementDataSchema
+
 
 class SimulationRequest(BaseModel):
     num_qubits: int = Field(

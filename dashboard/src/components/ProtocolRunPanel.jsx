@@ -46,11 +46,13 @@ export default function ProtocolRunPanel({ onResult }) {
 
       // Step 4: Run Threat Detection
       setStepInfo('4/4: Performing Pearson χ² Born test & QBER security bounds check...');
+      const numQ = Number(nQubits);
+      const zeroSentBits = Array(numQ).fill(0);
       const detect = await detectThreat({
         measurement_data: {
           measurement_counts: sig.measurement_counts,
           fidelity: sig.fidelity,
-          sent_bits: [0] * nQubits,
+          sent_bits: zeroSentBits,
           received_bits: sig.measurement_outcomes,
           session_id: sig.session_id,
         },
@@ -66,25 +68,37 @@ export default function ProtocolRunPanel({ onResult }) {
         detect,
       });
     } catch (err) {
-      console.error('Protocol run failed:', err);
+      console.error('Protocol execution failed:', err);
       setStatus('error');
-      setErrorMsg(err.message || 'Unknown protocol failure');
+      setErrorMsg(err.message || 'Protocol execution error');
+      setStepInfo('Protocol Failed');
     }
   }
 
   return (
     <section className="panel protocol-panel">
-      <h2>1. Honest Protocol Pipeline</h2>
+      <h2>1. Honest QDS Protocol Pipeline</h2>
       <p className="panel-desc">
-        Execute full Information-Theoretically Secure (ITS) quantum signature exchange.
+        Execute full end-to-end Alice $\rightarrow$ Bob $\rightarrow$ Charlie protocol lifecycle.
       </p>
 
       <div className="form-group">
-        <label htmlFor="n-qubits-input">Qubit Register Size:</label>
+        <label htmlFor="message-input">Signable Classical Message:</label>
         <input
-          id="n-qubits-input"
+          id="message-input"
+          type="text"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          disabled={status === 'running'}
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="qubits-input">Quantum Key / Signature Length (Qubits):</label>
+        <input
+          id="qubits-input"
           type="number"
-          min="1"
+          min="4"
           max="64"
           value={nQubits}
           onChange={(e) => setNQubits(e.target.value)}
@@ -92,30 +106,17 @@ export default function ProtocolRunPanel({ onResult }) {
         />
       </div>
 
-      <div className="form-group">
-        <label htmlFor="message-input">Message Payload:</label>
-        <input
-          id="message-input"
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          disabled={status === 'running'}
-          placeholder="Enter message to sign..."
-        />
-      </div>
+      {stepInfo && <div className="step-indicator">{stepInfo}</div>}
+      {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
       <button
         id="btn-run-protocol"
-        className="btn-primary"
+        className="btn btn-primary"
         onClick={handleRunProtocol}
         disabled={status === 'running'}
       >
-        {status === 'running' ? 'Executing Protocol...' : 'Run Honest QDS Pipeline'}
+        {status === 'running' ? 'Executing Quantum Protocol...' : 'Execute Full QDS Protocol'}
       </button>
-
-      {status === 'running' && <div className="status-banner running">{stepInfo}</div>}
-      {status === 'done' && <div className="status-banner success">{stepInfo}</div>}
-      {status === 'error' && <div className="status-banner error">Error: {errorMsg}</div>}
     </section>
   );
 }

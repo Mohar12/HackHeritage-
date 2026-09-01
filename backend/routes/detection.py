@@ -11,13 +11,10 @@ from pydantic import BaseModel, Field
 from typing import Any
 
 from detection_engine.detector import full_threat_assessment
+from backend.schemas import DetectRequest
 from backend.audit_ledger import ledger
 
 router = APIRouter()
-
-
-class DetectRequest(BaseModel):
-    measurement_data: dict[str, Any]
 
 
 class DetectResponse(BaseModel):
@@ -38,9 +35,10 @@ class DetectResponse(BaseModel):
 @router.post("/", response_model=DetectResponse, tags=["Detection"])
 async def detect_threat_endpoint(request: DetectRequest) -> DetectResponse:
     """Analyze measurement statistics, log detection event, and return full threat assessment."""
-    assessment = full_threat_assessment(request.measurement_data)
+    meas_dict = request.measurement_data.model_dump(exclude_none=True)
+    assessment = full_threat_assessment(meas_dict)
 
-    session_id = request.measurement_data.get("session_id", "detection-session")
+    session_id = request.measurement_data.session_id or "detection-session"
 
     ledger.record_event(
         session_id=session_id,
