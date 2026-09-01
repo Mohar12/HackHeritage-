@@ -50,6 +50,7 @@ class SignResponse(BaseModel):
     message_hash: str
     session_id: str
     signature: dict[str, Any]
+    sent_bits: list[int]
     measurement_outcomes: list[int]
     correction_bits: list[list[int]]
     bases: list[str]
@@ -86,6 +87,7 @@ async def sign_endpoint(request: SignRequest) -> SignResponse:
         message_hash=clean_sig["message_hash"],
         session_id=clean_sig["session_id"],
         signature=clean_sig,
+        sent_bits=clean_sig["sent_bits"],
         measurement_outcomes=clean_sig["measurement_outcomes"],
         correction_bits=clean_sig["correction_bits"],
         bases=clean_sig["bases"],
@@ -108,6 +110,7 @@ class VerifyResponse(BaseModel):
     session_valid: bool
     qber: float
     fidelity: float
+    received_bits: list[int]
     reason: str
 
 

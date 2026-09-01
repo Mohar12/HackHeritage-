@@ -60,14 +60,12 @@ export default function ProtocolRunPanel({ onResult, onStageUpdate }) {
       setCurrentStep(4);
       setStepInfo('Stage 4/4: Evaluating QBER against BB84 bound (0.11) & Pearson χ² Born test...');
       if (onStageUpdate) onStageUpdate(7);
-      const numQ = Number(nQubits);
-      const zeroSentBits = Array(numQ).fill(0);
       const detect = await detectThreat({
         measurement_data: {
           measurement_counts: sig.measurement_counts,
           fidelity: sig.fidelity,
-          sent_bits: zeroSentBits,
-          received_bits: sig.measurement_outcomes,
+          sent_bits: sig.sent_bits,
+          received_bits: verify.received_bits,
           session_id: sig.session_id,
         },
       });

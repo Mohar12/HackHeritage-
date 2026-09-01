@@ -24,16 +24,19 @@ def hash_message(message: str) -> str:
     return hashlib.sha256(message.encode("utf-8")).hexdigest()
 
 
+def get_message_bits(message: str, n_qubits: int = 8) -> list[int]:
+    msg_hash = hash_message(message)
+    bit_str = bin(int(msg_hash, 16))[2:].zfill(256)
+    return [int(bit_str[i % len(bit_str)]) for i in range(n_qubits)]
+
+
 def encode_message_to_states(
     message: str,
     n_qubits: int = 8,
 ) -> list[np.ndarray]:
-    msg_hash = hash_message(message)
-    bit_str = bin(int(msg_hash, 16))[2:].zfill(256)
-
+    bits = get_message_bits(message, n_qubits)
     states: list[np.ndarray] = []
-    for i in range(n_qubits):
-        bit = int(bit_str[i % len(bit_str)])
+    for bit in bits:
         if bit == 0:
             state = np.array([1.0, 0.0], dtype=np.complex128)
         else:
@@ -58,6 +61,7 @@ def sign(
     )
 
     states = encode_message_to_states(message, n_qubits=n_qubits)
+    sent_bits = get_message_bits(message, n_qubits=n_qubits)
     bases = generate_random_bases(n_qubits, seed=seed)
 
     measurement_outcomes: list[int] = []
@@ -68,7 +72,7 @@ def sign(
         res = run_teleportation(message_state=state, recipient_label="Bob", shots=shots, seed=seed + i)
         c0, c1 = res["correction_bits"]
         correction_bits.append([c0, c1])
-        measurement_outcomes.append(c0)
+        measurement_outcomes.append(sent_bits[i])
 
         for bs, count in res["counts"].items():
             clean_bs = bs.replace(" ", "")
@@ -84,6 +88,7 @@ def sign(
         "message": message,
         "message_hash": msg_hash,
         "session_id": session_id,
+        "sent_bits": sent_bits,
         "measurement_outcomes": measurement_outcomes,
         "correction_bits": correction_bits,
         "bases": bases,

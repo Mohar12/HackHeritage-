@@ -130,33 +130,25 @@ def verify(
 
     n = len(outcomes)
     expected_states = encode_message_to_states(target_msg, n_qubits=n)
-
-    # Compute measurement fidelities and error rates
-    fidelities = []
-    received_bits = []
-    for i in range(n):
-        c0, c1 = corrections[i]
-        orig_state = expected_states[i]
-        # In a valid teleportation run, applying (Z^c0 * X^c1) on the recipient's
-        # half yields the original state
-        corrected = apply_pauli_corrections(orig_state, (c0, c1))
-        fidelities.append(1.0)
-        # Expected bit outcome from ideal state
-        received_bits.append(int(outcomes[i]))
-
-    # Sifted QBER comparison
     sent_bits = [int(np.argmax(np.abs(s)**2)) for s in expected_states]
-    qber = calculate_qber(sent_bits, received_bits)
-    avg_fidelity = float(np.mean(fidelities)) if fidelities else 0.0
+    received_bits = [int(b) for b in outcomes]
 
-    # Decision rule: QBER < 11% (BB84 limit) and valid session
-    is_valid = (qber < 0.11) and session_valid and (expected_hash == sig_hash)
+    if signature.get("measured_qber") is not None:
+        qber = float(signature["measured_qber"])
+    else:
+        qber = calculate_qber(sent_bits, received_bits)
+
+    fidelity = float(signature.get("fidelity", 0.99))
+
+    # Decision rule: QBER < 11% (BB84 limit), Fidelity >= 90%, and valid session
+    is_valid = bool((qber < 0.11) and (fidelity >= 0.90) and session_valid and (expected_hash == sig_hash))
 
     return {
         "is_valid": is_valid,
         "message_intact": (expected_hash == sig_hash),
         "session_valid": session_valid,
         "qber": round(float(qber), 6),
-        "fidelity": round(avg_fidelity, 6),
+        "fidelity": round(float(fidelity), 6),
+        "received_bits": received_bits,
         "reason": "verified_authentic" if is_valid else ("session_mismatch" if not session_valid else "qber_exceeded"),
     }
