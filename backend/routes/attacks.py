@@ -6,6 +6,7 @@ Purpose: API routes for /simulate-attack/{attack_type} with audit ledger integra
 
 from __future__ import annotations
 
+import numpy as np
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Any
@@ -14,6 +15,7 @@ from attack_sim.channel_manipulation import simulate_channel_manipulation
 from attack_sim.forgery import simulate_forgery
 from attack_sim.impersonation import simulate_impersonation
 from attack_sim.replay import simulate_replay
+from qds_core.pauli_ops import generate_random_bases
 from backend.audit_ledger import ledger
 
 router = APIRouter()
@@ -41,8 +43,26 @@ async def simulate_attack_endpoint(
     params = request.params
     shots = request.shots
     seed = request.seed
+    n_qubits = int(params.get("n_qubits", 8))
 
-    if atype in ("intercept_resend", "depolarizing"):
+    if atype == "intercept_resend":
+        # Generate default Alice states/bases if not explicitly provided
+        if "alice_states" not in params:
+            rng = np.random.default_rng(seed)
+            alice_bits = rng.integers(0, 2, size=n_qubits)
+            params["alice_states"] = [
+                [1.0, 0.0] if b == 0 else [0.0, 1.0] for b in alice_bits
+            ]
+            params["alice_bases"] = generate_random_bases(n_qubits, seed=seed)
+            params["recipient_bases"] = generate_random_bases(n_qubits, seed=seed + 1)
+
+        res = simulate_channel_manipulation(
+            attack_type=atype,
+            params=params,
+            shots=shots,
+            seed=seed,
+        )
+    elif atype == "depolarizing":
         res = simulate_channel_manipulation(
             attack_type=atype,
             params=params,
@@ -53,14 +73,14 @@ async def simulate_attack_endpoint(
         res = simulate_forgery(
             signature=params.get("signature", {}),
             strategy=params.get("strategy", "blind_guess"),
-            n_qubits=params.get("n_qubits", 8),
+            n_qubits=n_qubits,
             shots=shots,
             seed=seed,
         )
     elif atype == "impersonation":
         res = simulate_impersonation(
             target_identity=params.get("target_identity", "Alice"),
-            n_qubits=params.get("n_qubits", 8),
+            n_qubits=n_qubits,
             strategy=params.get("strategy", "unentangled_spoof"),
             shots=shots,
             seed=seed,
@@ -79,8 +99,8 @@ async def simulate_attack_endpoint(
 
     # Format measurement_data dictionary
     counts = res.get("counts") or res.get("measurement_counts") or {"00": 512, "11": 512}
-    fidelity = res.get("fidelity", 0.5)
-    measured_qber = res.get("measured_qber") or res.get("forgery_qber") or 0.25
+    fidelity = float(res.get("fidelity", 0.5))
+    measured_qber = float(res.get("measured_qber") or res.get("forgery_qber") or 0.25)
 
     measurement_data = {
         "measurement_counts": counts,
