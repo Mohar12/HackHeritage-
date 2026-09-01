@@ -1,17 +1,17 @@
 """
 signatures.py
 =============
-Purpose: API routes for /sign and /verify.
-
-Exposes POST endpoints that invoke the QDS signing and verification logic
-from the qds_core package and return structured results suitable for
-display in the React dashboard.
+Purpose: API routes for /signatures/sign and /signatures/verify.
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Any
+
+from qds_core.signing import sign
+from qds_core.verification import verify
 
 router = APIRouter()
 
@@ -19,50 +19,71 @@ router = APIRouter()
 # ---- /sign ---------------------------------------------------------------
 
 class SignRequest(BaseModel):
-    message: str
-    private_key: dict
+    message: str = Field(default="Transfer Authorization Payload")
+    private_key: dict[str, Any] = Field(default_factory=dict)
+    n_qubits: int = Field(default=8, ge=1, le=128)
+    shots: int = Field(default=1024, ge=64, le=8192)
+    seed: int = Field(default=42, ge=0)
 
 
 class SignResponse(BaseModel):
-    signature: dict
+    message: str
     message_hash: str
     session_id: str
+    signature: dict[str, Any]
+    measurement_outcomes: list[int]
+    correction_bits: list[list[int]]
+    bases: list[str]
+    fidelity: float
+    measurement_counts: dict[str, int]
 
 
 @router.post("/sign", response_model=SignResponse, tags=["Signatures"])
-async def sign_message(request: SignRequest) -> SignResponse:
-    """
-    Sign a classical message using the teleportation-based QDS protocol.
-
-    Internally calls qds_core.signing.sign().
-    """
-    # TODO: from qds_core.signing import sign
-    # TODO: result = sign(message=request.message, private_key=request.private_key)
-    # TODO: return SignResponse(**result)
-    raise NotImplementedError("signing not yet implemented")
+async def sign_endpoint(request: SignRequest) -> SignResponse:
+    """Sign a classical message using teleportation-based QDS."""
+    sig = sign(
+        message=request.message,
+        private_key=request.private_key,
+        n_qubits=request.n_qubits,
+        shots=request.shots,
+        seed=request.seed,
+    )
+    return SignResponse(
+        message=sig["message"],
+        message_hash=sig["message_hash"],
+        session_id=sig["session_id"],
+        signature=sig,
+        measurement_outcomes=sig["measurement_outcomes"],
+        correction_bits=sig["correction_bits"],
+        bases=sig["bases"],
+        fidelity=sig["fidelity"],
+        measurement_counts=sig["measurement_counts"],
+    )
 
 
 # ---- /verify -------------------------------------------------------------
 
 class VerifyRequest(BaseModel):
-    signature: dict
-    public_key: dict
+    signature: dict[str, Any]
+    public_key: dict[str, Any] = Field(default_factory=dict)
+    message: str | None = None
 
 
 class VerifyResponse(BaseModel):
     is_valid: bool
-    measurement_outcome: int
-    expected_outcome: int
+    message_intact: bool
+    session_valid: bool
+    qber: float
+    fidelity: float
+    reason: str
 
 
 @router.post("/verify", response_model=VerifyResponse, tags=["Signatures"])
-async def verify_signature(request: VerifyRequest) -> VerifyResponse:
-    """
-    Verify a QDS signature using Pauli corrections and projective measurement.
-
-    Internally calls qds_core.verification.verify().
-    """
-    # TODO: from qds_core.verification import verify
-    # TODO: result = verify(signature=request.signature, public_key=request.public_key)
-    # TODO: return VerifyResponse(**result)
-    raise NotImplementedError("verification not yet implemented")
+async def verify_endpoint(request: VerifyRequest) -> VerifyResponse:
+    """Verify a QDS signature with Pauli corrections and projective measurements."""
+    result = verify(
+        signature=request.signature,
+        public_key=request.public_key,
+        message=request.message,
+    )
+    return VerifyResponse(**result)

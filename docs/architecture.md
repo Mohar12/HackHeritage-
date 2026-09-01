@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the high-level architecture of the
+This document describes the production architecture of the
 **Quantum-Inspired Cyber Threat Detection Framework for Teleportation-Based
 Quantum Digital Signatures (QDS)**.
 
@@ -23,62 +23,107 @@ The system is split into four logical layers:
 └──────────────┴──────────────┴────────────────────────┘
 ```
 
-## Component Descriptions
+---
 
-### `qds_core`
-Implements the teleportation-based QDS protocol:
-- **key_distribution**: Bell-pair generation, shared entanglement distribution
-- **teleportation**: Alice-Bob-Charlie circuit (Qiskit + Aer)
-- **signing**: Encode message → teleport → collect classical correction bits
-- **verification**: Apply Pauli corrections → projective measurement → accept/reject
-- **pauli_ops**: Shared Pauli matrices, Bell-state utilities, fidelity calculation
+## 1. Signing Sequence Diagram
 
-### `attack_sim`
-Physics-based adversarial simulations:
-- **forgery**: Eve guesses/reconstructs Alice's signing state
-- **impersonation**: Eve generates a spoofed key pair
-- **replay**: Captured valid signature re-submitted in a new session
-- **channel_manipulation**: Depolarizing noise injection, intercept-resend
-
-### `detection_engine`
-Deterministic statistical anomaly detection:
-- **statistics**: QBER, χ², excess-error analysis
-- **thresholds**: BB84 and Holevo-bound-derived decision thresholds
-- **detector**: `detect_threat()` → `(is_malicious: bool, confidence_score: float)`
-
-### `backend`
-FastAPI REST API exposing all simulation primitives as JSON endpoints.
-
-### `dashboard`
-React 18 + Vite single-page application for visualising QDS runs and
-attack/detection results in real time.
-
-## Data Flow (Protocol Run)
-
-```
-User → Dashboard
-  → POST /generate-keys        → key_distribution.distribute_public_keys()
-  → POST /signatures/sign      → signing.sign()
-  → POST /signatures/verify    → verification.verify()
-  → POST /detect               → detector.detect_threat()
-  ← Dashboard renders charts
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Alice as Signer (Alice)
+    participant Core as qds_core (Teleportation)
+    participant Aer as Qiskit Aer Simulator
+    actor Bob as Verifier (Bob)
+    
+    Alice->>Core: encode_message_to_states(message, n_qubits)
+    Core->>Aer: Execute Bell-State Measurement (BSM) on (|ψ⟩, EPR_Alice)
+    Aer-->>Core: Classical correction bits (c0, c1) & outcomes
+    Core-->>Alice: Signature packet {hash, outcomes, correction_bits, session_id}
+    Alice->>Bob: Transmit Signature + Classical Message over Authenticated Channel
 ```
 
-## Data Flow (Attack Simulation)
+---
 
+## 2. Verification Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Bob as Verifier (Bob)
+    participant Verify as qds_core/verification.py
+    participant Stats as detection_engine/statistics.py
+    
+    Bob->>Verify: verify(signature, public_key, message)
+    Verify->>Verify: Check SHA-256 Message Hash & Session ID Binding
+    Verify->>Verify: Apply Pauli Corrections: σ_z^(c0) · σ_x^(c1) to Bob's EPR Half
+    Verify->>Stats: calculate_qber(sent_bits, received_bits)
+    Stats-->>Verify: Sifted QBER & State Fidelity
+    Verify-->>Bob: Verdict {is_valid: bool, qber: float, reason: str}
 ```
-User → Dashboard
-  → POST /simulate-attack {attack_type: "forgery", ...}
-      → attack_sim.forgery.simulate_forgery()
-  → POST /detect {measurement_data: <forged_data>}
-      → detector.detect_threat()
-  ← Dashboard renders threat assessment
+
+---
+
+## 3. Attack & Detection Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Eve as Adversary (Eve)
+    participant Attack as attack_sim/channel_manipulation.py
+    participant Engine as detection_engine/detector.py
+    participant Stats as detection_engine/statistics.py
+    
+    Eve->>Attack: Intercept-Resend / Forgery / Impersonation / Replay
+    Attack->>Attack: Projective collapse in random basis / Spoofed state injection
+    Attack-->>Engine: Raw Measurement Counts & Collapsed Bitstrings
+    Engine->>Stats: chi_squared_born_test() & calculate_qber()
+    Stats-->>Engine: χ² p-value, QBER, Excess Error, Entropy
+    Engine->>Engine: Evaluate BB84/Holevo Matrix & Sigmoid Confidence Score
+    Engine-->>Eve: Threat Assessment {is_malicious: bool, action: "ABORT", confidence: float}
 ```
 
-## Deployment
+---
 
-Both services are containerised and orchestrated via `docker-compose.yml`
-at the project root. See [README.md](../README.md) for setup instructions.
+## 4. Production Deployment Topology
 
-<!-- TODO: Add sequence diagrams (Mermaid) for signing and verification flows -->
-<!-- TODO: Add deployment topology diagram for production -->
+```mermaid
+graph TD
+    subgraph Host ["Host Environment / User Browser"]
+        Browser["React 18 + Vite Dashboard (Port 5173)"]
+    end
+
+    subgraph DockerBridge ["Docker Bridge Network (quantum-network)"]
+        subgraph FrontendContainer ["quantum-frontend (node:20-alpine)"]
+            ViteDev["Vite Dev Server (Port 5173)"]
+        end
+
+        subgraph BackendContainer ["quantum-backend (python:3.11-slim)"]
+            Uvicorn["Uvicorn ASGI Server (Port 8000)"]
+            FastAPI["FastAPI REST Application"]
+            UserSec["Isolated Non-Root User (quantum_runner, UID 1001)"]
+            
+            subgraph QuantumCore ["Python Scientific Engine"]
+                Qiskit["Qiskit 1.2.4 & Aer Simulator 0.15.0"]
+                SciPy["SciPy 1.14.1 (Linear Stats & χ²)"]
+                NumPy["NumPy 2.1.1 (Complex128 Linear Algebra)"]
+            end
+        end
+    end
+
+    Browser -->|HTTP localhost:5173| ViteDev
+    ViteDev -->|REST API HTTP localhost:8000| Uvicorn
+    Uvicorn --> FastAPI
+    FastAPI --> QuantumCore
+```
+
+---
+
+## 5. Security & Boundary Classification
+
+| Metric | Safe Condition | Warning Condition | Compromised Condition |
+|---|---|---|---|
+| **QBER** | $< 5.0\%$ | $5.0\% - 11.0\%$ | $> 11.0\%$ (BB84 Limit) |
+| **χ² $p$-value** | $> 0.05$ | $0.01 - 0.05$ | $< 0.01$ (Distribution Skew) |
+| **State Fidelity** | $> 90.0\%$ | $70.0\% - 90.0\%$ | $< 70.0\%$ |
+| **Confidence** | $< 0.30$ | $0.30 - 0.50$ | $> 0.50$ (`is_malicious = True`) |
+| **Action** | `NONE` | `ALERT` | `ABORT` (Channel Tear-Down) |

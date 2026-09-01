@@ -2,13 +2,6 @@
  * client.js
  * =========
  * API client for the QDS Threat Detection backend (FastAPI on port 8000).
- *
- * Each function wraps a single backend endpoint and handles JSON
- * serialisation / deserialisation. Throws on non-2xx HTTP responses.
- *
- * TODO: Add request cancellation via AbortController for long-running simulations.
- * TODO: Add retry logic with exponential back-off for transient failures.
- * TODO: Move BASE_URL to an environment variable (import.meta.env.VITE_API_URL).
  */
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
@@ -27,44 +20,55 @@ async function apiFetch(path, options = {}) {
   return response.json();
 }
 
-// ---------------------------------------------------------------------------
-// /generate-keys
-// ---------------------------------------------------------------------------
-/** @param {{ n_qubits: number }} params */
-export async function generateKeys(params) {
-  // TODO: return apiFetch('/generate-keys/', { method: 'POST', body: JSON.stringify(params) });
-  throw new Error('generateKeys: not yet implemented');
+/** Check backend health */
+export async function getHealth() {
+  return apiFetch('/health');
 }
 
-// ---------------------------------------------------------------------------
-// /signatures
-// ---------------------------------------------------------------------------
-/** @param {{ message: string, private_key: object }} params */
+/** Generate public keys and distribute EPR pairs */
+export async function generateKeys(params = { n_qubits: 8 }) {
+  return apiFetch('/generate-keys/', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+/** Sign a classical message using teleportation QDS */
 export async function signMessage(params) {
-  // TODO: return apiFetch('/signatures/sign', { method: 'POST', body: JSON.stringify(params) });
-  throw new Error('signMessage: not yet implemented');
+  return apiFetch('/signatures/sign', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
 }
 
-/** @param {{ signature: object, public_key: object }} params */
+/** Verify a QDS signature with Pauli corrections */
 export async function verifySignature(params) {
-  // TODO: return apiFetch('/signatures/verify', { method: 'POST', body: JSON.stringify(params) });
-  throw new Error('verifySignature: not yet implemented');
+  return apiFetch('/signatures/verify', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
 }
 
-// ---------------------------------------------------------------------------
-// /simulate-attack
-// ---------------------------------------------------------------------------
-/** @param {{ attack_type: string, params: object }} params */
+/** Simulate an attack (forgery, impersonation, replay, channel_manipulation) */
 export async function simulateAttack(params) {
-  // TODO: return apiFetch('/simulate-attack/', { method: 'POST', body: JSON.stringify(params) });
-  throw new Error('simulateAttack: not yet implemented');
+  return apiFetch('/simulate-attack/', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
 }
 
-// ---------------------------------------------------------------------------
-// /detect
-// ---------------------------------------------------------------------------
-/** @param {{ measurement_data: object }} params */
+/** Run threat detection over measurement statistics */
 export async function detectThreat(params) {
-  // TODO: return apiFetch('/detect/', { method: 'POST', body: JSON.stringify(params) });
-  throw new Error('detectThreat: not yet implemented');
+  return apiFetch('/detect/', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+/** Unified single-call simulation endpoint */
+export async function runUnifiedSimulation(params) {
+  return apiFetch('/api/v1/simulate', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
 }

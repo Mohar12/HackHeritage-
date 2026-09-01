@@ -2,46 +2,35 @@
  * App.jsx
  * =======
  * Root application component for the QDS Threat Detection Dashboard.
- *
- * Renders the three main panels:
- *  - ProtocolRunPanel   : trigger key generation, sign, verify flows
- *  - AttackSelectionPanel : choose and launch attack simulations
- *  - ResultsCharts       : visualise measurement statistics and threat scores
- *
- * TODO: Add React Router for multi-page navigation if the app grows.
- * TODO: Implement global state (Context or Zustand) to share API results
- *       between panels without prop-drilling.
  */
 
 import React, { useState } from 'react';
 import ProtocolRunPanel from './components/ProtocolRunPanel.jsx';
 import AttackSelectionPanel from './components/AttackSelectionPanel.jsx';
 import ResultsCharts from './components/ResultsCharts.jsx';
+import './index.css';
 
 export default function App() {
-  // TODO: Replace with proper state management
-  const [protocolResult, setProtocolResult] = useState(null);
-  const [attackResult, setAttackResult] = useState(null);
-  const [detectionResult, setDetectionResult] = useState(null);
+  const [activeData, setActiveData] = useState(null);
 
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>QDS Threat Detection Framework</h1>
+        <div className="header-badge">PHYSICS-BASED QUANTUM SIMULATION</div>
+        <h1>Quantum-Inspired Cyber Threat Detection</h1>
         <p className="app-subtitle">
-          Quantum-Inspired Cyber Threat Detection · Teleportation-Based QDS
+          Teleportation-Based Quantum Digital Signatures (QDS) · Bell-State Measurement &amp; Statistical Anomaly Engine
         </p>
       </header>
 
       <main className="app-main">
-        {/* TODO: style panels with CSS grid layout */}
-        <ProtocolRunPanel onResult={setProtocolResult} />
-        <AttackSelectionPanel onResult={setAttackResult} />
-        <ResultsCharts
-          protocolResult={protocolResult}
-          attackResult={attackResult}
-          detectionResult={detectionResult}
-        />
+        <div className="controls-column">
+          <ProtocolRunPanel onResult={setActiveData} />
+          <AttackSelectionPanel onResult={setActiveData} />
+        </div>
+        <div className="telemetry-column">
+          <ResultsCharts data={activeData} />
+        </div>
       </main>
     </div>
   );
