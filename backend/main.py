@@ -45,6 +45,7 @@ from attack_sim.channel_manipulation import simulate_channel_manipulation
 from attack_sim.forgery import simulate_forgery
 from attack_sim.impersonation import simulate_impersonation
 from attack_sim.replay import simulate_replay
+from backend.audit_ledger import ledger, AuditRecord
 
 from backend.routes import keys, signatures, attacks, detection
 
@@ -125,6 +126,16 @@ async def health_check() -> HealthResponse:
     )
 
 
+@router.get(
+    "/audit-ledger",
+    response_model=list[AuditRecord],
+    summary="Retrieve immutable audit ledger records",
+    tags=["Audit Ledger"],
+)
+async def get_audit_ledger(limit: int = 50) -> list[AuditRecord]:
+    return ledger.get_records(limit=limit)
+
+
 def _build_ideal_fidelity(counts: dict[str, int]) -> float:
     total = sum(counts.values())
     if total == 0:
@@ -145,8 +156,6 @@ def _run_no_attack_simulation(
         shots=req.shots,
         seed=req.seed,
     )
-    # Honest EPR measurement yields equal probabilities for "00" and "11"
-    # To test chi-squared against expected uniform Bell outcomes
     counts: dict[str, int] = key_material["measurement_counts"]
     fidelity = 0.99
     qber = key_material["measured_qber"]
@@ -213,9 +222,10 @@ def _run_depolarizing_simulation(
 )
 async def simulate(req: SimulationRequest) -> SimulationResponse:
     try:
+        session_id = f"sim-{req.attack_type}-{req.seed}"
+
         if req.attack_type == AttackType.NONE:
             counts, fidelity, qber = _run_no_attack_simulation(req)
-            # For honest Bell distribution, expected counts are uniform over observed non-zero bins
             expected_dist = {k: 1.0 / len(counts) for k in counts.keys()} if counts else None
             chi2_res = chi_squared_born_test(counts, expected_distribution=expected_dist)
             chi2_p_val = chi2_res["p_value"]
@@ -249,6 +259,19 @@ async def simulate(req: SimulationRequest) -> SimulationResponse:
             qber=qber,
             chi_sq_p_val=chi2_p_val,
             fidelity=fidelity,
+        )
+
+        ledger.record_event(
+            session_id=session_id,
+            event_type="SIMULATION_RUN",
+            node_id="SimulationEngine",
+            attack_type=req.attack_type,
+            qber=qber,
+            chi2_p_value=chi2_p_val,
+            fidelity=fidelity,
+            confidence_score=assessment["confidence_score"],
+            threat_classification=assessment["qber_classification"],
+            recommended_action=assessment["recommended_action"],
         )
 
         return SimulationResponse(

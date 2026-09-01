@@ -49,9 +49,9 @@ export async function verifySignature(params) {
   });
 }
 
-/** Simulate an attack (forgery, impersonation, replay, channel_manipulation) */
-export async function simulateAttack(params) {
-  return apiFetch('/simulate-attack/', {
+/** Simulate an attack (forgery, impersonation, replay, intercept_resend, depolarizing) */
+export async function simulateAttack(attackType, params = {}) {
+  return apiFetch(`/simulate-attack/${attackType}`, {
     method: 'POST',
     body: JSON.stringify(params),
   });
@@ -63,6 +63,11 @@ export async function detectThreat(params) {
     method: 'POST',
     body: JSON.stringify(params),
   });
+}
+
+/** Fetch immutable audit ledger entries */
+export async function getAuditLedger(limit = 20) {
+  return apiFetch(`/api/v1/audit-ledger?limit=${limit}`);
 }
 
 /** Unified single-call simulation endpoint */

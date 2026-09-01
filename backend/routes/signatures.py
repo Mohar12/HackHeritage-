@@ -1,7 +1,7 @@
 """
 signatures.py
 =============
-Purpose: API routes for /signatures/sign and /signatures/verify.
+Purpose: API routes for /signatures/sign and /signatures/verify with ledger audit hooks.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from typing import Any
 
 from qds_core.signing import sign
 from qds_core.verification import verify
+from backend.audit_ledger import ledger
 
 router = APIRouter()
 
@@ -40,7 +41,7 @@ class SignResponse(BaseModel):
 
 @router.post("/sign", response_model=SignResponse, tags=["Signatures"])
 async def sign_endpoint(request: SignRequest) -> SignResponse:
-    """Sign a classical message using teleportation-based QDS."""
+    """Sign a classical message using teleportation-based QDS and record to audit ledger."""
     sig = sign(
         message=request.message,
         private_key=request.private_key,
@@ -48,6 +49,16 @@ async def sign_endpoint(request: SignRequest) -> SignResponse:
         shots=request.shots,
         seed=request.seed,
     )
+
+    # Record asynchronous non-blocking audit entry
+    ledger.record_event(
+        session_id=sig["session_id"],
+        event_type="SIGNING",
+        node_id="Alice",
+        message_hash=sig["message_hash"],
+        fidelity=sig["fidelity"],
+    )
+
     return SignResponse(
         message=sig["message"],
         message_hash=sig["message_hash"],
@@ -80,10 +91,23 @@ class VerifyResponse(BaseModel):
 
 @router.post("/verify", response_model=VerifyResponse, tags=["Signatures"])
 async def verify_endpoint(request: VerifyRequest) -> VerifyResponse:
-    """Verify a QDS signature with Pauli corrections and projective measurements."""
+    """Verify a QDS signature and log outcome to immutable ledger."""
     result = verify(
         signature=request.signature,
         public_key=request.public_key,
         message=request.message,
     )
+
+    # Record audit log
+    ledger.record_event(
+        session_id=request.signature.get("session_id", "unknown-session"),
+        event_type="VERIFICATION",
+        node_id="Bob",
+        message_hash=request.signature.get("message_hash"),
+        verification_outcome="ACCEPT" if result["is_valid"] else "REJECT",
+        qber=result["qber"],
+        fidelity=result["fidelity"],
+        recommended_action="NONE" if result["is_valid"] else "ABORT",
+    )
+
     return VerifyResponse(**result)

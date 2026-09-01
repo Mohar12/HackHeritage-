@@ -1,11 +1,7 @@
 /**
  * AttackSelectionPanel.jsx
  * ========================
- * Dashboard panel for selecting and launching adversarial simulations:
- *  - Intercept-Resend (Eavesdropping on flying qubits)
- *  - Forgery (Blind state & outcome guessing)
- *  - Impersonation (Spoofed identity with unentangled states)
- *  - Replay (Stale session replay attempt)
+ * Adversarial injection panel executing all 4 quantum attack vectors.
  */
 
 import React, { useState } from 'react';
@@ -14,13 +10,18 @@ import { simulateAttack, detectThreat } from '../api/client.js';
 const ATTACK_TYPES = [
   {
     value: 'intercept_resend',
-    label: 'Intercept-Resend (Eavesdropping)',
-    desc: 'Eve intercepts and collapses flying signature qubits, inducing ~25% QBER.',
+    label: 'Intercept-Resend (EPR Collapse)',
+    desc: 'Eve measures flying qubits in random Pauli bases, inducing ~25% QBER.',
+  },
+  {
+    value: 'depolarizing',
+    label: 'Depolarizing Noise Injection',
+    desc: 'Simulates non-malicious environmental thermal decoherence.',
   },
   {
     value: 'forgery',
-    label: 'Quantum Signature Forgery',
-    desc: 'Eve guesses Pauli measurement outcomes blindly, triggering extreme QBER.',
+    label: 'Signature Forgery (Blind Guessing)',
+    desc: 'Eve crafts a signature without private Bell keys; P(success) = 2^-n.',
   },
   {
     value: 'impersonation',
@@ -45,13 +46,15 @@ export default function AttackSelectionPanel({ onResult }) {
     setErrorMsg('');
     try {
       // 1. Run Attack Simulation
-      const attackData = await simulateAttack({
-        attack_type: selectedAttack,
-        n_qubits: Number(nQubits),
-        seed: 42,
+      const attackData = await simulateAttack(selectedAttack, {
         params: {
+          n_qubits: Number(nQubits),
           error_rate: 0.20,
+          target_identity: 'Alice',
+          strategy: selectedAttack === 'forgery' ? 'blind_guess' : 'unentangled_spoof',
         },
+        shots: 1024,
+        seed: 42,
       });
 
       // 2. Run Detection Engine on the Attack Data
@@ -111,18 +114,16 @@ export default function AttackSelectionPanel({ onResult }) {
         />
       </div>
 
+      {errorMsg && <div className="error-banner">{errorMsg}</div>}
+
       <button
-        id="btn-simulate-attack"
-        className="btn-danger"
+        id="btn-run-attack"
+        className="btn btn-attack"
         onClick={handleSimulateAttack}
         disabled={status === 'running'}
       >
-        {status === 'running' ? 'Simulating Adversary...' : 'Launch Attack & Run Detection'}
+        {status === 'running' ? 'Simulating Attack Vector...' : 'Execute Adversarial Attack'}
       </button>
-
-      {status === 'running' && <div className="status-banner running">Executing Quantum Attack Simulation...</div>}
-      {status === 'done' && <div className="status-banner success">Attack Executed & Analyzed</div>}
-      {status === 'error' && <div className="status-banner error">Error: {errorMsg}</div>}
     </section>
   );
 }

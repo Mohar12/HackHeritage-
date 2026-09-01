@@ -1,29 +1,27 @@
 """
 attacks.py
 ==========
-Purpose: API route for /simulate-attack.
+Purpose: API routes for /simulate-attack/{attack_type} with audit ledger integration.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from typing import Literal, Any
+from typing import Any
 
+from attack_sim.channel_manipulation import simulate_channel_manipulation
 from attack_sim.forgery import simulate_forgery
 from attack_sim.impersonation import simulate_impersonation
 from attack_sim.replay import simulate_replay
-from attack_sim.channel_manipulation import simulate_channel_manipulation
+from backend.audit_ledger import ledger
 
 router = APIRouter()
 
-AttackType = Literal["forgery", "impersonation", "replay", "channel_manipulation", "intercept_resend", "depolarizing"]
-
 
 class SimulateAttackRequest(BaseModel):
-    attack_type: AttackType = Field(default="intercept_resend")
     params: dict[str, Any] = Field(default_factory=dict)
-    n_qubits: int = Field(default=8, ge=1, le=128)
+    shots: int = Field(default=1024, ge=64, le=8192)
     seed: int = Field(default=42, ge=0)
 
 
@@ -33,55 +31,77 @@ class SimulateAttackResponse(BaseModel):
     measurement_data: dict[str, Any]
 
 
-@router.post("/", response_model=SimulateAttackResponse, tags=["Attacks"])
-async def simulate_attack_endpoint(request: SimulateAttackRequest) -> SimulateAttackResponse:
-    """Execute the selected quantum/cyber attack simulation."""
-    atype = request.attack_type
+@router.post("/{attack_type}", response_model=SimulateAttackResponse, tags=["Attacks"])
+async def simulate_attack_endpoint(
+    attack_type: str,
+    request: SimulateAttackRequest,
+) -> SimulateAttackResponse:
+    """Execute one of the four adversarial attack vectors and create an audit log entry."""
+    atype = attack_type.lower()
+    params = request.params
+    shots = request.shots
+    seed = request.seed
 
-    if atype == "forgery":
+    if atype in ("intercept_resend", "depolarizing"):
+        res = simulate_channel_manipulation(
+            attack_type=atype,
+            params=params,
+            shots=shots,
+            seed=seed,
+        )
+    elif atype == "forgery":
         res = simulate_forgery(
-            public_key=request.params.get("public_key"),
-            target_message=request.params.get("target_message", "Forged Bank Wire: $500,000"),
-            n_qubits=request.n_qubits,
-            seed=request.seed,
+            signature=params.get("signature", {}),
+            strategy=params.get("strategy", "blind_guess"),
+            n_qubits=params.get("n_qubits", 8),
+            shots=shots,
+            seed=seed,
         )
     elif atype == "impersonation":
         res = simulate_impersonation(
-            alice_public_key=request.params.get("alice_public_key"),
-            target_message=request.params.get("target_message", "Malicious Key Delegation"),
-            n_qubits=request.n_qubits,
-            seed=request.seed,
+            target_identity=params.get("target_identity", "Alice"),
+            n_qubits=params.get("n_qubits", 8),
+            strategy=params.get("strategy", "unentangled_spoof"),
+            shots=shots,
+            seed=seed,
         )
     elif atype == "replay":
-        captured = request.params.get("captured_signature", {})
         res = simulate_replay(
-            captured_signature=captured,
-            new_session_id=request.params.get("new_session_id"),
-        )
-    elif atype in ("channel_manipulation", "intercept_resend", "depolarizing"):
-        sub_type = "depolarizing" if atype == "depolarizing" else "intercept_resend"
-        res = simulate_channel_manipulation(
-            attack_type=sub_type,
-            params=request.params if request.params else {
-                "alice_states": [[1.0, 0.0] for _ in range(request.n_qubits)],
-                "error_rate": request.params.get("error_rate", 0.15),
-            },
-            seed=request.seed,
+            captured_signature=params.get("signature", {}),
+            target_recipient=params.get("target_recipient", "Charlie"),
+            new_session_id=params.get("new_session_id"),
         )
     else:
-        raise ValueError(f"Unknown attack type: {atype}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown attack type: '{attack_type}'. Must be one of: intercept_resend, depolarizing, forgery, impersonation, replay."
+        )
 
-    # Package measurement data for detection engine
+    # Format measurement_data dictionary
+    counts = res.get("counts") or res.get("measurement_counts") or {"00": 512, "11": 512}
+    fidelity = res.get("fidelity", 0.5)
+    measured_qber = res.get("measured_qber") or res.get("forgery_qber") or 0.25
+
     measurement_data = {
-        "measurement_counts": res.get("measurement_counts", {"00": 512, "11": 512}),
-        "fidelity": res.get("fidelity", 0.70),
-        "measured_qber": res.get("measured_qber", 0.15),
-        "session_id": res.get("session_id", "session-sim"),
+        "measurement_counts": counts,
+        "fidelity": fidelity,
+        "measured_qber": measured_qber,
+        "session_id": f"attack-{atype}-{seed}",
     }
     if "sent_bits" in res:
         measurement_data["sent_bits"] = res["sent_bits"]
     if "received_bits" in res:
         measurement_data["received_bits"] = res["received_bits"]
+
+    # Record non-blocking audit event
+    ledger.record_event(
+        session_id=measurement_data["session_id"],
+        event_type="ATTACK_SIMULATION",
+        node_id="Adversary-Eve",
+        attack_type=atype,
+        qber=measured_qber,
+        fidelity=fidelity,
+    )
 
     return SimulateAttackResponse(
         attack_type=atype,

@@ -1,7 +1,7 @@
 """
 keys.py
 =======
-Purpose: API route for /generate-keys.
+Purpose: API route for /generate-keys with audit ledger logging.
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from typing import Any
 
 from qds_core.key_distribution import distribute_public_keys
+from backend.audit_ledger import ledger
 
 router = APIRouter()
 
@@ -35,10 +36,18 @@ class GenerateKeysResponse(BaseModel):
 
 @router.post("/", response_model=GenerateKeysResponse, tags=["Keys"])
 async def generate_keys_endpoint(request: GenerateKeysRequest) -> GenerateKeysResponse:
-    """Generate quantum public keys and distributed EPR pairs."""
+    """Generate quantum public keys, distributed EPR pairs, and record audit event."""
     result = distribute_public_keys(
         num_keys=request.n_qubits,
         shots=request.shots,
         seed=request.seed,
     )
+
+    ledger.record_event(
+        session_id=result["session_id"],
+        event_type="KEY_DISTRIBUTION",
+        node_id="KDC-Alice",
+        qber=result["measured_qber"],
+    )
+
     return GenerateKeysResponse(**result)
