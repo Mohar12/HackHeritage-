@@ -1,7 +1,7 @@
 """
 attacks.py
 ==========
-Purpose: API routes for /simulate-attack/{attack_type} with audit ledger integration.
+Purpose: FastAPI router for attack simulation endpoints.
 """
 
 from __future__ import annotations
@@ -21,42 +21,38 @@ from backend.audit_ledger import ledger
 router = APIRouter()
 
 
-class SimulateAttackRequest(BaseModel):
+class AttackSimRequest(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
-    shots: int = Field(default=1024, ge=64, le=8192)
-    seed: int = Field(default=42, ge=0)
+    shots: int = 1024
+    seed: int = 42
 
 
-class SimulateAttackResponse(BaseModel):
-    attack_type: str
-    attack_result: dict[str, Any]
-    measurement_data: dict[str, Any]
+def _sanitize_for_json(obj: Any) -> Any:
+    """Recursively convert NumPy numbers, arrays, and complex types to JSON-safe Python primitives."""
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_sanitize_for_json(v) for v in obj]
+    elif isinstance(obj, tuple):
+        return [_sanitize_for_json(v) for v in obj]
+    elif isinstance(obj, np.ndarray):
+        if np.iscomplexobj(obj):
+            return [float(abs(x)) for x in obj.flatten().tolist()]
+        return obj.tolist()
+    elif isinstance(obj, (np.complex128, np.complex64, complex)):
+        return float(abs(obj))
+    elif isinstance(obj, (np.floating, float)):
+        return float(obj)
+    elif isinstance(obj, (np.integer, int)):
+        return int(obj)
+    elif isinstance(obj, (np.bool_, bool)):
+        return bool(obj)
+    return obj
 
 
-def _sanitize_for_json(data: Any) -> Any:
-    """Recursively convert complex numbers and NumPy arrays to JSON serializable objects."""
-    if isinstance(data, dict):
-        return {k: _sanitize_for_json(v) for k, v in data.items()}
-    elif isinstance(data, (list, tuple)):
-        return [_sanitize_for_json(item) for item in data]
-    elif isinstance(data, (np.ndarray,)):
-        return _sanitize_for_json(data.tolist())
-    elif isinstance(data, (complex, np.complex128, np.complex64)):
-        return [float(data.real), float(data.imag)]
-    elif isinstance(data, (np.integer, np.int64, np.int32)):
-        return int(data)
-    elif isinstance(data, (np.floating, np.float64, np.float32)):
-        return float(data)
-    return data
-
-
-@router.post("/{attack_type}", response_model=SimulateAttackResponse, tags=["Attacks"])
-async def simulate_attack_endpoint(
-    attack_type: str,
-    request: SimulateAttackRequest,
-) -> SimulateAttackResponse:
-    """Execute one of the four adversarial attack vectors and create an audit log entry."""
-    atype = attack_type.lower()
+@router.post("/{attack_type}")
+async def simulate_attack_endpoint(attack_type: str, request: AttackSimRequest) -> dict[str, Any]:
+    atype = attack_type.lower().strip()
     params = request.params
     shots = request.shots
     seed = request.seed
@@ -88,24 +84,22 @@ async def simulate_attack_endpoint(
         )
     elif atype == "forgery":
         res = simulate_forgery(
-            signature=params.get("signature", {}),
-            strategy=params.get("strategy", "blind_guess"),
+            public_key=params.get("public_key") or params.get("alice_public_key"),
+            target_message=params.get("target_message", "Authorized Transfer: $1,000,000 to Eve"),
             n_qubits=n_qubits,
-            shots=shots,
             seed=seed,
         )
     elif atype == "impersonation":
         res = simulate_impersonation(
-            target_identity=params.get("target_identity", "Alice"),
+            alice_public_key=params.get("public_key") or params.get("alice_public_key"),
+            target_message=params.get("target_message", "Urgent: Redirect Quantum Channel Funds"),
             n_qubits=n_qubits,
-            strategy=params.get("strategy", "unentangled_spoof"),
-            shots=shots,
             seed=seed,
         )
     elif atype == "replay":
+        captured_sig = params.get("captured_signature") or params.get("signature") or {}
         res = simulate_replay(
-            captured_signature=params.get("signature", {}),
-            target_recipient=params.get("target_recipient", "Charlie"),
+            captured_signature=captured_sig,
             new_session_id=params.get("new_session_id"),
         )
     else:
@@ -139,10 +133,13 @@ async def simulate_attack_endpoint(
         attack_type=atype,
         qber=measured_qber,
         fidelity=fidelity,
+        threat_classification="ATTACK_DETECTED",
+        recommended_action="ABORT",
     )
 
-    return SimulateAttackResponse(
-        attack_type=atype,
-        attack_result=clean_res,
-        measurement_data=measurement_data,
-    )
+    return {
+        "status": "success",
+        "attack_type": atype,
+        "results": clean_res,
+        "measurement_data": measurement_data,
+    }

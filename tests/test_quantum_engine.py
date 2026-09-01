@@ -43,7 +43,6 @@ class TestQBERBoundaries:
         recv = [0, 0, 0, 1]
         s_bases = ["X", "Z", "X", "Z"]
         r_bases = ["X", "X", "X", "Z"]  # Matches at indices 0, 2, 3
-        # sifted sent = [0, 0, 1], recv = [0, 0, 1] -> 0 errors
         assert calculate_qber(sent, recv, s_bases, r_bases) == 0.0
 
     def test_excess_error_subtraction(self):
@@ -182,7 +181,6 @@ class TestFastAPIEndpoints:
         assert data["is_malicious"] is False
 
     def test_detect_endpoint_rejects_integer_scalar_with_422(self, client: TestClient):
-        # Malformed integer passed for sent_bits
         payload = {
             "measurement_data": {
                 "measurement_counts": {"00": 512, "11": 512},
@@ -193,3 +191,19 @@ class TestFastAPIEndpoints:
         }
         response = client.post("/detect/", json=payload)
         assert response.status_code == 422
+
+    @pytest.mark.parametrize("attack_type", ["intercept_resend", "depolarizing", "forgery", "impersonation", "replay"])
+    def test_simulate_attack_all_endpoints(self, client: TestClient, attack_type: str):
+        payload = {
+            "params": {"n_qubits": 8},
+            "shots": 256,
+            "seed": 42
+        }
+        response = client.post(f"/simulate-attack/{attack_type}", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert data["attack_type"] == attack_type
+        assert "measurement_data" in data
+        assert "fidelity" in data["measurement_data"]
+        assert "measured_qber" in data["measurement_data"]
