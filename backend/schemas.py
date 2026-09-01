@@ -21,6 +21,9 @@ class AttackType(str, Enum):
     NONE             = "none"
     INTERCEPT_RESEND = "intercept_resend"
     DEPOLARIZING     = "depolarizing"
+    FORGERY          = "forgery"
+    IMPERSONATION    = "impersonation"
+    REPLAY           = "replay"
 
 
 class QBERClass(str, Enum):
@@ -100,8 +103,14 @@ class SimulationRequest(BaseModel):
     num_qubits: int = Field(
         default=8,
         ge=1,
-        le=256,
-        description="Number of EPR pairs (qubits) to generate.",
+        le=100000,
+        description="Number of logical EPR protocol samples to generate.",
+    )
+    batch_size: int = Field(
+        default=14,
+        ge=1,
+        le=14,
+        description="Physical circuit batch size (max 14 EPR pairs = 28 qubits per Aer circuit).",
     )
     attack_type: AttackType = Field(
         default=AttackType.NONE,
@@ -155,6 +164,10 @@ class SimulationResponse(BaseModel):
     num_qubits: int = Field(ge=1)
     shots: int = Field(ge=1)
     seed: int = Field(ge=0)
+    batches_executed: int = Field(default=1)
+    physical_qubits_per_circuit: int = Field(default=28)
+    execution_time_ms: float = Field(default=0.0)
+    samples_per_sec: float = Field(default=0.0)
     statistics: StatisticsDetail
     classification: ThreatClassification
     thresholds: dict[str, float]

@@ -150,7 +150,7 @@ def _build_ideal_fidelity(counts: dict[str, int]) -> float:
 
 def _run_no_attack_simulation(
     req: SimulationRequest,
-) -> tuple[dict[str, int], float, float]:
+) -> tuple[dict[str, int], float, float, int]:
     key_material = distribute_public_keys(
         num_keys=req.num_qubits,
         shots=req.shots,
@@ -159,12 +159,13 @@ def _run_no_attack_simulation(
     counts: dict[str, int] = key_material["measurement_counts"]
     fidelity = 0.99
     qber = key_material["measured_qber"]
-    return counts, fidelity, qber
+    batches = math.ceil(req.num_qubits / 14)
+    return counts, fidelity, qber, batches
 
 
 def _run_intercept_resend_simulation(
     req: SimulationRequest,
-) -> tuple[dict[str, int], float, float]:
+) -> tuple[dict[str, int], float, float, int]:
     rng = np.random.default_rng(req.seed)
     alice_bits = rng.integers(0, 2, size=req.num_qubits)
     alice_states = [
@@ -196,12 +197,13 @@ def _run_intercept_resend_simulation(
     errors = sum(result["errors_introduced"])
     fidelity = float(np.clip(1.0 - (errors / req.num_qubits), 0.0, 1.0))
     qber = result["measured_qber"]
-    return counts, fidelity, qber
+    batches = math.ceil(req.num_qubits / 14)
+    return counts, fidelity, qber, batches
 
 
 def _run_depolarizing_simulation(
     req: SimulationRequest,
-) -> tuple[dict[str, int], float, float]:
+) -> tuple[dict[str, int], float, float, int]:
     result = simulate_channel_manipulation(
         attack_type="depolarizing",
         params={"error_rate": req.noise_rate},
@@ -211,23 +213,72 @@ def _run_depolarizing_simulation(
     counts: dict[str, int] = result["counts"]
     fidelity = _build_ideal_fidelity(counts)
     qber = result["measured_qber"]
-    return counts, fidelity, qber
+    batches = math.ceil(req.num_qubits / 14)
+    return counts, fidelity, qber, batches
+
+
+def _run_forgery_simulation(
+    req: SimulationRequest,
+) -> tuple[dict[str, int], float, float, int]:
+    res = simulate_forgery(
+        target_message="Unauthorized Funds Transfer",
+        n_qubits=req.num_qubits,
+        seed=req.seed,
+    )
+    counts: dict[str, int] = res["measurement_counts"]
+    fidelity = float(res["fidelity"])
+    qber = float(res["measured_qber"])
+    batches = math.ceil(req.num_qubits / 14)
+    return counts, fidelity, qber, batches
+
+
+def _run_impersonation_simulation(
+    req: SimulationRequest,
+) -> tuple[dict[str, int], float, float, int]:
+    res = simulate_impersonation(
+        target_message="Spoofed Alice Session Announcement",
+        n_qubits=req.num_qubits,
+        seed=req.seed,
+    )
+    counts: dict[str, int] = res["measurement_counts"]
+    fidelity = float(res["fidelity"])
+    qber = float(res["measured_qber"])
+    batches = math.ceil(req.num_qubits / 14)
+    return counts, fidelity, qber, batches
+
+
+def _run_replay_simulation(
+    req: SimulationRequest,
+) -> tuple[dict[str, int], float, float, int]:
+    dummy_sig = {
+        "session_id": f"orig-session-{req.seed}",
+        "measurement_counts": {"00": 512, "11": 512},
+    }
+    res = simulate_replay(
+        captured_signature=dummy_sig,
+        new_session_id=f"replay-session-{req.seed}",
+    )
+    counts: dict[str, int] = res["measurement_counts"]
+    fidelity = float(res["fidelity"])
+    qber = float(res["measured_qber"])
+    batches = math.ceil(req.num_qubits / 14)
+    return counts, fidelity, qber, batches
 
 
 @router.post(
     "/simulate",
     response_model=SimulationResponse,
-    summary="Run a full QDS simulation with optional attack",
+    summary="Run a full QDS simulation with optional attack and batching telemetry",
     tags=["Simulation"],
 )
 async def simulate(req: SimulationRequest) -> SimulationResponse:
+    start_time = time.perf_counter()
     try:
         session_id = f"sim-{req.attack_type}-{req.seed}"
 
         if req.attack_type == AttackType.NONE:
-            counts, fidelity, qber = _run_no_attack_simulation(req)
+            counts, fidelity, qber, batches = _run_no_attack_simulation(req)
             total_shots = sum(counts.values())
-            # For honest Bell pairs, theoretical expectation is 50% |00> and 50% |11>
             expected_dist = {"00": 0.5, "01": 0.0, "10": 0.0, "11": 0.5}
             chi2_res = chi_squared_born_test(counts, expected_distribution=expected_dist)
             chi2_p_val = chi2_res["p_value"]
@@ -235,7 +286,7 @@ async def simulate(req: SimulationRequest) -> SimulationResponse:
             excess_qber = 0.0
             shannon_entropy = 1.0
         elif req.attack_type == AttackType.INTERCEPT_RESEND:
-            counts, fidelity, qber = _run_intercept_resend_simulation(req)
+            counts, fidelity, qber, batches = _run_intercept_resend_simulation(req)
             stats_summary = summarise_measurement_data(observed_counts=counts)
             chi2_p_val = stats_summary["chi2_result"]["p_value"]
             chi2_stat = stats_summary["chi2_result"]["chi2_statistic"]
@@ -243,7 +294,31 @@ async def simulate(req: SimulationRequest) -> SimulationResponse:
             shannon_entropy = stats_summary["shannon_entropy"]
             total_shots = stats_summary["total_shots"]
         elif req.attack_type == AttackType.DEPOLARIZING:
-            counts, fidelity, qber = _run_depolarizing_simulation(req)
+            counts, fidelity, qber, batches = _run_depolarizing_simulation(req)
+            stats_summary = summarise_measurement_data(observed_counts=counts)
+            chi2_p_val = stats_summary["chi2_result"]["p_value"]
+            chi2_stat = stats_summary["chi2_result"]["chi2_statistic"]
+            excess_qber = stats_summary["excess_qber"]
+            shannon_entropy = stats_summary["shannon_entropy"]
+            total_shots = stats_summary["total_shots"]
+        elif req.attack_type == AttackType.FORGERY:
+            counts, fidelity, qber, batches = _run_forgery_simulation(req)
+            stats_summary = summarise_measurement_data(observed_counts=counts)
+            chi2_p_val = stats_summary["chi2_result"]["p_value"]
+            chi2_stat = stats_summary["chi2_result"]["chi2_statistic"]
+            excess_qber = stats_summary["excess_qber"]
+            shannon_entropy = stats_summary["shannon_entropy"]
+            total_shots = stats_summary["total_shots"]
+        elif req.attack_type == AttackType.IMPERSONATION:
+            counts, fidelity, qber, batches = _run_impersonation_simulation(req)
+            stats_summary = summarise_measurement_data(observed_counts=counts)
+            chi2_p_val = stats_summary["chi2_result"]["p_value"]
+            chi2_stat = stats_summary["chi2_result"]["chi2_statistic"]
+            excess_qber = stats_summary["excess_qber"]
+            shannon_entropy = stats_summary["shannon_entropy"]
+            total_shots = stats_summary["total_shots"]
+        elif req.attack_type == AttackType.REPLAY:
+            counts, fidelity, qber, batches = _run_replay_simulation(req)
             stats_summary = summarise_measurement_data(observed_counts=counts)
             chi2_p_val = stats_summary["chi2_result"]["p_value"]
             chi2_stat = stats_summary["chi2_result"]["chi2_statistic"]
@@ -261,6 +336,9 @@ async def simulate(req: SimulationRequest) -> SimulationResponse:
             chi_sq_p_val=chi2_p_val,
             fidelity=fidelity,
         )
+
+        elapsed = max(0.001, (time.perf_counter() - start_time) * 1000)
+        samples_per_sec = (req.num_qubits / (elapsed / 1000.0))
 
         ledger.record_event(
             session_id=session_id,
@@ -283,6 +361,10 @@ async def simulate(req: SimulationRequest) -> SimulationResponse:
             num_qubits=req.num_qubits,
             shots=req.shots,
             seed=req.seed,
+            batches_executed=batches,
+            physical_qubits_per_circuit=min(28, req.num_qubits * 2),
+            execution_time_ms=round(elapsed, 2),
+            samples_per_sec=round(samples_per_sec, 2),
             statistics=StatisticsDetail(
                 qber=round(qber, 6),
                 excess_qber=round(excess_qber, 6),

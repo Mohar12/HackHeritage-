@@ -138,6 +138,22 @@ class TestFastAPIEndpoints:
         assert data["is_malicious"] is False
         assert data["classification"]["recommended_action"] == "NONE"
         assert data["fidelity"] >= 0.90
+        assert "batches_executed" in data
+        assert "execution_time_ms" in data
+
+    def test_simulate_large_scale_workload(self, client: TestClient):
+        payload = {
+            "num_qubits": 100,
+            "attack_type": "none",
+            "shots": 256,
+            "seed": 42
+        }
+        response = client.post("/api/v1/simulate", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["num_qubits"] == 100
+        assert data["batches_executed"] == 8
+        assert data["physical_qubits_per_circuit"] <= 28
 
     def test_simulate_intercept_resend_attack(self, client: TestClient):
         payload = {
@@ -154,13 +170,19 @@ class TestFastAPIEndpoints:
         assert "classification" in data
         assert data["statistics"]["qber"] >= 0.0
 
-    def test_simulate_validation_error(self, client: TestClient):
-        payload = {
-            "num_qubits": 500,
-            "attack_type": "none"
-        }
-        response = client.post("/api/v1/simulate", json=payload)
-        assert response.status_code == 422
+    def test_simulate_all_attack_modes(self, client: TestClient):
+        for atype in ["forgery", "impersonation", "replay", "depolarizing"]:
+            payload = {
+                "num_qubits": 8,
+                "attack_type": atype,
+                "shots": 256,
+                "seed": 42
+            }
+            response = client.post("/api/v1/simulate", json=payload)
+            assert response.status_code == 200
+            data = response.json()
+            assert data["attack_type"] == atype
+            assert "classification" in data
 
     def test_detect_endpoint_valid_payload(self, client: TestClient):
         payload = {
