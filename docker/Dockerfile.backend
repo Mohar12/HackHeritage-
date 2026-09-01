@@ -1,130 +1,82 @@
 # ==============================================================
 # docker/Dockerfile.backend
-# QDS Threat Detection Framework — FastAPI + Qiskit backend
+# QDS Threat Detection Framework — Python 3.11 Backend
 # ==============================================================
-#
-# Build context: the project root (qds-threat-detection/)
-#
-# Usage:
-#   docker build -f docker/Dockerfile.backend -t qds-backend .
-#   docker run -p 8000:8000 qds-backend
-#
-# Multi-stage design
-# ------------------
-#  Stage 1 (build-deps) : compile all C-extension wheels (qiskit-aer,
-#                          scipy, numpy) in a throwaway layer.
-#  Stage 2 (runtime)    : copy only the installed site-packages and
-#                          application source — no compiler toolchain
-#                          survives into the final image.
+# Build context: qds-threat-detection/
 # ==============================================================
 
-
 # ---------------------------------------------------------------
-# Stage 1 — build-deps
-#   Installs GCC / G++ / python3-dev / libffi-dev and compiles
-#   every wheel that requires a C/Fortran compiler.
+# Stage 1: Build & Compile Dependency Wheels
 # ---------------------------------------------------------------
-FROM python:3.11-slim AS build-deps
+FROM python:3.11-slim AS builder
 
-# Prevent interactive prompts during apt-get
 ENV DEBIAN_FRONTEND=noninteractive
 
-# System build tools required by:
-#   qiskit-aer  → C++ extension (OpenMP, C++17)
-#   scipy       → Fortran + C LAPACK/BLAS wrappers
-#   numpy       → C extension
-#   cffi/pydantic-core → libffi
+# Install system-level build tools required by Qiskit Aer, SciPy, NumPy
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
         g++ \
-        gfortran \
         python3-dev \
         libffi-dev \
+        gfortran \
         libgomp1 \
         pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip + wheel so bdist compilation works correctly
-RUN pip install --no-cache-dir --upgrade pip wheel setuptools
-
 WORKDIR /build
 
-# Copy requirements first to exploit Docker layer caching:
-# this layer is only invalidated when requirements.txt changes.
+# Copy dependency manifest first for layer caching
 COPY backend/requirements.txt ./requirements.txt
 
-# Build and install all wheels into a target prefix for easy copy
-RUN pip install --no-cache-dir \
-        --target /install \
-        -r requirements.txt \
-    # Also install pytest-asyncio for async FastAPI test support
-    && pip install --no-cache-dir \
-        --target /install \
-        pytest-asyncio \
-        httpx
+# Install pinned dependencies into an isolated target folder
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools \
+ && pip install --no-cache-dir --target /install -r requirements.txt \
+ && pip install --no-cache-dir --target /install pytest httpx pytest-asyncio
 
 
 # ---------------------------------------------------------------
-# Stage 2 — runtime
-#   Lean image: only Python runtime + pre-compiled site-packages
-#   + application source. Compiler toolchain is NOT present.
+# Stage 2: Runtime Image
 # ---------------------------------------------------------------
-FROM python:3.11-slim AS runtime
+FROM python:3.11-slim AS runner
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app
 
-# Runtime-only system libraries (OpenMP shared lib required by qiskit-aer)
+# Runtime shared libraries for OpenMP (Qiskit Aer) and health probe
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgomp1 \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-# ---------------------------------------------------------------
-# Non-root user for container security hardening
-# ---------------------------------------------------------------
-RUN groupadd --system --gid 1001 qdsapp \
+# Configure isolated non-root system user 'quantum_runner'
+RUN groupadd --system --gid 1001 quantum_runner \
  && useradd  --system \
              --uid  1001 \
              --gid  1001 \
              --no-create-home \
              --shell /usr/sbin/nologin \
-             qdsapp
-
-# Copy compiled Python packages from the build stage
-COPY --from=build-deps /install /usr/local/lib/python3.11/site-packages
+             quantum_runner
 
 WORKDIR /app
 
-# Copy quantum-core packages (strict import-direction order)
-COPY qds_core/        ./qds_core/
-COPY attack_sim/      ./attack_sim/
+# Copy compiled python packages from builder stage
+COPY --from=builder /install /usr/local/lib/python3.11/site-packages
+
+# Copy project packages and application code
+COPY qds_core/         ./qds_core/
+COPY attack_sim/       ./attack_sim/
 COPY detection_engine/ ./detection_engine/
+COPY backend/          ./backend/
+COPY backend/          ./api/
+COPY tests/            ./tests/
 
-# Copy FastAPI application (backend/ contains main.py + schemas.py)
-COPY backend/         ./backend/
+# Fix ownership
+RUN chown -R quantum_runner:quantum_runner /app
 
-# Copy tests so pytest can run inside the container if needed
-COPY tests/           ./tests/
-
-# ---------------------------------------------------------------
-# Environment
-# ---------------------------------------------------------------
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-
-# Switch to non-root user before exposing port
-USER qdsapp
+USER quantum_runner
 
 EXPOSE 8000
 
-# ---------------------------------------------------------------
-# Entrypoint — uvicorn production server
-# Workers: 1 for deterministic stateless quantum simulation.
-# Scale horizontally (multiple containers) rather than vertically.
-# ---------------------------------------------------------------
-CMD ["uvicorn", "backend.main:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8000", \
-     "--workers", "1", \
-     "--log-level", "info"]
+ENTRYPOINT ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

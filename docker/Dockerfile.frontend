@@ -1,95 +1,33 @@
 # ==============================================================
 # docker/Dockerfile.frontend
-# QDS Threat Detection Framework — React 18 + Vite dashboard
+# QDS Threat Detection Framework — Node 20 / Vite Frontend
 # ==============================================================
-#
-# Build context: the project root (qds-threat-detection/)
-#
-# Usage:
-#   docker build -f docker/Dockerfile.frontend -t qds-frontend .
-#   docker run -p 5173:5173 -e VITE_API_URL=http://localhost:8000 qds-frontend
-#
-# Two operating modes
-# -------------------
-#  Development (default, BUILD_MODE=dev)
-#    Runs `npm run dev` — Vite HMR dev server with hot-reload.
-#    Source is mounted as a volume in docker-compose for live editing.
-#
-#  Production (BUILD_MODE=prod)
-#    Runs `npm run build` then `npm run preview` — optimised static
-#    bundle served by Vite's preview server.
-#    Pass --build-arg BUILD_MODE=prod to activate.
+# Build context: qds-threat-detection/
 # ==============================================================
 
-FROM node:20-alpine AS base
+FROM node:20-alpine
 
-# Install curl for health-check probe
-RUN apk add --no-cache curl
-
-# ---------------------------------------------------------------
-# Non-root user — runs as uid 1001
-# node:20-alpine ships with a 'node' user (uid 1000); we create
-# a dedicated app user at 1001 to avoid collision.
-# ---------------------------------------------------------------
-RUN addgroup --system --gid 1001 qdsui \
- && adduser  --system \
-             --uid  1001 \
-             --ingroup qdsui \
-             --no-create-home \
-             --shell /sbin/nologin \
-             qdsui
-
+# Set working directory
 WORKDIR /app
 
-# ---------------------------------------------------------------
-# Dependency installation
-#   Copy package manifests before source so Docker layer cache
-#   is preserved when only source files change.
-# ---------------------------------------------------------------
+# Copy dependency manifest first for layer caching
 COPY dashboard/package.json ./package.json
-# Copy lockfile only if it exists — allows first-time builds
-# where lock hasn't been committed yet to still succeed.
 COPY dashboard/package-lock.json* ./
 
-# ci installs exactly what is in package-lock.json (reproducible),
-# or falls back to install if lockfile is absent.
+# Install clean dependencies
 RUN if [ -f package-lock.json ]; then \
         npm ci --prefer-offline; \
     else \
         npm install; \
     fi
 
-# ---------------------------------------------------------------
-# Copy full dashboard source
-# ---------------------------------------------------------------
+# Copy full frontend codebase
 COPY dashboard/ ./
 
-# Hand ownership of /app to the non-root user
-RUN chown -R qdsui:qdsui /app
-
-USER qdsui
-
-# ---------------------------------------------------------------
-# Build argument to switch between dev and production mode
-# ---------------------------------------------------------------
-ARG BUILD_MODE=dev
-
-# ---------------------------------------------------------------
-# Environment — Vite reads VITE_* vars at build time (static
-# bundle) but also at runtime for the dev server.
-# docker-compose passes VITE_API_URL as a runtime env var which
-# is picked up by the dev server but NOT baked into the bundle.
-# For production builds pass --build-arg VITE_API_URL=... instead.
-# ---------------------------------------------------------------
 ENV VITE_API_URL=http://localhost:8000
 ENV NODE_ENV=development
 
 EXPOSE 5173
 
-# ---------------------------------------------------------------
-# Default entrypoint — Vite HMR dev server
-#   --host 0.0.0.0  : bind to all interfaces so Docker port
-#                     mapping (5173:5173) works correctly.
-#   --port 5173     : match the exposed port.
-# ---------------------------------------------------------------
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+# Vite development server exposed on 0.0.0.0
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

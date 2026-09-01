@@ -12,7 +12,7 @@ networks:
 services:
 
   # ----------------------------------------------------------
-  # FastAPI Backend — Quantum simulation + REST API
+  # FastAPI Backend Service
   # ----------------------------------------------------------
   quantum-backend:
     build:
@@ -25,11 +25,11 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
     volumes:
-      # Mount source for hot-reload during development
       - ./qds_core:/app/qds_core
       - ./attack_sim:/app/attack_sim
       - ./detection_engine:/app/detection_engine
       - ./backend:/app/backend
+      - ./backend:/app/api
     networks:
       - quantum-network
     restart: unless-stopped
@@ -41,7 +41,7 @@ services:
       start_period: 10s
 
   # ----------------------------------------------------------
-  # React Dashboard — Vite dev server
+  # React + Vite Dashboard Service
   # ----------------------------------------------------------
   quantum-frontend:
     build:
@@ -53,7 +53,6 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8000
     volumes:
-      # Mount dashboard source for live HMR updates
       - ./dashboard/src:/app/src
       - ./dashboard/public:/app/public
       - ./dashboard/index.html:/app/index.html
