@@ -3,7 +3,7 @@ test_qds_core.py
 ================
 Unit tests for the qds_core package:
   - pauli_ops: Pauli matrices, Bell state prep, Uhlmann fidelity, random bases
-  - key_distribution: Bell-pair distribution circuit, QBER calculation, multi-size batching
+  - key_distribution: Generic batched distribution circuit, QBER calculation, multi-size scalability (N=1..1000)
   - teleportation: 3-qubit teleportation circuit builder and Aer execution
 """
 
@@ -28,6 +28,8 @@ from qds_core.pauli_ops import (
 from qds_core.key_distribution import (
     create_bell_pair_circuit,
     distribute_public_keys,
+    compute_max_pairs_per_batch,
+    get_backend_qubit_capacity,
     HARDWARE_BASELINE_QBER,
 )
 from qds_core.teleportation import (
@@ -192,7 +194,7 @@ class TestGenerateRandomBases:
 
 
 # ===========================================================================
-# key_distribution
+# key_distribution — generic batching & arbitrary N
 # ===========================================================================
 
 class TestKeyDistribution:
@@ -232,20 +234,42 @@ class TestKeyDistribution:
         result = distribute_public_keys(num_keys=4, shots=256, seed=9)
         assert len(result["measurement_counts"]) > 0
 
-    def test_distribute_public_keys_invalid_num_keys_raises(self):
+    def test_distribute_public_keys_invalid_inputs_raise(self):
         with pytest.raises(ValueError):
             distribute_public_keys(num_keys=0)
+        with pytest.raises(ValueError):
+            distribute_public_keys(num_keys=-5)
+        with pytest.raises(TypeError):
+            distribute_public_keys(num_keys="invalid")  # type: ignore
 
-    @pytest.mark.parametrize("size", [1, 2, 10, 14, 15, 28, 50, 100])
-    def test_batched_key_distribution_scalability(self, size: int):
-        """Verify that any requested EPR pair count from 1 to 100 executes without CircuitTooWide."""
-        result = distribute_public_keys(num_keys=size, shots=256, seed=42)
+    def test_deterministic_seeded_execution(self):
+        r1 = distribute_public_keys(num_keys=20, shots=256, seed=42)
+        r2 = distribute_public_keys(num_keys=20, shots=256, seed=42)
+        assert r1["alice_public_key"]["bases"] == r2["alice_public_key"]["bases"]
+        assert r1["bob_shared_material"]["bases"] == r2["bob_shared_material"]["bases"]
+        assert r1["charlie_shared_material"]["bases"] == r2["charlie_shared_material"]["bases"]
+
+    @pytest.mark.parametrize("size", [
+        1,
+        13,  # max_batch - 1
+        14,  # max_batch
+        15,  # max_batch + 1
+        28,  # 2 * max_batch
+        29,  # 2 * max_batch + 1
+        50,
+        100,
+        1000,
+    ])
+    def test_generic_batching_boundary_sizes(self, size: int):
+        """Verify generic arbitrary integer N key distribution up to N=1000."""
+        result = distribute_public_keys(num_keys=size, shots=128, seed=42)
         assert result["num_keys"] == size
         assert len(result["alice_public_key"]["bases"]) == size
         assert len(result["bob_shared_material"]["bases"]) == size
         assert len(result["charlie_shared_material"]["bases"]) == size
         assert len(result["alice_public_key"]["qubit_indices"]) == size
         assert result["measured_qber"] <= 0.05
+        assert result["hardware_baseline_qber"] == pytest.approx(HARDWARE_BASELINE_QBER)
 
 
 # ===========================================================================

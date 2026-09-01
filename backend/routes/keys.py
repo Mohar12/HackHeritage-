@@ -1,7 +1,7 @@
 """
 keys.py
 =======
-Purpose: API route for /generate-keys with audit ledger logging.
+Purpose: API route for /generate-keys with audit ledger logging and scalability.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ def _sanitize_for_json(data: Any) -> Any:
 
 
 class GenerateKeysRequest(BaseModel):
-    n_qubits: int = Field(default=8, ge=1, le=128)
+    n_qubits: int = Field(default=8, ge=1, le=10000, description="Number of EPR key pairs to generate (supports arbitrary positive N).")
     shots: int = Field(default=1024, ge=64, le=8192)
     seed: int = Field(default=42, ge=0)
 

@@ -1,22 +1,23 @@
 """
 key_distribution.py
 ===================
-Purpose: Bell-pair generation and quantum public key distribution simulation.
+Purpose: Scalable Bell-pair generation and quantum public key distribution simulation.
 
 This module implements the key-distribution phase of the teleportation-based
 QDS protocol. It constructs EPR Bell pairs (|Φ⁺⟩) shared between Alice, Bob,
 and Charlie using exact Qiskit circuits, executes them on the Qiskit Aer
-simulator using a batched circuit execution model, and packages the resulting
-measurement statistics into a structured key-material dictionary.
+simulator using a generic batched circuit execution engine, and packages the
+resulting measurement statistics into a structured key-material dictionary.
 
-Scalability Compliance
-----------------------
-- Batched Execution: Generates arbitrary numbers of EPR pairs (e.g. 100+ pairs)
-  by chunking pairs into batches that fit comfortably within the backend's
-  qubit width (maximum 10 pairs = 20 qubits per circuit by default).
-- No approximation: Each EPR pair is prepared with genuine H + CNOT gates on Aer.
-- 1% Hardware Baseline QBER is maintained across all batches.
-- Seeded Reproducibility is preserved via deterministic batch seeds.
+Generic Batching Architecture
+-----------------------------
+- Dynamically derives backend capacity: `backend_qubit_capacity` (default 28 qubits).
+- Calculates max pairs per circuit: `max_pairs_per_batch = backend_qubit_capacity // 2` (e.g. 14 pairs).
+- For any positive integer N: splits N into batches of size at most `max_pairs_per_batch`.
+- Processes batches incrementally to ensure memory efficiency:
+  `create batch -> execute -> aggregate -> release batch -> next batch`.
+- Preserves all quantum physics (exact H + CNOT on Aer, no classical approximation, 1% noise floor).
+- Deterministic seed progression: `batch_seed = master_seed + batch_idx * 1000`.
 """
 
 from __future__ import annotations
@@ -46,12 +47,42 @@ HARDWARE_BASELINE_QBER: float = 0.01
 #: Default number of Aer simulation shots per circuit execution.
 DEFAULT_SHOTS: int = 1024
 
-#: Maximum number of EPR pairs simulated in a single QuantumCircuit.
-#: 10 pairs = 20 qubits (well within any 28-30 qubit simulator coupling boundary).
-MAX_PAIRS_PER_BATCH: int = 10
+#: Number of qubits required per physical EPR Bell pair (|Φ⁺⟩ = (|00⟩ + |11⟩)/√2).
+QUBITS_PER_EPR_PAIR: int = 2
+
+#: Default configured backend circuit width limit (matches standard Aer coupling map limit).
+DEFAULT_BACKEND_QUBIT_CAPACITY: int = 28
 
 #: Aer backend instance — stateless singleton, safe to share across calls.
 _AER_BACKEND: AerSimulator = AerSimulator()
+
+
+def get_backend_qubit_capacity(backend: AerSimulator | None = None) -> int:
+    """Programmatically query or derive the safe qubit capacity of the Aer backend."""
+    b = backend or _AER_BACKEND
+    try:
+        # Check if backend exposes configuration / coupling map limits
+        cfg = b.configuration()
+        if hasattr(cfg, "n_qubits") and cfg.n_qubits:
+            return min(int(cfg.n_qubits), DEFAULT_BACKEND_QUBIT_CAPACITY)
+        if hasattr(cfg, "coupling_map") and cfg.coupling_map:
+            qubits_in_map = len(set(q for edge in cfg.coupling_map for q in edge))
+            if qubits_in_map > 0:
+                return qubits_in_map
+    except Exception:
+        pass
+    return DEFAULT_BACKEND_QUBIT_CAPACITY
+
+
+def compute_max_pairs_per_batch(backend_qubit_capacity: int | None = None) -> int:
+    """Calculate the maximum number of EPR pairs that can safely fit into a single circuit.
+
+    Ensures the strict invariant:
+        2 * max_pairs_per_batch <= backend_qubit_capacity
+    """
+    cap = backend_qubit_capacity or get_backend_qubit_capacity()
+    max_pairs = cap // QUBITS_PER_EPR_PAIR
+    return max(1, max_pairs)
 
 
 # ---------------------------------------------------------------------------
@@ -115,37 +146,65 @@ def distribute_public_keys(
     num_keys: int = 8,
     shots: int = DEFAULT_SHOTS,
     seed: int | None = 42,
-    max_pairs_per_batch: int = MAX_PAIRS_PER_BATCH,
+    backend_qubit_capacity: int | None = None,
 ) -> dict[str, Any]:
-    """Generate and distribute EPR-pair-based quantum key material using batched circuit runs.
+    """Generate and distribute EPR-pair-based quantum key material using generic batching.
 
-    Constructs ``num_keys`` Bell pairs using batches of size at most ``max_pairs_per_batch``,
-    executes them on the Qiskit Aer simulator, and aggregates the measurements into
-    the canonical key material dictionary.
+    For any positive integer ``num_keys``:
+    1. Derives safe batch capacity: ``max_pairs_per_batch = backend_capacity // 2``.
+    2. Partitions ``num_keys`` into batches such that every circuit satisfies
+       ``2 * batch_size <= backend_capacity``.
+    3. Incrementally constructs, executes on Aer, and aggregates pair statistics into
+       the canonical key material dictionary.
+
+    Parameters
+    ----------
+    num_keys : int
+        Number of EPR pairs (= QDS key bits) to generate (must be >= 1).
+    shots : int
+        Number of simulation shots per circuit execution.
+    seed : int | None
+        Master RNG seed for deterministic execution.
+    backend_qubit_capacity : int | None
+        Optional override for backend qubit width (defaults to querying backend or 28).
+
+    Returns
+    -------
+    dict[str, Any]
+        Standard key-material dictionary matching the QDS API specification.
     """
+    if not isinstance(num_keys, (int, np.integer)) or isinstance(num_keys, bool):
+        raise TypeError(f"num_keys must be an integer. Got {type(num_keys).__name__}.")
     if num_keys < 1:
-        raise ValueError(f"num_keys must be ≥ 1. Got {num_keys}.")
+        raise ValueError(f"num_keys must be >= 1. Got {num_keys}.")
 
     session_id: str = str(uuid.uuid4())
+    max_pairs_per_batch = compute_max_pairs_per_batch(backend_qubit_capacity)
 
-    # Generate deterministic basis assignments for each party
+    # 1. Deterministic basis assignments for each party
     alice_bases = generate_random_bases(num_keys, seed=seed)
     bob_bases   = generate_random_bases(num_keys, seed=(seed + 1) if seed is not None else None)
     charlie_bases = generate_random_bases(num_keys, seed=(seed + 2) if seed is not None else None)
 
-    # Calculate batches: e.g. 100 pairs with max 10/batch -> 10 batches of 10
+    # 2. Generic partition of num_keys into safe batch sizes
     batch_sizes: list[int] = []
-    remaining = num_keys
+    remaining = int(num_keys)
     while remaining > 0:
         bsize = min(remaining, max_pairs_per_batch)
         batch_sizes.append(bsize)
         remaining -= bsize
 
+    assert sum(batch_sizes) == num_keys, "Batch sizes must exactly sum to requested num_keys."
+
+    # 3. Incremental execution and result aggregation
     total_error_shots = 0
     total_shots_evaluated = 0
     canonical_2bit_counts: dict[str, int] = {"00": 0, "01": 0, "10": 0, "11": 0}
 
     for batch_idx, bsize in enumerate(batch_sizes):
+        # Strict invariant verification: 2 * bsize <= backend_qubit_capacity
+        assert 2 * bsize <= (backend_qubit_capacity or DEFAULT_BACKEND_QUBIT_CAPACITY)
+
         batch_seed = (seed + batch_idx * 1000) if seed is not None else None
         qc = _build_distribution_circuit(bsize, shots)
         counts = _execute_circuit(qc, shots, seed=batch_seed)
@@ -165,6 +224,10 @@ def distribute_public_keys(
                         canonical_2bit_counts[pair_bits] += count
                     if bits[q0_idx] != bits[q1_idx]:
                         total_error_shots += count
+
+        # Release circuit references immediately to preserve memory on large N
+        del qc
+        del counts
 
     # Compute empirical QBER with baseline hardware noise consideration
     measured_qber = (
