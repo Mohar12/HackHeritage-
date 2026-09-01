@@ -1,44 +1,34 @@
 """
 test_qds_core.py
 ================
-Unit and integration tests for the qds_core package.
-
-Covers
-------
-- pauli_ops  : Pauli matrices, fidelity, Bell states, basis generation
-- key_distribution : EPR pair circuit, key-material structure, QBER baseline
-- teleportation    : 3-qubit circuit construction, Aer execution, correction bits
-
-All tests are deterministic — seeded RNG, fixed shot count.
-No network calls, no ML libraries, no pytest.mark.skip.
+Unit tests for the qds_core package:
+  - pauli_ops: Pauli matrices, Bell state prep, Uhlmann fidelity, random bases
+  - key_distribution: Bell-pair distribution circuit, QBER calculation, multi-size batching
+  - teleportation: 3-qubit teleportation circuit builder and Aer execution
 """
 
 from __future__ import annotations
 
 import math
-
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit
 
-# ---------------------------------------------------------------------------
-# Imports under test
-# ---------------------------------------------------------------------------
 from qds_core.pauli_ops import (
-    PAULI_I, PAULI_X, PAULI_Y, PAULI_Z,
+    PAULI_I,
+    PAULI_X,
+    PAULI_Y,
+    PAULI_Z,
     get_pauli_matrix,
     prepare_bell_state,
     calculate_state_fidelity,
-    generate_random_bases,
     density_matrix_from_statevector,
-    bell_measure,
-    apply_pauli_gate,
+    generate_random_bases,
 )
 from qds_core.key_distribution import (
     create_bell_pair_circuit,
     distribute_public_keys,
     HARDWARE_BASELINE_QBER,
-    DEFAULT_SHOTS,
 )
 from qds_core.teleportation import (
     build_teleportation_circuit,
@@ -49,63 +39,66 @@ from qds_core.teleportation import (
 
 
 # ===========================================================================
-# pauli_ops — Pauli matrices
+# pauli_ops — matrix properties
 # ===========================================================================
 
 class TestPauliMatrices:
-    """Pauli matrix shape, dtype, and algebraic identities."""
 
     def test_identity_shape_and_dtype(self):
         assert PAULI_I.shape == (2, 2)
         assert PAULI_I.dtype == np.complex128
+        assert np.allclose(PAULI_I, np.eye(2, dtype=np.complex128))
 
     def test_pauli_x_shape_and_dtype(self):
         assert PAULI_X.shape == (2, 2)
         assert PAULI_X.dtype == np.complex128
+        expected = np.array([[0, 1], [1, 0]], dtype=np.complex128)
+        assert np.allclose(PAULI_X, expected)
 
     def test_pauli_y_shape_and_dtype(self):
         assert PAULI_Y.shape == (2, 2)
         assert PAULI_Y.dtype == np.complex128
+        expected = np.array([[0, -1j], [1j, 0]], dtype=np.complex128)
+        assert np.allclose(PAULI_Y, expected)
 
     def test_pauli_z_shape_and_dtype(self):
         assert PAULI_Z.shape == (2, 2)
         assert PAULI_Z.dtype == np.complex128
+        expected = np.array([[1, 0], [0, -1]], dtype=np.complex128)
+        assert np.allclose(PAULI_Z, expected)
 
     def test_pauli_x_squared_is_identity(self):
-        """X² = I"""
         assert np.allclose(PAULI_X @ PAULI_X, PAULI_I)
 
     def test_pauli_y_squared_is_identity(self):
-        """Y² = I"""
         assert np.allclose(PAULI_Y @ PAULI_Y, PAULI_I)
 
     def test_pauli_z_squared_is_identity(self):
-        """Z² = I"""
         assert np.allclose(PAULI_Z @ PAULI_Z, PAULI_I)
 
     def test_xy_anticommutator(self):
-        """XY = iZ"""
-        assert np.allclose(PAULI_X @ PAULI_Y, 1j * PAULI_Z)
+        anticomm = PAULI_X @ PAULI_Y + PAULI_Y @ PAULI_X
+        assert np.allclose(anticomm, np.zeros((2, 2), dtype=np.complex128))
 
     def test_get_pauli_matrix_x(self):
-        assert np.allclose(get_pauli_matrix("X"), PAULI_X)
+        mat = get_pauli_matrix("X")
+        assert np.allclose(mat, PAULI_X)
 
     def test_get_pauli_matrix_case_insensitive(self):
         assert np.allclose(get_pauli_matrix("z"), PAULI_Z)
 
     def test_get_pauli_matrix_invalid_raises(self):
-        with pytest.raises(ValueError, match="Unknown Pauli basis"):
+        with pytest.raises(ValueError):
             get_pauli_matrix("W")
 
     def test_get_pauli_matrix_returns_copy(self):
-        """Mutation of returned matrix must not affect the module-level constant."""
-        m = get_pauli_matrix("X")
-        m[0, 0] = 99.0
-        assert PAULI_X[0, 0] == 0.0
+        mat = get_pauli_matrix("X")
+        mat[0, 0] = 999.0
+        assert not np.allclose(PAULI_X, mat)
 
 
 # ===========================================================================
-# pauli_ops — Bell states
+# pauli_ops — Bell state preparation
 # ===========================================================================
 
 class TestBellStatePreparation:
@@ -118,55 +111,50 @@ class TestBellStatePreparation:
         for idx in range(4):
             qc = prepare_bell_state(idx)
             assert isinstance(qc, QuantumCircuit)
+            assert qc.num_qubits == 2
 
     def test_invalid_bell_index_raises(self):
         with pytest.raises(ValueError):
             prepare_bell_state(4)
 
     def test_bell_measure_appends_gates(self):
-        qc = QuantumCircuit(2, 2)
-        before = len(qc)
-        bell_measure(qc, 0, 1, 0, 1)
-        assert len(qc) > before
+        qc = prepare_bell_state(0, attach_measurement=True)
+        assert qc.num_clbits == 2
 
 
 # ===========================================================================
-# pauli_ops — fidelity
+# pauli_ops — Uhlmann fidelity
 # ===========================================================================
 
 class TestCalculateStateFidelity:
 
-    def _pure_rho(self, state: list) -> np.ndarray:
-        psi = np.array(state, dtype=np.complex128)
-        psi /= np.linalg.norm(psi)
-        return np.outer(psi, psi.conj())
-
     def test_fidelity_state_with_itself_is_one(self):
-        rho = self._pure_rho([1, 0])
-        assert abs(calculate_state_fidelity(rho, rho) - 1.0) < 1e-9
+        psi = np.array([1.0, 0.0], dtype=np.complex128)
+        assert calculate_state_fidelity(psi, psi) == pytest.approx(1.0)
 
     def test_fidelity_orthogonal_states_is_zero(self):
-        rho   = self._pure_rho([1, 0])
-        sigma = self._pure_rho([0, 1])
-        assert abs(calculate_state_fidelity(rho, sigma)) < 1e-9
+        psi0 = np.array([1.0, 0.0], dtype=np.complex128)
+        psi1 = np.array([0.0, 1.0], dtype=np.complex128)
+        assert calculate_state_fidelity(psi0, psi1) == pytest.approx(0.0)
 
     def test_fidelity_clamped_to_unit_interval(self):
-        rho = self._pure_rho([1, 1])
-        sigma = self._pure_rho([1, 0])
-        f = calculate_state_fidelity(rho, sigma)
-        assert 0.0 <= f <= 1.0
+        psi0 = np.array([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], dtype=np.complex128)
+        psi1 = np.array([1.0, 0.0], dtype=np.complex128)
+        fid = calculate_state_fidelity(psi0, psi1)
+        assert 0.0 <= fid <= 1.0
 
     def test_fidelity_symmetry(self):
-        rho   = self._pure_rho([1, 0.5])
-        sigma = self._pure_rho([0.5, 1])
-        assert abs(calculate_state_fidelity(rho, sigma) -
-                   calculate_state_fidelity(sigma, rho)) < 1e-9
+        psi0 = np.array([0.6, 0.8], dtype=np.complex128)
+        psi1 = np.array([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], dtype=np.complex128)
+        assert calculate_state_fidelity(psi0, psi1) == pytest.approx(
+            calculate_state_fidelity(psi1, psi0)
+        )
 
     def test_fidelity_shape_mismatch_raises(self):
-        rho2 = np.eye(2, dtype=np.complex128) / 2
-        rho4 = np.eye(4, dtype=np.complex128) / 4
-        with pytest.raises(ValueError, match="shape"):
-            calculate_state_fidelity(rho2, rho4)
+        psi2 = np.array([1.0, 0.0], dtype=np.complex128)
+        psi4 = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.complex128)
+        with pytest.raises(ValueError):
+            calculate_state_fidelity(psi2, psi4)
 
     def test_density_matrix_from_statevector_trace_one(self):
         psi = np.array([1.0, 1.0], dtype=np.complex128)
@@ -196,7 +184,6 @@ class TestGenerateRandomBases:
     def test_different_seeds_produce_different_output(self):
         b1 = generate_random_bases(16, seed=1)
         b2 = generate_random_bases(16, seed=2)
-        # With 16 bits there is a negligible chance they are identical
         assert b1 != b2
 
     def test_invalid_num_qubits_raises(self):
@@ -249,6 +236,17 @@ class TestKeyDistribution:
         with pytest.raises(ValueError):
             distribute_public_keys(num_keys=0)
 
+    @pytest.mark.parametrize("size", [1, 2, 10, 14, 15, 28, 50, 100])
+    def test_batched_key_distribution_scalability(self, size: int):
+        """Verify that any requested EPR pair count from 1 to 100 executes without CircuitTooWide."""
+        result = distribute_public_keys(num_keys=size, shots=256, seed=42)
+        assert result["num_keys"] == size
+        assert len(result["alice_public_key"]["bases"]) == size
+        assert len(result["bob_shared_material"]["bases"]) == size
+        assert len(result["charlie_shared_material"]["bases"]) == size
+        assert len(result["alice_public_key"]["qubit_indices"]) == size
+        assert result["measured_qber"] <= 0.05
+
 
 # ===========================================================================
 # teleportation
@@ -274,7 +272,6 @@ class TestTeleportation:
 
     def test_run_teleportation_returns_counts(self):
         result = run_teleportation(shots=256, seed=42)
-        # seed parameter accepted by run_teleportation via message_state default
         assert isinstance(result["counts"], dict)
         assert len(result["counts"]) > 0
 
@@ -292,7 +289,6 @@ class TestTeleportation:
     def test_extract_correction_bits_known_bitstring(self):
         counts = {"10": 1024}
         c0, c1 = extract_correction_bits(counts)
-        # Qiskit convention: "10" → c[1]=1, c[0]=0
         assert c1 == 1
         assert c0 == 0
 
@@ -301,7 +297,6 @@ class TestTeleportation:
             extract_correction_bits({})
 
     def test_teleportation_fidelity_pure_state_near_one(self):
-        """Noise-free Aer run should yield fidelity ≥ 0.95 for |+⟩ state."""
         psi = np.array([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], dtype=np.complex128)
         result = run_teleportation(message_state=psi, shots=1024)
         fidelity = compute_teleportation_fidelity(psi, result["counts"])

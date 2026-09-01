@@ -226,13 +226,14 @@ async def simulate(req: SimulationRequest) -> SimulationResponse:
 
         if req.attack_type == AttackType.NONE:
             counts, fidelity, qber = _run_no_attack_simulation(req)
-            expected_dist = {k: 1.0 / len(counts) for k in counts.keys()} if counts else None
+            total_shots = sum(counts.values())
+            # For honest Bell pairs, theoretical expectation is 50% |00> and 50% |11>
+            expected_dist = {"00": 0.5, "01": 0.0, "10": 0.0, "11": 0.5}
             chi2_res = chi_squared_born_test(counts, expected_distribution=expected_dist)
             chi2_p_val = chi2_res["p_value"]
             chi2_stat = chi2_res["chi2_statistic"]
             excess_qber = 0.0
             shannon_entropy = 1.0
-            total_shots = sum(counts.values())
         elif req.attack_type == AttackType.INTERCEPT_RESEND:
             counts, fidelity, qber = _run_intercept_resend_simulation(req)
             stats_summary = summarise_measurement_data(observed_counts=counts)
