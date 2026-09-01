@@ -1,0 +1,24 @@
+# Root-level Python dependencies (for local dev / CI without Docker).
+# The backend/requirements.txt is the canonical source for the container build.
+#
+# Pin to latest stable versions as of Sep 2025.
+
+# --- Quantum Simulation ---
+qiskit==1.2.4
+qiskit-aer==0.15.0
+
+# --- Numerical / Scientific ---
+numpy==2.1.1
+scipy==1.14.1
+matplotlib==3.9.2
+pandas==2.2.2
+seaborn==0.13.2
+
+# --- API Framework ---
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+
+# --- Testing ---
+pytest==8.3.3
+httpx==0.27.2

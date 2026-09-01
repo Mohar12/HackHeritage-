@@ -1,0 +1,53 @@
+# ============================================================
+# docker-compose.yml
+# QDS Threat Detection Framework
+# ============================================================
+version: "3.9"
+
+services:
+
+  # ----------------------------------------------------------
+  # FastAPI Backend — Quantum simulation + REST API
+  # ----------------------------------------------------------
+  backend:
+    build:
+      context: .                    # Build from the project root
+      dockerfile: backend/Dockerfile
+    container_name: qds-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Mount source for hot-reload during development.
+      # Comment out for production builds.
+      - ./qds_core:/app/qds_core
+      - ./attack_sim:/app/attack_sim
+      - ./detection_engine:/app/detection_engine
+      - ./backend:/app/backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ----------------------------------------------------------
+  # React Dashboard — Vite preview server
+  # ----------------------------------------------------------
+  dashboard:
+    build:
+      context: .                    # Build from the project root
+      dockerfile: dashboard/Dockerfile
+    container_name: qds-dashboard
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
