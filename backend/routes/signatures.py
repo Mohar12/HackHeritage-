@@ -77,6 +77,8 @@ async def sign_endpoint(request: SignRequest) -> SignResponse:
         node_id="Alice",
         message_hash=clean_sig["message_hash"],
         fidelity=clean_sig["fidelity"],
+        threat_classification="SECURE",
+        recommended_action="NONE",
     )
 
     return SignResponse(
@@ -119,6 +121,7 @@ async def verify_endpoint(request: VerifyRequest) -> VerifyResponse:
     )
 
     clean_result = _sanitize_for_json(result)
+    is_valid = clean_result["is_valid"]
 
     # Record audit log
     ledger.record_event(
@@ -126,10 +129,11 @@ async def verify_endpoint(request: VerifyRequest) -> VerifyResponse:
         event_type="VERIFICATION",
         node_id="Bob",
         message_hash=request.signature.get("message_hash"),
-        verification_outcome="ACCEPT" if clean_result["is_valid"] else "REJECT",
+        verification_outcome="ACCEPT" if is_valid else "REJECT",
         qber=clean_result["qber"],
         fidelity=clean_result["fidelity"],
-        recommended_action="NONE" if clean_result["is_valid"] else "ABORT",
+        threat_classification="SECURE" if is_valid else "COMPROMISED",
+        recommended_action="NONE" if is_valid else "ABORT",
     )
 
     return VerifyResponse(**clean_result)

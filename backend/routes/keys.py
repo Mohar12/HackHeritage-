@@ -62,12 +62,16 @@ async def generate_keys_endpoint(request: GenerateKeysRequest) -> GenerateKeysRe
     )
 
     clean_result = _sanitize_for_json(result)
+    qber_val = clean_result["measured_qber"]
+    is_secure = qber_val <= 0.05
 
     ledger.record_event(
         session_id=clean_result["session_id"],
         event_type="KEY_DISTRIBUTION",
         node_id="KDC-Alice",
-        qber=clean_result["measured_qber"],
+        qber=qber_val,
+        threat_classification="SECURE" if is_secure else "WARNING",
+        recommended_action="NONE" if is_secure else "ALERT",
     )
 
     return GenerateKeysResponse(**clean_result)
