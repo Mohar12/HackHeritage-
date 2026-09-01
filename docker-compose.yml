@@ -4,50 +4,63 @@
 # ============================================================
 version: "3.9"
 
+networks:
+  quantum-network:
+    driver: bridge
+    name: quantum-network
+
 services:
 
   # ----------------------------------------------------------
   # FastAPI Backend — Quantum simulation + REST API
   # ----------------------------------------------------------
-  backend:
+  quantum-backend:
     build:
-      context: .                    # Build from the project root
-      dockerfile: backend/Dockerfile
-    container_name: qds-backend
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: quantum-backend
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
     volumes:
-      # Mount source for hot-reload during development.
-      # Comment out for production builds.
+      # Mount source for hot-reload during development
       - ./qds_core:/app/qds_core
       - ./attack_sim:/app/attack_sim
       - ./detection_engine:/app/detection_engine
       - ./backend:/app/backend
+    networks:
+      - quantum-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 10s
 
   # ----------------------------------------------------------
-  # React Dashboard — Vite preview server
+  # React Dashboard — Vite dev server
   # ----------------------------------------------------------
-  dashboard:
+  quantum-frontend:
     build:
-      context: .                    # Build from the project root
-      dockerfile: dashboard/Dockerfile
-    container_name: qds-dashboard
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: quantum-frontend
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://backend:8000
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      # Mount dashboard source for live HMR updates
+      - ./dashboard/src:/app/src
+      - ./dashboard/public:/app/public
+      - ./dashboard/index.html:/app/index.html
+      - ./dashboard/vite.config.js:/app/vite.config.js
+    networks:
+      - quantum-network
     depends_on:
-      backend:
+      quantum-backend:
         condition: service_healthy
     restart: unless-stopped
