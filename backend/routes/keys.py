@@ -6,6 +6,7 @@ Purpose: API route for /generate-keys with audit ledger logging.
 
 from __future__ import annotations
 
+import numpy as np
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from typing import Any
@@ -14,6 +15,23 @@ from qds_core.key_distribution import distribute_public_keys
 from backend.audit_ledger import ledger
 
 router = APIRouter()
+
+
+def _sanitize_for_json(data: Any) -> Any:
+    """Recursively convert complex numbers and NumPy arrays to JSON serializable objects."""
+    if isinstance(data, dict):
+        return {k: _sanitize_for_json(v) for k, v in data.items()}
+    elif isinstance(data, (list, tuple)):
+        return [_sanitize_for_json(item) for item in data]
+    elif isinstance(data, (np.ndarray,)):
+        return _sanitize_for_json(data.tolist())
+    elif isinstance(data, (complex, np.complex128, np.complex64)):
+        return [float(data.real), float(data.imag)]
+    elif isinstance(data, (np.integer, np.int64, np.int32)):
+        return int(data)
+    elif isinstance(data, (np.floating, np.float64, np.float32)):
+        return float(data)
+    return data
 
 
 class GenerateKeysRequest(BaseModel):
@@ -43,11 +61,13 @@ async def generate_keys_endpoint(request: GenerateKeysRequest) -> GenerateKeysRe
         seed=request.seed,
     )
 
+    clean_result = _sanitize_for_json(result)
+
     ledger.record_event(
-        session_id=result["session_id"],
+        session_id=clean_result["session_id"],
         event_type="KEY_DISTRIBUTION",
         node_id="KDC-Alice",
-        qber=result["measured_qber"],
+        qber=clean_result["measured_qber"],
     )
 
-    return GenerateKeysResponse(**result)
+    return GenerateKeysResponse(**clean_result)

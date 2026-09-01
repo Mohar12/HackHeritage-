@@ -6,6 +6,7 @@ Purpose: API routes for /signatures/sign and /signatures/verify with ledger audi
 
 from __future__ import annotations
 
+import numpy as np
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from typing import Any
@@ -15,6 +16,23 @@ from qds_core.verification import verify
 from backend.audit_ledger import ledger
 
 router = APIRouter()
+
+
+def _sanitize_for_json(data: Any) -> Any:
+    """Recursively convert complex numbers and NumPy arrays to JSON serializable objects."""
+    if isinstance(data, dict):
+        return {k: _sanitize_for_json(v) for k, v in data.items()}
+    elif isinstance(data, (list, tuple)):
+        return [_sanitize_for_json(item) for item in data]
+    elif isinstance(data, (np.ndarray,)):
+        return _sanitize_for_json(data.tolist())
+    elif isinstance(data, (complex, np.complex128, np.complex64)):
+        return [float(data.real), float(data.imag)]
+    elif isinstance(data, (np.integer, np.int64, np.int32)):
+        return int(data)
+    elif isinstance(data, (np.floating, np.float64, np.float32)):
+        return float(data)
+    return data
 
 
 # ---- /sign ---------------------------------------------------------------
@@ -50,25 +68,27 @@ async def sign_endpoint(request: SignRequest) -> SignResponse:
         seed=request.seed,
     )
 
+    clean_sig = _sanitize_for_json(sig)
+
     # Record asynchronous non-blocking audit entry
     ledger.record_event(
-        session_id=sig["session_id"],
+        session_id=clean_sig["session_id"],
         event_type="SIGNING",
         node_id="Alice",
-        message_hash=sig["message_hash"],
-        fidelity=sig["fidelity"],
+        message_hash=clean_sig["message_hash"],
+        fidelity=clean_sig["fidelity"],
     )
 
     return SignResponse(
-        message=sig["message"],
-        message_hash=sig["message_hash"],
-        session_id=sig["session_id"],
-        signature=sig,
-        measurement_outcomes=sig["measurement_outcomes"],
-        correction_bits=sig["correction_bits"],
-        bases=sig["bases"],
-        fidelity=sig["fidelity"],
-        measurement_counts=sig["measurement_counts"],
+        message=clean_sig["message"],
+        message_hash=clean_sig["message_hash"],
+        session_id=clean_sig["session_id"],
+        signature=clean_sig,
+        measurement_outcomes=clean_sig["measurement_outcomes"],
+        correction_bits=clean_sig["correction_bits"],
+        bases=clean_sig["bases"],
+        fidelity=clean_sig["fidelity"],
+        measurement_counts=clean_sig["measurement_counts"],
     )
 
 
@@ -98,16 +118,18 @@ async def verify_endpoint(request: VerifyRequest) -> VerifyResponse:
         message=request.message,
     )
 
+    clean_result = _sanitize_for_json(result)
+
     # Record audit log
     ledger.record_event(
         session_id=request.signature.get("session_id", "unknown-session"),
         event_type="VERIFICATION",
         node_id="Bob",
         message_hash=request.signature.get("message_hash"),
-        verification_outcome="ACCEPT" if result["is_valid"] else "REJECT",
-        qber=result["qber"],
-        fidelity=result["fidelity"],
-        recommended_action="NONE" if result["is_valid"] else "ABORT",
+        verification_outcome="ACCEPT" if clean_result["is_valid"] else "REJECT",
+        qber=clean_result["qber"],
+        fidelity=clean_result["fidelity"],
+        recommended_action="NONE" if clean_result["is_valid"] else "ABORT",
     )
 
-    return VerifyResponse(**result)
+    return VerifyResponse(**clean_result)
