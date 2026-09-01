@@ -7,6 +7,7 @@
  *  - Uhlmann State Fidelity Arc Meter
  *  - Deterministic Zero-ML Threat Confidence formulation
  *  - Full Mathematical Verdict & Recommended Action breakdown
+ *  - Complete type guards and safe defaults for missing/partial telemetry.
  */
 
 import React from 'react';
@@ -20,22 +21,22 @@ export default function ResultsCharts({ data }) {
         <div className="empty-state">
           <div className="empty-icon">⚛️</div>
           <p>No active simulation or telemetry data loaded.</p>
-          <span>Select a protocol or attack module to execute quantum circuit simulation on Qiskit Aer and view live Born statistics.</span>
+          <span>Select a protocol or attack module on the left to execute quantum circuit simulation on Qiskit Aer and view live Born statistics.</span>
         </div>
       </section>
     );
   }
 
   const { type, keys, sig, verify, attack, detect, sim, telemetry } = data;
-  const isMalicious = detect?.is_malicious ?? false;
-  const qber = detect?.qber ?? 0.0;
-  const pVal = detect?.chi2_p_value ?? 1.0;
-  const fidelity = detect?.fidelity ?? 1.0;
-  const confidence = detect?.confidence_score ?? 0.0;
-  const action = detect?.recommended_action ?? 'NONE';
-  const qberClass = detect?.qber_classification ?? 'SECURE';
-  const chi2Class = detect?.chi2_classification ?? 'NORMAL';
-  const fidelityClass = detect?.fidelity_classification ?? 'HIGH';
+  const isMalicious = Boolean(detect?.is_malicious ?? sim?.is_malicious ?? false);
+  const qber = Number.isFinite(detect?.qber) ? detect.qber : Number.isFinite(sim?.statistics?.qber) ? sim.statistics.qber : 0.0;
+  const pVal = Number.isFinite(detect?.chi2_p_value) ? detect.chi2_p_value : Number.isFinite(sim?.statistics?.chi2_p_value) ? sim.statistics.chi2_p_value : 1.0;
+  const fidelity = Number.isFinite(detect?.fidelity) ? detect.fidelity : Number.isFinite(sim?.fidelity) ? sim.fidelity : 1.0;
+  const confidence = Number.isFinite(detect?.confidence_score) ? detect.confidence_score : Number.isFinite(sim?.confidence_score) ? sim.confidence_score : 0.0;
+  const action = detect?.recommended_action || sim?.classification?.recommended_action || 'NONE';
+  const qberClass = detect?.qber_classification || sim?.classification?.qber_classification || 'SECURE';
+  const chi2Class = detect?.chi2_classification || sim?.classification?.chi2_classification || 'NORMAL';
+  const fidelityClass = detect?.fidelity_classification || sim?.classification?.fidelity_classification || 'HIGH';
   const counts = detect?.statistics_summary?.chi2_result?.observed_counts || sim?.statistics?.measurement_counts || {};
 
   const badgeClass = isMalicious ? 'badge-danger' : action === 'ALERT' ? 'badge-warning' : 'badge-secure';
@@ -67,7 +68,7 @@ export default function ResultsCharts({ data }) {
             <div className="meter-marker bb84" title="BB84 Holevo Limit: 11%" style={{ left: '33%' }} />
           </div>
           <div className="metric-sub-row">
-            <span className={`metric-subtag ${qberClass.toLowerCase()}`}>Status: {qberClass}</span>
+            <span className={`metric-subtag ${String(qberClass).toLowerCase()}`}>Status: {qberClass}</span>
             <small>BB84 Limit: ε ≤ 11.0%</small>
           </div>
         </div>
@@ -84,14 +85,14 @@ export default function ResultsCharts({ data }) {
             <div className="meter-marker chi2" title="Anomaly Threshold: p = 0.01" style={{ left: '10%' }} />
           </div>
           <div className="metric-sub-row">
-            <span className={`metric-subtag ${chi2Class.toLowerCase()}`}>Status: {chi2Class}</span>
+            <span className={`metric-subtag ${String(chi2Class).toLowerCase()}`}>Status: {chi2Class}</span>
             <small>Anomaly Limit: p &lt; 0.01</small>
           </div>
         </div>
 
         {/* Metric 3: Uhlmann State Fidelity */}
         <div className="metric-card">
-          <div className="metric-title">Uhlmann State Fidelity ($\mathcal{F}$)</div>
+          <div className="metric-title">Uhlmann State Fidelity (F)</div>
           <div className="metric-value">{(fidelity * 100).toFixed(1)}%</div>
           <div className="threshold-meter">
             <div
@@ -100,14 +101,14 @@ export default function ResultsCharts({ data }) {
             />
           </div>
           <div className="metric-sub-row">
-            <span className={`metric-subtag ${fidelityClass.toLowerCase()}`}>Status: {fidelityClass}</span>
+            <span className={`metric-subtag ${String(fidelityClass).toLowerCase()}`}>Status: {fidelityClass}</span>
             <small>Critical Threshold: &lt; 70%</small>
           </div>
         </div>
 
         {/* Metric 4: Deterministic Confidence Score */}
         <div className="metric-card">
-          <div className="metric-title">Threat Confidence ($C$)</div>
+          <div className="metric-title">Threat Confidence (C)</div>
           <div className="metric-value">{(confidence * 100).toFixed(1)}%</div>
           <div className="threshold-meter">
             <div
@@ -136,7 +137,7 @@ export default function ResultsCharts({ data }) {
           </div>
           <div className="verdict-item">
             <span>Recommended Security Action:</span>
-            <strong className={`action-text ${action.toLowerCase()}`}>
+            <strong className={`action-text ${String(action).toLowerCase()}`}>
               {action} {action === 'ABORT' ? '— Immediate Quantum Channel Teardown (Eavesdropping Detected)' : action === 'ALERT' ? '— Increase Error Correction Overhead' : '— Accept Signature & Commit to Immutable Ledger'}
             </strong>
           </div>
@@ -154,6 +155,7 @@ export default function ResultsCharts({ data }) {
           <div className="histogram-bars">
             {['00', '01', '10', '11'].map((basis) => {
               const count = counts[basis] || 0;
+              const totalCounts = Object.values(counts).reduce((a, b) => a + b, 0);
               const maxCount = Math.max(...Object.values(counts), 1);
               const heightPct = Math.min((count / maxCount) * 100, 100);
               const isCorrelated = basis === '00' || basis === '11';
@@ -169,9 +171,7 @@ export default function ResultsCharts({ data }) {
                   </div>
                   <span className="hist-count">{count.toLocaleString()}</span>
                   <small className="hist-pct">
-                    {Object.values(counts).reduce((a, b) => a + b, 0) > 0
-                      ? `${((count / Object.values(counts).reduce((a, b) => a + b, 0)) * 100).toFixed(1)}%`
-                      : '0%'}
+                    {totalCounts > 0 ? `${((count / totalCounts) * 100).toFixed(1)}%` : '0%'}
                   </small>
                 </div>
               );
