@@ -2,8 +2,7 @@
  * Teleportation3D.jsx
  * ===================
  * 3D Visualization of the complete 8-stage Quantum Teleportation and QDS Verification Pipeline.
- * Visualizes Alice -> Flying EPR Channels -> Bob -> Charlie with Pauli corrections,
- * entanglement bridges, Bell measurements, classical channels, and detection status.
+ * Built with WebGL context check, fallback 2D pipeline, safe stage bounds, and disposal.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -23,14 +22,27 @@ const STAGES = [
 export default function Teleportation3D({ activeStage = 1, isCompromised = false }) {
   const mountRef = useRef(null);
   const [currentStage, setCurrentStage] = useState(activeStage);
+  const [webglSupported, setWebglSupported] = useState(true);
 
   useEffect(() => {
-    setCurrentStage(activeStage);
+    setCurrentStage(Math.max(1, Math.min(8, activeStage || 1)));
   }, [activeStage]);
 
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
+
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) {
+        setWebglSupported(false);
+        return;
+      }
+    } catch (e) {
+      setWebglSupported(false);
+      return;
+    }
 
     const width = container.clientWidth || 480;
     const height = 240;
@@ -40,31 +52,38 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
     camera.position.set(0, 3.5, 5.2);
     camera.lookAt(0, 0, 0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.appendChild(renderer.domElement);
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      container.appendChild(renderer.domElement);
+    } catch (err) {
+      console.warn('WebGL initialization failed in Teleportation3D:', err);
+      setWebglSupported(false);
+      return;
+    }
 
-    // Node geometries: Alice (Left), Bob (Right-Up), Charlie (Right-Down)
     const nodeMatAlice = new THREE.MeshPhongMaterial({ color: 0x00f2fe, emissive: 0x003344 });
     const nodeMatBob = new THREE.MeshPhongMaterial({ color: 0x00e676, emissive: 0x003322 });
     const nodeMatCharlie = new THREE.MeshPhongMaterial({ color: 0xffd600, emissive: 0x332b00 });
     const nodeMatEve = new THREE.MeshPhongMaterial({ color: 0xff1744, emissive: 0x440011 });
 
     const createNode = (mat, pos) => {
-      const geo = new THREE.SphereGeometry(0.28, 24, 24);
+      const geo = new THREE.SphereGeometry(0.28, 20, 20);
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(...pos);
       scene.add(mesh);
       return mesh;
     };
 
-    const aliceNode = createNode(nodeMatAlice, [-2.0, 0, 0]);
-    const bobNode = createNode(nodeMatBob, [1.8, 0.8, -0.6]);
-    const charlieNode = createNode(nodeMatCharlie, [1.8, -0.8, 0.6]);
-    const eveNode = isCompromised ? createNode(nodeMatEve, [0, 1.2, 0]) : null;
+    createNode(nodeMatAlice, [-2.0, 0, 0]);
+    createNode(nodeMatBob, [1.8, 0.8, -0.6]);
+    createNode(nodeMatCharlie, [1.8, -0.8, 0.6]);
+    if (isCompromised) {
+      createNode(nodeMatEve, [0, 1.2, 0]);
+    }
 
-    // Channel lines
     const lineMatQuantum = new THREE.LineDashedMaterial({
       color: isCompromised ? 0xff1744 : 0x00f2fe,
       dashSize: 0.15,
@@ -90,13 +109,11 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
       createChannel([0, 1.2, 0], [1.8, 0.8, -0.6], lineMatQuantum);
     }
 
-    // Flying Qubit particle
-    const photonGeo = new THREE.SphereGeometry(0.08, 16, 16);
+    const photonGeo = new THREE.SphereGeometry(0.08, 12, 12);
     const photonMat = new THREE.MeshBasicMaterial({ color: isCompromised ? 0xff1744 : 0xffffff });
     const photon = new THREE.Mesh(photonGeo, photonMat);
     scene.add(photon);
 
-    // Lights
     scene.add(new THREE.AmbientLight(0xffffff, 0.8));
     const light = new THREE.PointLight(0x00f2fe, 1.2, 10);
     light.position.set(0, 3, 2);
@@ -104,7 +121,10 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
 
     let progress = 0;
     let reqId;
+    let isDisposed = false;
+
     const animate = () => {
+      if (isDisposed) return;
       reqId = requestAnimationFrame(animate);
       progress = (progress + 0.015) % 1.0;
 
@@ -113,12 +133,14 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
       photon.position.z = 0.0 - progress * 0.6;
 
       scene.rotation.y = Math.sin(Date.now() * 0.0005) * 0.15;
-      renderer.render(scene, camera);
+      if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+      }
     };
     animate();
 
     const handleResize = () => {
-      if (!container) return;
+      if (!container || isDisposed || !renderer) return;
       const w = container.clientWidth || 480;
       camera.aspect = w / height;
       camera.updateProjectionMatrix();
@@ -127,12 +149,15 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
     window.addEventListener('resize', handleResize);
 
     return () => {
+      isDisposed = true;
       cancelAnimationFrame(reqId);
       window.removeEventListener('resize', handleResize);
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
+      if (renderer) {
+        if (renderer.domElement && container.contains(renderer.domElement)) {
+          container.removeChild(renderer.domElement);
+        }
+        renderer.dispose();
       }
-      renderer.dispose();
     };
   }, [isCompromised]);
 
@@ -145,7 +170,17 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
         </span>
       </div>
 
-      <div ref={mountRef} className="teleportation-canvas-mount" />
+      <div ref={mountRef} className="teleportation-canvas-mount">
+        {!webglSupported && (
+          <div className="fallback-2d-teleport">
+            <div className="node alice-node">Alice</div>
+            <div className={`quantum-bridge ${isCompromised ? 'compromised' : 'secure'}`}>
+              ~~~~ Flying EPR Qubit ~~~~
+            </div>
+            <div className="node bob-node">Bob / Charlie</div>
+          </div>
+        )}
+      </div>
 
       {/* Stage Flow Indicator */}
       <div className="stages-timeline">
@@ -162,7 +197,7 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
       </div>
 
       <div className="stage-description">
-        <strong>Stage {currentStage}: {STAGES[currentStage - 1].name}</strong> — {STAGES[currentStage - 1].desc}
+        <strong>Stage {currentStage}: {STAGES[currentStage - 1]?.name || 'Protocol Verification'}</strong> — {STAGES[currentStage - 1]?.desc || ''}
       </div>
     </div>
   );
