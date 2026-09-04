@@ -9,7 +9,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # ---------------------------------------------------------------------------
@@ -95,6 +95,50 @@ class MeasurementDataSchema(BaseModel):
         return [str(b).upper() for b in v]
 
 
+class SignaturePayloadSchema(BaseModel):
+    """Strictly typed and validated model for a Quantum Digital Signature payload."""
+    message: str | None = None
+    message_hash: str = Field(description="SHA-256 hash of the signed message")
+    session_id: str = Field(description="Unique session identifier for the key distribution")
+    measurement_outcomes: list[int] = Field(description="Classical measurement outcome bits")
+    correction_bits: list[list[int]] = Field(description="Pauli correction bit pairs [c0, c1] per qubit")
+    sent_bits: list[int] | None = None
+    bases: list[str] | None = None
+    sent_states: list[Any] | None = None
+    measurement_counts: dict[str, int] | None = None
+    fidelity: float | None = Field(default=None, ge=0.0, le=1.0)
+    measured_qber: float | None = Field(default=None, ge=0.0, le=1.0)
+
+    @field_validator("measurement_outcomes", "sent_bits", mode="before")
+    @classmethod
+    def validate_outcome_bits(cls, v: Any) -> Any:
+        if v is None:
+            return v
+        if not isinstance(v, (list, tuple)):
+            raise ValueError("Must be a list or sequence of binary integers.")
+        for b in v:
+            if int(b) not in (0, 1):
+                raise ValueError(f"Bit values must be 0 or 1. Got: {b}")
+        return [int(b) for b in v]
+
+    @field_validator("correction_bits", mode="before")
+    @classmethod
+    def validate_correction_pairs(cls, v: Any) -> Any:
+        if v is None:
+            return v
+        if not isinstance(v, (list, tuple)):
+            raise ValueError("correction_bits must be a list of 2-element bit pairs.")
+        validated = []
+        for pair in v:
+            if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+                raise ValueError(f"Each correction bit pair must contain exactly 2 integers. Got: {pair}")
+            c0, c1 = int(pair[0]), int(pair[1])
+            if c0 not in (0, 1) or c1 not in (0, 1):
+                raise ValueError(f"Correction bits must be 0 or 1. Got: {[c0, c1]}")
+            validated.append([c0, c1])
+        return validated
+
+
 class DetectRequest(BaseModel):
     measurement_data: MeasurementDataSchema
 
@@ -103,8 +147,8 @@ class SimulationRequest(BaseModel):
     num_qubits: int = Field(
         default=8,
         ge=1,
-        le=100000,
-        description="Number of logical EPR protocol samples to generate.",
+        le=5000,
+        description="Number of logical EPR protocol samples to generate (max 5000).",
     )
     batch_size: int = Field(
         default=14,
@@ -116,11 +160,11 @@ class SimulationRequest(BaseModel):
         default=AttackType.NONE,
         description="Channel attack mode to simulate.",
     )
-    noise_rate: float = Field(
-        default=0.05,
+    noise_rate: float | None = Field(
+        default=None,
         ge=0.0,
         le=1.0,
-        description="Depolarizing error probability (active for depolarizing mode).",
+        description="Depolarizing error probability (active only for depolarizing mode).",
     )
     shots: int = Field(
         default=1024,
@@ -133,6 +177,22 @@ class SimulationRequest(BaseModel):
         ge=0,
         description="RNG seed for deterministic simulation runs.",
     )
+
+    @model_validator(mode="after")
+    def validate_noise_rate_scope(self) -> "SimulationRequest":
+        invalid_attacks = {
+            AttackType.FORGERY,
+            AttackType.IMPERSONATION,
+            AttackType.INTERCEPT_RESEND,
+            AttackType.REPLAY,
+            AttackType.NONE,
+        }
+        if self.noise_rate is not None and self.attack_type in invalid_attacks:
+            raise ValueError(
+                f"noise_rate is only a valid field when attack_type is 'depolarizing'. "
+                f"Got noise_rate={self.noise_rate} for attack_type='{self.attack_type.value}'."
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------

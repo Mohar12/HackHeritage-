@@ -23,6 +23,10 @@ import uuid
 from typing import Any
 
 
+from qds_core.teleportation import compute_teleportation_fidelity
+from detection_engine.statistics import calculate_qber
+
+
 def capture_signature(signature: dict[str, Any]) -> dict[str, Any]:
     """Capture and archive a valid signature from an active session for later replay.
 
@@ -73,6 +77,22 @@ def simulate_replay(
     # Replayed measurement data
     counts = raw_sig.get("measurement_counts", {"00": 512, "11": 512})
 
+    # Derive fidelity from teleportation state counts distribution using compute_teleportation_fidelity
+    fidelity = compute_teleportation_fidelity([1.0, 0.0], counts)
+
+    # Derive measured_qber via calculate_qber() on sent vs replayed bits if present, or from counts
+    sent_bits = raw_sig.get("sent_bits")
+    received_bits = raw_sig.get("measurement_outcomes") or raw_sig.get("received_bits")
+    if sent_bits is not None and received_bits is not None:
+        measured_qber = calculate_qber(sent_bits, received_bits)
+    else:
+        total_shots = sum(counts.values())
+        if total_shots > 0:
+            err_shots = sum(cnt for bs, cnt in counts.items() if bs.replace(" ", "") in ("01", "10"))
+            measured_qber = float(err_shots / total_shots)
+        else:
+            measured_qber = 0.50
+
     return {
         "attack_type": "replay",
         "attacker": "Eve",
@@ -80,8 +100,8 @@ def simulate_replay(
         "original_session_id": captured_signature.get("original_session_id", raw_sig.get("session_id", "")),
         "replayed_signature": replayed_sig,
         "measurement_counts": counts,
-        "fidelity": 0.60,  # Stale correlation
-        "measured_qber": 0.20,  # Elevated due to session-key desynchronization
+        "fidelity": round(fidelity, 6),
+        "measured_qber": round(measured_qber, 6),
     }
 
 

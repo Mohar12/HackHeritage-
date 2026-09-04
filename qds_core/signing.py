@@ -17,7 +17,10 @@ from qds_core.pauli_ops import (
     generate_random_bases,
     calculate_state_fidelity,
 )
-from qds_core.teleportation import run_teleportation
+from qds_core.teleportation import (
+    run_teleportation,
+    compute_teleportation_fidelity,
+)
 
 
 def hash_message(message: str) -> str:
@@ -54,10 +57,10 @@ def sign(
     seed: int = 42,
 ) -> dict[str, Any]:
     msg_hash = hash_message(message)
-    session_id = (
-        private_key.get("session_id")
-        if private_key and "session_id" in private_key
-        else str(uuid.uuid4())
+    private_key = private_key or {}
+    session_id: str = private_key.get(
+        "session_id",
+        str(uuid.uuid5(uuid.NAMESPACE_DNS, f"qds-sign-{seed}")) if seed is not None else str(uuid.uuid4())
     )
 
     states = encode_message_to_states(message, n_qubits=n_qubits)
@@ -67,12 +70,16 @@ def sign(
     measurement_outcomes: list[int] = []
     correction_bits: list[list[int]] = []
     combined_counts: dict[str, int] = {"00": 0, "01": 0, "10": 0, "11": 0}
+    fidelities: list[float] = []
 
     for i, state in enumerate(states):
         res = run_teleportation(message_state=state, recipient_label="Bob", shots=shots, seed=seed + i)
         c0, c1 = res["correction_bits"]
         correction_bits.append([c0, c1])
         measurement_outcomes.append(sent_bits[i])
+
+        fid_i = compute_teleportation_fidelity(state, res["counts"])
+        fidelities.append(fid_i)
 
         for bs, count in res["counts"].items():
             clean_bs = bs.replace(" ", "")
@@ -84,6 +91,8 @@ def sign(
         [float(np.real(amp)) for amp in s] for s in states
     ]
 
+    avg_fidelity = float(np.mean(fidelities)) if fidelities else 0.99
+
     return {
         "message": message,
         "message_hash": msg_hash,
@@ -94,5 +103,5 @@ def sign(
         "bases": bases,
         "sent_states": serializable_states,
         "measurement_counts": combined_counts,
-        "fidelity": 0.99,
+        "fidelity": round(avg_fidelity, 6),
     }

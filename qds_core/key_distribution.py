@@ -22,6 +22,7 @@ Generic Batching Architecture
 
 from __future__ import annotations
 
+import logging
 import math
 import uuid
 from typing import Any
@@ -36,6 +37,8 @@ from qds_core.pauli_ops import (
     density_matrix_from_statevector,
     calculate_state_fidelity,
 )
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Module-level constants
@@ -69,8 +72,13 @@ def get_backend_qubit_capacity(backend: AerSimulator | None = None) -> int:
             qubits_in_map = len(set(q for edge in cfg.coupling_map for q in edge))
             if qubits_in_map > 0:
                 return qubits_in_map
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning(
+            "Failed to query backend qubit capacity (%s: %s); falling back to default %d.",
+            type(exc).__name__,
+            exc,
+            DEFAULT_BACKEND_QUBIT_CAPACITY,
+        )
     return DEFAULT_BACKEND_QUBIT_CAPACITY
 
 
@@ -178,7 +186,11 @@ def distribute_public_keys(
     if num_keys < 1:
         raise ValueError(f"num_keys must be >= 1. Got {num_keys}.")
 
-    session_id: str = str(uuid.uuid4())
+    session_id: str = (
+        str(uuid.uuid5(uuid.NAMESPACE_DNS, f"qds-session-{seed}-{num_keys}"))
+        if seed is not None
+        else str(uuid.uuid4())
+    )
     max_pairs_per_batch = compute_max_pairs_per_batch(backend_qubit_capacity)
 
     # 1. Deterministic basis assignments for each party

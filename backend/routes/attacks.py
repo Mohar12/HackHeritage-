@@ -17,6 +17,7 @@ from attack_sim.impersonation import simulate_impersonation
 from attack_sim.replay import simulate_replay
 from qds_core.pauli_ops import generate_random_bases
 from backend.audit_ledger import ledger
+from backend.schemas import AttackType
 
 router = APIRouter()
 
@@ -52,13 +53,25 @@ def _sanitize_for_json(obj: Any) -> Any:
 
 @router.post("/{attack_type}")
 async def simulate_attack_endpoint(attack_type: str, request: AttackSimRequest) -> dict[str, Any]:
-    atype = attack_type.lower().strip()
+    raw_type = attack_type.lower().strip()
+    valid_attacks = [e.value for e in AttackType if e != AttackType.NONE]
+    try:
+        attack_enum = AttackType(raw_type)
+        if attack_enum == AttackType.NONE:
+            raise ValueError()
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown attack type: '{attack_type}'. Must be one of: {', '.join(valid_attacks)}."
+        )
+
+    atype = attack_enum.value
     params = request.params
     shots = request.shots
     seed = request.seed
     n_qubits = int(params.get("n_qubits", 8))
 
-    if atype == "intercept_resend":
+    if atype == AttackType.INTERCEPT_RESEND.value:
         if "alice_states" not in params:
             rng = np.random.default_rng(seed)
             alice_bits = rng.integers(0, 2, size=n_qubits)
@@ -75,28 +88,28 @@ async def simulate_attack_endpoint(attack_type: str, request: AttackSimRequest) 
             shots=shots,
             seed=seed,
         )
-    elif atype == "depolarizing":
+    elif atype == AttackType.DEPOLARIZING.value:
         res = simulate_channel_manipulation(
             attack_type=atype,
             params=params,
             shots=shots,
             seed=seed,
         )
-    elif atype == "forgery":
+    elif atype == AttackType.FORGERY.value:
         res = simulate_forgery(
             public_key=params.get("public_key") or params.get("alice_public_key"),
             target_message=params.get("target_message", "Authorized Transfer: $1,000,000 to Eve"),
             n_qubits=n_qubits,
             seed=seed,
         )
-    elif atype == "impersonation":
+    elif atype == AttackType.IMPERSONATION.value:
         res = simulate_impersonation(
             alice_public_key=params.get("public_key") or params.get("alice_public_key"),
             target_message=params.get("target_message", "Urgent: Redirect Quantum Channel Funds"),
             n_qubits=n_qubits,
             seed=seed,
         )
-    elif atype == "replay":
+    elif atype == AttackType.REPLAY.value:
         captured_sig = params.get("captured_signature") or params.get("signature") or {}
         res = simulate_replay(
             captured_signature=captured_sig,
@@ -105,7 +118,7 @@ async def simulate_attack_endpoint(attack_type: str, request: AttackSimRequest) 
     else:
         raise HTTPException(
             status_code=400,
-            detail=f"Unknown attack type: '{attack_type}'. Must be one of: intercept_resend, depolarizing, forgery, impersonation, replay."
+            detail=f"Unknown attack type: '{attack_type}'. Must be one of: {', '.join(valid_attacks)}."
         )
 
     # Sanitize result to pure Python JSON-serializable types

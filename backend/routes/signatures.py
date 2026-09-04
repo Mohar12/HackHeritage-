@@ -7,13 +7,14 @@ Purpose: API routes for /signatures/sign and /signatures/verify with ledger audi
 from __future__ import annotations
 
 import numpy as np
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Any
 
 from qds_core.signing import sign
 from qds_core.verification import verify
 from backend.audit_ledger import ledger
+from backend.schemas import SignaturePayloadSchema
 
 router = APIRouter()
 
@@ -61,45 +62,55 @@ class SignResponse(BaseModel):
 @router.post("/sign", response_model=SignResponse, tags=["Signatures"])
 async def sign_endpoint(request: SignRequest) -> SignResponse:
     """Sign a classical message using teleportation-based QDS and record to audit ledger."""
-    sig = sign(
-        message=request.message,
-        private_key=request.private_key,
-        n_qubits=request.n_qubits,
-        shots=request.shots,
-        seed=request.seed,
-    )
+    try:
+        sig = sign(
+            message=request.message,
+            private_key=request.private_key,
+            n_qubits=request.n_qubits,
+            shots=request.shots,
+            seed=request.seed,
+        )
 
-    clean_sig = _sanitize_for_json(sig)
+        clean_sig = _sanitize_for_json(sig)
 
-    # Record asynchronous non-blocking audit entry
-    ledger.record_event(
-        session_id=clean_sig["session_id"],
-        event_type="SIGNING",
-        node_id="Alice",
-        message_hash=clean_sig["message_hash"],
-        fidelity=clean_sig["fidelity"],
-        threat_classification="SECURE",
-        recommended_action="NONE",
-    )
+        # Record asynchronous non-blocking audit entry
+        ledger.record_event(
+            session_id=clean_sig["session_id"],
+            event_type="SIGNING",
+            node_id="Alice",
+            message_hash=clean_sig["message_hash"],
+            fidelity=clean_sig["fidelity"],
+            threat_classification="SECURE",
+            recommended_action="NONE",
+        )
 
-    return SignResponse(
-        message=clean_sig["message"],
-        message_hash=clean_sig["message_hash"],
-        session_id=clean_sig["session_id"],
-        signature=clean_sig,
-        sent_bits=clean_sig["sent_bits"],
-        measurement_outcomes=clean_sig["measurement_outcomes"],
-        correction_bits=clean_sig["correction_bits"],
-        bases=clean_sig["bases"],
-        fidelity=clean_sig["fidelity"],
-        measurement_counts=clean_sig["measurement_counts"],
-    )
+        return SignResponse(
+            message=clean_sig["message"],
+            message_hash=clean_sig["message_hash"],
+            session_id=clean_sig["session_id"],
+            signature=clean_sig,
+            sent_bits=clean_sig["sent_bits"],
+            measurement_outcomes=clean_sig["measurement_outcomes"],
+            correction_bits=clean_sig["correction_bits"],
+            bases=clean_sig["bases"],
+            fidelity=clean_sig["fidelity"],
+            measurement_counts=clean_sig["measurement_counts"],
+        )
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Sign operation error: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 # ---- /verify -------------------------------------------------------------
 
 class VerifyRequest(BaseModel):
-    signature: dict[str, Any]
+    signature: SignaturePayloadSchema
     public_key: dict[str, Any] = Field(default_factory=dict)
     message: str | None = None
 
@@ -117,26 +128,37 @@ class VerifyResponse(BaseModel):
 @router.post("/verify", response_model=VerifyResponse, tags=["Signatures"])
 async def verify_endpoint(request: VerifyRequest) -> VerifyResponse:
     """Verify a QDS signature and log outcome to immutable ledger."""
-    result = verify(
-        signature=request.signature,
-        public_key=request.public_key,
-        message=request.message,
-    )
+    try:
+        sig_dict = request.signature.model_dump(exclude_none=True)
+        result = verify(
+            signature=sig_dict,
+            public_key=request.public_key,
+            message=request.message,
+        )
 
-    clean_result = _sanitize_for_json(result)
-    is_valid = clean_result["is_valid"]
+        clean_result = _sanitize_for_json(result)
+        is_valid = clean_result["is_valid"]
 
-    # Record audit log
-    ledger.record_event(
-        session_id=request.signature.get("session_id", "unknown-session"),
-        event_type="VERIFICATION",
-        node_id="Bob",
-        message_hash=request.signature.get("message_hash"),
-        verification_outcome="ACCEPT" if is_valid else "REJECT",
-        qber=clean_result["qber"],
-        fidelity=clean_result["fidelity"],
-        threat_classification="SECURE" if is_valid else "COMPROMISED",
-        recommended_action="NONE" if is_valid else "ABORT",
-    )
+        # Record audit log
+        ledger.record_event(
+            session_id=sig_dict.get("session_id", "unknown-session"),
+            event_type="VERIFICATION",
+            node_id="Bob",
+            message_hash=sig_dict.get("message_hash"),
+            verification_outcome="ACCEPT" if is_valid else "REJECT",
+            qber=clean_result["qber"],
+            fidelity=clean_result["fidelity"],
+            threat_classification="SECURE" if is_valid else "COMPROMISED",
+            recommended_action="NONE" if is_valid else "ABORT",
+        )
 
-    return VerifyResponse(**clean_result)
+        return VerifyResponse(**clean_result)
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Verification operation error: {type(exc).__name__}: {exc}",
+        ) from exc

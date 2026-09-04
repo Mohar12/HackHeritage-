@@ -17,6 +17,7 @@ All tests are deterministic. No network calls. No pytest.mark.skip.
 
 from __future__ import annotations
 
+import math
 import pytest
 
 from detection_engine.statistics import (
@@ -173,6 +174,34 @@ class TestChiSquaredBornTest:
                 expected_distribution={"00": 0.5, "01": 0.5},  # wrong keys
             )
 
+    def test_degrees_of_freedom_calculation(self):
+        """Confirm degrees_of_freedom equals k - 1 dynamically (not hardcoded)."""
+        # 4 Bell categories -> dof = 4 - 1 = 3
+        counts4 = {"00": 256, "01": 256, "10": 256, "11": 256}
+        res4 = chi_squared_born_test(counts4)
+        assert res4["degrees_of_freedom"] == 3
+
+        # 2 categories with explicit canonical_bins override -> dof = 2 - 1 = 1
+        counts2 = {"0": 500, "1": 500}
+        res2 = chi_squared_born_test(counts2, canonical_bins=["0", "1"])
+        assert res2["degrees_of_freedom"] == 1
+
+        # 3 categories with explicit canonical_bins override -> dof = 3 - 1 = 2
+        counts3 = {"A": 300, "B": 300, "C": 400}
+        res3 = chi_squared_born_test(counts3, canonical_bins=["A", "B", "C"])
+        assert res3["degrees_of_freedom"] == 2
+
+    def test_degenerate_single_outcome_extreme_anomaly(self):
+        """Observed counts collapsed to single outcome must give dof=3, chi2≈3072, p_val<1e-6."""
+        counts = {"00": 1024}
+        result = chi_squared_born_test(counts)
+        assert result["degrees_of_freedom"] == 3
+        assert math.isclose(result["chi2_statistic"], 3072.0, rel_tol=1e-3)
+        assert result["p_value"] < 1e-6
+        assert result["is_anomalous_at_0.01"] is True
+        assert result["observed_counts"] == {"00": 1024, "01": 0, "10": 0, "11": 0}
+
+
 
 # ===========================================================================
 # compute_excess_error
@@ -294,6 +323,29 @@ class TestConfidenceScore:
         s2 = _compute_confidence_score(0.2, 0.001, 0.65)
         assert s1 == pytest.approx(s2)
 
+    def test_confidence_score_monotonic_severity_scaling(self):
+        """Verify confidence_score strictly increases with severity beyond threshold for ABORT cases."""
+        # 1. QBER scaling (clean fidelity and chi2)
+        qbers = [0.12, 0.25, 0.50, 0.75, 0.99]
+        q_scores = [_compute_confidence_score(q, 0.8, 0.95) for q in qbers]
+        assert all(s >= 0.75 for s in q_scores), "All ABORT scores must be >= 0.75 floor"
+        for i in range(len(q_scores) - 1):
+            assert q_scores[i] < q_scores[i + 1], f"QBER score not strictly increasing: {q_scores}"
+
+        # 2. Fidelity scaling (clean QBER and chi2)
+        fidelities = [0.65, 0.50, 0.30, 0.10, 0.0]
+        f_scores = [_compute_confidence_score(0.01, 0.8, f) for f in fidelities]
+        assert all(s >= 0.75 for s in f_scores), "All ABORT scores must be >= 0.75 floor"
+        for i in range(len(f_scores) - 1):
+            assert f_scores[i] < f_scores[i + 1], f"Fidelity score not strictly increasing: {f_scores}"
+
+        # 3. Chi2 p-value scaling (clean QBER and fidelity)
+        p_vals = [0.009, 0.005, 0.001, 0.0]
+        p_scores = [_compute_confidence_score(0.01, p, 0.95) for p in p_vals]
+        assert all(s >= 0.75 for s in p_scores), "All ABORT scores must be >= 0.75 floor"
+        for i in range(len(p_scores) - 1):
+            assert p_scores[i] < p_scores[i + 1], f"Chi2 score not strictly increasing: {p_scores}"
+
 
 # ===========================================================================
 # detect_threat — full pipeline
@@ -380,6 +432,7 @@ class TestFullThreatAssessment:
         fidelity: float,
         sent_bits=None,
         received_bits=None,
+        expected_distribution=None,
     ) -> dict:
         data: dict = {
             "measurement_counts": counts,
@@ -389,6 +442,8 @@ class TestFullThreatAssessment:
             data["sent_bits"] = sent_bits
         if received_bits is not None:
             data["received_bits"] = received_bits
+        if expected_distribution is not None:
+            data["expected_distribution"] = expected_distribution
         return data
 
     def test_returns_is_malicious_key(self):
@@ -407,7 +462,8 @@ class TestFullThreatAssessment:
 
     def test_secure_counts_not_malicious(self):
         """Bell-pair counts with no errors → safe classification."""
-        data = self._make_data({"00": 512, "11": 512}, fidelity=0.99)
+        expected = {"00": 0.5, "01": 0.0, "10": 0.0, "11": 0.5}
+        data = self._make_data({"00": 512, "11": 512}, fidelity=0.99, expected_distribution=expected)
         result = full_threat_assessment(data)
         assert result["is_malicious"] is False
 
@@ -449,3 +505,48 @@ class TestFullThreatAssessment:
         summary = result["statistics_summary"]
         assert "qber" in summary
         assert "chi2_result" in summary
+
+
+# ===========================================================================
+# thresholds.py single source of truth tests (F-06)
+# ===========================================================================
+
+class TestThresholdsCanonicalModule:
+
+    def test_thresholds_constants_integrity(self):
+        import detection_engine.thresholds as dt
+        assert dt.QBER_SECURE_MAX == 0.05
+        assert dt.QBER_COMPROMISED_MIN == 0.11
+        assert dt.CHI2_P_NORMAL_MIN == 0.05
+        assert dt.CHI2_P_ABORT_MAX == 0.01
+        assert dt.FIDELITY_HIGH_MIN == 0.90
+        assert dt.FIDELITY_CRITICAL_MAX == 0.70
+        assert dt.CONFIDENCE_MALICIOUS_THRESHOLD == 0.50
+
+    def test_thresholds_classification_functions(self):
+        from detection_engine.thresholds import (
+            classify_qber,
+            classify_chi2,
+            classify_fidelity,
+            derive_recommended_action,
+            compute_confidence_score,
+        )
+        assert classify_qber(0.02) == "SECURE"
+        assert classify_qber(0.08) == "WARNING"
+        assert classify_qber(0.15) == "COMPROMISED"
+        
+        assert classify_chi2(0.80) == "NORMAL"
+        assert classify_chi2(0.03) == "WARNING"
+        assert classify_chi2(0.005) == "ANOMALOUS"
+        
+        assert classify_fidelity(0.95) == "HIGH"
+        assert classify_fidelity(0.80) == "DEGRADED"
+        assert classify_fidelity(0.50) == "CRITICAL"
+        
+        assert derive_recommended_action("SECURE", "NORMAL", "HIGH") == "NONE"
+        assert derive_recommended_action("WARNING", "NORMAL", "HIGH") == "ALERT"
+        assert derive_recommended_action("COMPROMISED", "NORMAL", "HIGH") == "ABORT"
+        
+        assert compute_confidence_score(0.0, 1.0, 1.0) == pytest.approx(0.0, abs=1e-3)
+        assert compute_confidence_score(1.0, 0.0, 0.0) == pytest.approx(1.0, abs=1e-3)
+

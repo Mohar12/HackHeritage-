@@ -51,7 +51,7 @@ def simulate_impersonation(
         Impersonation attack results and measurement data with strong χ² skew.
     """
     rng = np.random.default_rng(seed)
-    fake_session_id = f"spoofed-{uuid.uuid4()}"
+    fake_session_id = f"spoofed-{uuid.UUID(bytes=rng.bytes(16))}"
     msg_hash = hash_message(target_message)
 
     # Eve generates fake bases and biased measurement outcomes

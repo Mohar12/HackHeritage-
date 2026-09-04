@@ -38,6 +38,10 @@ from qds_core.teleportation import (
     extract_correction_bits,
     compute_teleportation_fidelity,
 )
+from qds_core.signing import sign, hash_message
+from qds_core.verification import verify, apply_pauli_corrections
+import logging
+import unittest.mock as mock
 
 
 # ===========================================================================
@@ -325,3 +329,176 @@ class TestTeleportation:
         result = run_teleportation(message_state=psi, shots=1024)
         fidelity = compute_teleportation_fidelity(psi, result["counts"])
         assert fidelity >= 0.95
+
+
+# ===========================================================================
+# verification security tests (F-02)
+# ===========================================================================
+
+class TestVerificationSecurity:
+
+    def test_forged_low_measured_qber_is_rejected_when_actual_qber_high(self):
+        """A signature with injected fake measured_qber=0.001 must be computed from raw bits and rejected."""
+        message = "Authorized Wire: $10,000,000"
+        sig = sign(message, n_qubits=8, seed=42)
+        
+        # Invert the measurement outcomes so that actual QBER is 100%
+        tampered_sig = dict(sig)
+        tampered_sig["measurement_outcomes"] = [1 - b for b in sig["measurement_outcomes"]]
+        # Adversary injects a fake low measured_qber to attempt bypass
+        tampered_sig["measured_qber"] = 0.001
+        
+        verdict = verify(tampered_sig, message=message)
+        # Must compute actual QBER (1.0), not trust 0.001, and reject
+        assert verdict["is_valid"] is False
+        assert verdict["qber"] > 0.11
+        assert verdict["reason"] == "qber_exceeded"
+
+
+# ===========================================================================
+# signing fidelity calculation tests (F-01)
+# ===========================================================================
+
+class TestSigningFidelity:
+
+    def test_sign_computes_high_fidelity_on_clean_channel(self):
+        """Clean teleportation signing yields high fidelity >= 0.95."""
+        sig = sign("Legitimate Transaction", n_qubits=4, shots=512, seed=42)
+        assert 0.95 <= sig["fidelity"] <= 1.0
+
+    def test_compute_teleportation_fidelity_degrades_under_skew_and_noise(self):
+        """Fidelity calculation reflects statistical distortion and noise."""
+        psi = np.array([1.0, 0.0], dtype=np.complex128)
+        
+        # 1. Ideal uniform distribution across 4 Bell measurement branches
+        clean_counts = {"00": 256, "01": 256, "10": 256, "11": 256}
+        fid_clean = compute_teleportation_fidelity(psi, clean_counts)
+        assert fid_clean == pytest.approx(1.0)
+        
+        # 2. Moderately noisy / perturbed distribution
+        noisy_counts = {"00": 500, "01": 200, "10": 200, "11": 100}
+        fid_noisy = compute_teleportation_fidelity(psi, noisy_counts)
+        assert 0.70 < fid_noisy < 0.99
+        
+        # 3. Heavily skewed unentangled distribution (impersonation/spoofing attack)
+        skewed_counts = {"00": 950, "01": 20, "10": 20, "11": 10}
+        fid_skewed = compute_teleportation_fidelity(psi, skewed_counts)
+        assert fid_skewed < 0.80
+        
+        # 4. Total collapse to single branch (worst case)
+        collapsed_counts = {"00": 1000, "01": 0, "10": 0, "11": 0}
+        fid_collapsed = compute_teleportation_fidelity(psi, collapsed_counts)
+        assert fid_collapsed == pytest.approx(0.50)
+        
+        assert fid_clean > fid_noisy > fid_skewed > fid_collapsed
+
+
+# ===========================================================================
+# Pauli corrections input validation tests (F-07)
+# ===========================================================================
+
+class TestPauliCorrectionsValidation:
+
+    def test_valid_two_bit_corrections_apply_successfully(self):
+        """Valid 2-element bit pairs apply standard Pauli corrections."""
+        psi = np.array([1.0, 0.0], dtype=np.complex128)
+        # [0, 0] -> Identity
+        c00 = apply_pauli_corrections(psi, [0, 0])
+        assert np.allclose(c00, np.array([1.0, 0.0]))
+
+        # [0, 1] -> Pauli X (flips |0> to |1>)
+        c01 = apply_pauli_corrections(psi, [0, 1])
+        assert np.allclose(c01, np.array([0.0, 1.0]))
+
+        # [1, 0] -> Pauli Z (leaves |0> as |0>)
+        c10 = apply_pauli_corrections(psi, [1, 0])
+        assert np.allclose(c10, np.array([1.0, 0.0]))
+
+        # [1, 1] -> Z @ X (flips |0> to -|1>)
+        c11 = apply_pauli_corrections(psi, [1, 1])
+        assert np.allclose(np.abs(c11), np.array([0.0, 1.0]))
+
+    def test_empty_correction_bits_raises_value_error(self):
+        """Empty list must raise ValueError, not IndexError."""
+        psi = np.array([1.0, 0.0], dtype=np.complex128)
+        with pytest.raises(ValueError, match="exactly 2 elements"):
+            apply_pauli_corrections(psi, [])
+
+    def test_single_element_correction_bits_raises_value_error(self):
+        """Single-element list must raise ValueError."""
+        psi = np.array([1.0, 0.0], dtype=np.complex128)
+        with pytest.raises(ValueError, match="exactly 2 elements"):
+            apply_pauli_corrections(psi, [0])
+
+    def test_three_plus_elements_correction_bits_raises_value_error(self):
+        """3+ element list must raise ValueError."""
+        psi = np.array([1.0, 0.0], dtype=np.complex128)
+        with pytest.raises(ValueError, match="exactly 2 elements"):
+            apply_pauli_corrections(psi, [0, 1, 0])
+
+    def test_non_binary_integers_raise_value_error(self):
+        """Non-binary integers (e.g. 2, -1) must raise ValueError."""
+        psi = np.array([1.0, 0.0], dtype=np.complex128)
+        with pytest.raises(ValueError, match="binary integer 0 or 1"):
+            apply_pauli_corrections(psi, [2, -1])
+        with pytest.raises(ValueError, match="binary integer 0 or 1"):
+            apply_pauli_corrections(psi, [0, 2])
+
+    def test_boolean_and_type_coercion_rejected(self):
+        """Boolean values like [True, False] or strings must be rejected."""
+        psi = np.array([1.0, 0.0], dtype=np.complex128)
+        with pytest.raises(ValueError, match="binary integer 0 or 1"):
+            apply_pauli_corrections(psi, [True, False])  # type: ignore
+        with pytest.raises(ValueError):
+            apply_pauli_corrections(psi, "01")  # type: ignore
+
+
+# ===========================================================================
+# Backend capacity logging tests (F-14)
+# ===========================================================================
+
+class TestBackendCapacityLogging:
+
+    def test_capacity_query_failure_logs_warning(self, caplog):
+        """When querying backend configuration raises an exception, it is logged at WARNING level."""
+        faulty_backend = mock.MagicMock()
+        faulty_backend.configuration.side_effect = RuntimeError("Simulated Aer backend config query failure")
+
+        with caplog.at_level(logging.WARNING):
+            cap = get_backend_qubit_capacity(backend=faulty_backend)
+
+        assert cap == 28
+        assert "Failed to query backend qubit capacity" in caplog.text
+        assert "RuntimeError" in caplog.text
+
+
+# ===========================================================================
+# Constant-time hash comparison tests (F-11)
+# ===========================================================================
+
+class TestConstantTimeHashComparison:
+
+    def test_verify_uses_hmac_compare_digest(self):
+        """verify() must perform constant-time hash comparison via hmac.compare_digest."""
+        import hmac
+        sig = sign("Valid Message", n_qubits=4, seed=42)
+        with mock.patch("hmac.compare_digest", wraps=hmac.compare_digest) as spy_compare:
+            res = verify(sig, message="Valid Message")
+            assert res["is_valid"] is True
+            assert spy_compare.called
+            assert spy_compare.call_count >= 1
+
+    def test_hash_mismatch_returns_structured_rejection_with_received_bits(self):
+        """Tampered message hash returns valid schema with received_bits: [] and reason: message_hash_mismatch."""
+        sig = sign("Valid Message", n_qubits=4, seed=42)
+        tampered = dict(sig)
+        tampered["message_hash"] = "0" * 64
+
+        res = verify(tampered, message="Valid Message")
+        assert res["is_valid"] is False
+        assert res["message_intact"] is False
+        assert res["reason"] == "message_hash_mismatch"
+        assert res["received_bits"] == []
+
+
+

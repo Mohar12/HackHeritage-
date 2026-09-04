@@ -193,6 +193,7 @@ class TestFastAPIEndpoints:
                 "received_bits": [0, 1, 0, 1],
                 "sent_bases": ["Z", "Z", "X", "X"],
                 "received_bases": ["Z", "Z", "X", "X"],
+                "expected_distribution": {"00": 0.5, "01": 0.0, "10": 0.0, "11": 0.5},
             }
         }
         response = client.post("/detect/", json=payload)
@@ -229,3 +230,187 @@ class TestFastAPIEndpoints:
         assert "measurement_data" in data
         assert "fidelity" in data["measurement_data"]
         assert "measured_qber" in data["measurement_data"]
+
+    @pytest.mark.parametrize("invalid_attack", [
+        "invalid_attack_type",
+        "none",
+        "drop_table",
+        "forgery_unknown",
+        "evil_attack",
+    ])
+    def test_simulate_attack_invalid_type_rejected_with_400(self, client: TestClient, invalid_attack: str):
+        payload = {
+            "params": {"n_qubits": 8},
+            "shots": 256,
+            "seed": 42
+        }
+        response = client.post(f"/simulate-attack/{invalid_attack}", json=payload)
+        assert response.status_code == 400
+        data = response.json()
+        assert "detail" in data
+
+    def test_cors_headers_and_no_wildcard_with_credentials(self, client: TestClient):
+        from backend.main import ALLOWED_ORIGINS
+        assert "*" not in ALLOWED_ORIGINS
+        assert "http://localhost:5173" in ALLOWED_ORIGINS
+        
+        response = client.options(
+            "/api/v1/health",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "GET",
+            }
+        )
+        assert response.headers.get("access-control-allow-origin") == "http://localhost:5173"
+        assert response.headers.get("access-control-allow-credentials") == "true"
+
+    def test_verify_endpoint_rejects_malformed_signature_schema(self, client: TestClient):
+        # 1. Missing required fields
+        resp = client.post("/signatures/verify", json={"signature": {"bad_field": 123}})
+        assert resp.status_code == 422
+
+        # 2. Invalid measurement outcome bits (non-binary)
+        resp = client.post("/signatures/verify", json={
+            "signature": {
+                "message_hash": "a" * 64,
+                "session_id": "test-sess",
+                "measurement_outcomes": [0, 5, 1],
+                "correction_bits": [[0, 1], [1, 0]],
+            }
+        })
+        assert resp.status_code == 422
+
+        # 3. Invalid correction bits (wrong shape / non-pair)
+        resp = client.post("/signatures/verify", json={
+            "signature": {
+                "message_hash": "a" * 64,
+                "session_id": "test-sess",
+                "measurement_outcomes": [0, 1],
+                "correction_bits": [[0, 1, 0]],
+            }
+        })
+        assert resp.status_code == 422
+
+    def test_signatures_sign_and_verify_e2e_flow(self, client: TestClient):
+        sign_resp = client.post("/signatures/sign", json={
+            "message": "Verify Protocol Integrity",
+            "n_qubits": 4,
+            "shots": 256,
+            "seed": 42
+        })
+        assert sign_resp.status_code == 200
+        sign_data = sign_resp.json()
+        assert "signature" in sign_data
+
+        verify_resp = client.post("/signatures/verify", json={
+            "signature": sign_data["signature"],
+            "message": "Verify Protocol Integrity"
+        })
+        assert verify_resp.status_code == 200
+        verify_data = verify_resp.json()
+        assert verify_data["is_valid"] is True
+        assert verify_data["message_intact"] is True
+
+    def test_generate_keys_endpoint_success_and_error_handling(self, client: TestClient):
+        resp = client.post("/generate-keys/", json={"n_qubits": 4, "shots": 256, "seed": 42})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["num_keys"] == 4
+        assert "alice_public_key" in data
+
+
+class TestAuditLedgerConcurrency:
+
+    @pytest.mark.anyio
+    async def test_concurrent_ledger_recording_integrity(self):
+        import asyncio
+        from backend.audit_ledger import AuditLedger
+        
+        test_ledger = AuditLedger()
+        n_concurrent = 50
+
+        async def worker(worker_id: int):
+            return test_ledger.record_event(
+                session_id=f"concurrent-sess-{worker_id}",
+                event_type="VERIFICATION",
+                node_id=f"Node-{worker_id}",
+                qber=0.01 * (worker_id % 5),
+            )
+
+        # Launch 50 concurrent records
+        records = await asyncio.gather(*(worker(i) for i in range(n_concurrent)))
+        
+        assert test_ledger.count() == n_concurrent
+        record_ids = [r.record_id for r in test_ledger.get_records(limit=100)]
+        # All IDs must be unique
+        assert len(record_ids) == len(set(record_ids))
+        # Complete hash chain must be verified
+        assert test_ledger.verify_integrity() is True
+
+    def test_simulation_num_qubits_bound_enforced(self, client: TestClient):
+        # Above safe upper limit (>5000) must return 422 Unprocessable Entity
+        payload = {
+            "num_qubits": 5001,
+            "attack_type": "none",
+            "shots": 256,
+            "seed": 42
+        }
+        resp = client.post("/api/v1/simulate", json=payload)
+        assert resp.status_code == 422
+
+
+class TestNoiseRateParameterValidation:
+    """Validate noise_rate parameter scope and sensitivity."""
+
+    def test_depolarizing_noise_rate_sensitivity(self, client: TestClient):
+        """Confirm depolarizing + noise_rate=0.05 vs noise_rate=0.50 produce measurably different output."""
+        res_low = client.post("/api/v1/simulate", json={
+            "num_qubits": 16,
+            "attack_type": "depolarizing",
+            "noise_rate": 0.05,
+            "shots": 256,
+            "seed": 42,
+        })
+        assert res_low.status_code == 200
+        data_low = res_low.json()
+
+        res_high = client.post("/api/v1/simulate", json={
+            "num_qubits": 16,
+            "attack_type": "depolarizing",
+            "noise_rate": 0.50,
+            "shots": 256,
+            "seed": 42,
+        })
+        assert res_high.status_code == 200
+        data_high = res_high.json()
+
+        assert data_low["statistics"]["qber"] != data_high["statistics"]["qber"]
+        assert data_low["fidelity"] != data_high["fidelity"]
+        assert data_low["statistics"]["qber"] < data_high["statistics"]["qber"]
+        assert data_low["fidelity"] > data_high["fidelity"]
+
+    @pytest.mark.parametrize("non_depol_attack", [
+        "forgery",
+        "impersonation",
+        "intercept_resend",
+        "replay",
+        "none",
+    ])
+    def test_noise_rate_rejected_on_non_depolarizing_attacks(self, client: TestClient, non_depol_attack: str):
+        """Confirm noise_rate present on non-depolarizing attacks is rejected with HTTP 422."""
+        payload = {
+            "num_qubits": 8,
+            "attack_type": non_depol_attack,
+            "noise_rate": 0.10,
+            "shots": 256,
+            "seed": 42,
+        }
+        resp = client.post("/api/v1/simulate", json=payload)
+        assert resp.status_code == 422, f"Expected 422 for {non_depol_attack} with noise_rate, got {resp.status_code}"
+        err_msg = resp.text
+        assert "noise_rate is only a valid field when attack_type is 'depolarizing'" in err_msg
+
+
+
+
+

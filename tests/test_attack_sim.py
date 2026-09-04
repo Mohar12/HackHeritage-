@@ -122,6 +122,18 @@ class TestImpersonation:
         assert res["average_qber"] > 0.11
         assert res["fraction_valid_looking"] == 0.0
 
+    def test_simulate_impersonation_deterministic_with_same_seed(self):
+        """Repeated runs with same seed must produce identical outputs and session IDs."""
+        res1 = simulate_impersonation(target_message="Repeated Seed Check", n_qubits=8, seed=42)
+        res2 = simulate_impersonation(target_message="Repeated Seed Check", n_qubits=8, seed=42)
+        assert res1["session_id"] == res2["session_id"]
+        assert res1["measurement_outcomes"] == res2["measurement_outcomes"]
+        assert res1["correction_bits"] == res2["correction_bits"]
+        assert res1["bases"] == res2["bases"]
+        assert res1["measured_qber"] == res2["measured_qber"]
+        assert res1["measurement_counts"] == res2["measurement_counts"]
+
+
 
 # ===========================================================================
 # 4. Replay Tests
@@ -154,3 +166,32 @@ class TestReplay:
         sig = {"session_id": "session-A", "replayed": True}
         indicators = detect_replay_indicators(sig)
         assert indicators["is_suspected_replay"] is True
+
+    def test_replay_fidelity_and_qber_computed_dynamically(self):
+        """F-04: Verify fidelity and QBER vary meaningfully across different replay scenarios."""
+        # Scenario 1: Clean uniform counts with low error
+        clean_sig = {
+            "session_id": "clean-session",
+            "measurement_counts": {"00": 256, "01": 256, "10": 256, "11": 256},
+            "sent_bits": [0, 1, 0, 1, 0, 1, 0, 1],
+            "received_bits": [0, 1, 0, 1, 0, 1, 0, 1],
+        }
+        res_clean = simulate_replay(clean_sig, new_session_id="replay-clean-session")
+
+        # Scenario 2: Heavily skewed/stale counts with 75% bit errors
+        stale_sig = {
+            "session_id": "stale-session",
+            "measurement_counts": {"00": 900, "01": 40, "10": 40, "11": 40},
+            "sent_bits": [0, 0, 0, 0, 0, 0, 0, 0],
+            "received_bits": [1, 1, 1, 1, 1, 1, 0, 0],
+        }
+        res_stale = simulate_replay(stale_sig, new_session_id="replay-stale-session")
+
+        # Both fidelity and QBER must not be fixed constants and must reflect physics
+        assert res_clean["fidelity"] != res_stale["fidelity"]
+        assert res_clean["measured_qber"] != res_stale["measured_qber"]
+        assert res_clean["fidelity"] > res_stale["fidelity"]
+        assert res_clean["measured_qber"] < res_stale["measured_qber"]
+        assert res_clean["measured_qber"] == 0.0
+        assert res_stale["measured_qber"] == 0.75
+

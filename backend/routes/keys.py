@@ -7,7 +7,7 @@ Purpose: API route for /generate-keys with audit ledger logging and scalability.
 from __future__ import annotations
 
 import numpy as np
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Any
 
@@ -35,7 +35,7 @@ def _sanitize_for_json(data: Any) -> Any:
 
 
 class GenerateKeysRequest(BaseModel):
-    n_qubits: int = Field(default=8, ge=1, le=10000, description="Number of EPR key pairs to generate (supports arbitrary positive N).")
+    n_qubits: int = Field(default=8, ge=1, le=5000, description="Number of EPR key pairs to generate (supports arbitrary positive N).")
     shots: int = Field(default=1024, ge=64, le=8192)
     seed: int = Field(default=42, ge=0)
 
@@ -55,23 +55,33 @@ class GenerateKeysResponse(BaseModel):
 @router.post("/", response_model=GenerateKeysResponse, tags=["Keys"])
 async def generate_keys_endpoint(request: GenerateKeysRequest) -> GenerateKeysResponse:
     """Generate quantum public keys, distributed EPR pairs, and record audit event."""
-    result = distribute_public_keys(
-        num_keys=request.n_qubits,
-        shots=request.shots,
-        seed=request.seed,
-    )
+    try:
+        result = distribute_public_keys(
+            num_keys=request.n_qubits,
+            shots=request.shots,
+            seed=request.seed,
+        )
 
-    clean_result = _sanitize_for_json(result)
-    qber_val = clean_result["measured_qber"]
-    is_secure = qber_val <= 0.05
+        clean_result = _sanitize_for_json(result)
+        qber_val = clean_result["measured_qber"]
+        is_secure = qber_val <= 0.05
 
-    ledger.record_event(
-        session_id=clean_result["session_id"],
-        event_type="KEY_DISTRIBUTION",
-        node_id="KDC-Alice",
-        qber=qber_val,
-        threat_classification="SECURE" if is_secure else "WARNING",
-        recommended_action="NONE" if is_secure else "ALERT",
-    )
+        ledger.record_event(
+            session_id=clean_result["session_id"],
+            event_type="KEY_DISTRIBUTION",
+            node_id="KDC-Alice",
+            qber=qber_val,
+            threat_classification="SECURE" if is_secure else "WARNING",
+            recommended_action="NONE" if is_secure else "ALERT",
+        )
 
-    return GenerateKeysResponse(**clean_result)
+        return GenerateKeysResponse(**clean_result)
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Key generation error: {type(exc).__name__}: {exc}",
+        ) from exc

@@ -14,6 +14,7 @@ import scipy.stats as ss
 
 from qds_core.key_distribution import HARDWARE_BASELINE_QBER
 
+CANONICAL_BINS: list[str] = ["00", "01", "10", "11"]
 MIN_EXPECTED_COUNT: int = 5
 
 
@@ -38,15 +39,17 @@ def calculate_qber(
             raise ValueError("sent_bases / received_bases lengths must match bit lengths.")
 
         matching_indices = [
-            i for i in range(len(sent_bits))
-            if sent_bases[i].upper() == received_bases[i].upper()
+            i for i, (sb, rb) in enumerate(zip(sent_bases, received_bases))
+            if sb == rb
         ]
         if not matching_indices:
             return 0.0
 
-        errors = sum(1 for i in matching_indices if sent_bits[i] != received_bits[i])
-        total_sifted = len(matching_indices)
-        return float(errors / total_sifted)
+        errors = sum(
+            1 for i in matching_indices
+            if sent_bits[i] != received_bits[i]
+        )
+        return float(errors / len(matching_indices))
 
     if not sent_bits:
         return 0.0
@@ -71,6 +74,7 @@ def compute_excess_error(
 def chi_squared_born_test(
     observed_counts: dict[str, int],
     expected_distribution: dict[str, float] | None = None,
+    canonical_bins: list[str] | None = None,
 ) -> dict[str, Any]:
     if not observed_counts:
         raise ValueError("observed_counts dict must be non-empty.")
@@ -79,7 +83,17 @@ def chi_squared_born_test(
     if total_shots == 0:
         raise ValueError("Sum of observed_counts is zero.")
 
-    labels = sorted(observed_counts.keys())
+    labels = list(canonical_bins) if canonical_bins is not None else list(CANONICAL_BINS)
+
+    # Validate observed_counts keys are within canonical bins
+    invalid_keys = set(observed_counts.keys()) - set(labels)
+    if invalid_keys:
+        raise ValueError(
+            f"observed_counts contains keys outside canonical bins: {sorted(invalid_keys)}."
+        )
+
+    # Zero-fill across all canonical bins
+    observed_counts_full = {lb: observed_counts.get(lb, 0) for lb in labels}
 
     if expected_distribution is None:
         n_bins = len(labels)
@@ -87,7 +101,7 @@ def chi_squared_born_test(
     else:
         if set(expected_distribution.keys()) != set(labels):
             raise ValueError(
-                "expected_distribution keys must exactly match observed_counts keys. "
+                "expected_distribution keys must exactly match canonical bins. "
                 f"Got {set(expected_distribution.keys())} vs {set(labels)}."
             )
         total_prob = sum(expected_distribution.values())
@@ -98,21 +112,8 @@ def chi_squared_born_test(
             )
         expected_probs = dict(expected_distribution)
 
-    observed_arr = np.array([observed_counts[lb] for lb in labels], dtype=np.float64)
+    observed_arr = np.array([observed_counts_full[lb] for lb in labels], dtype=np.float64)
     expected_arr = np.array([expected_probs[lb] * total_shots for lb in labels], dtype=np.float64)
-
-    # If only 1 bin exists, degrees of freedom = 0 (perfect fit trivially or non-calculable)
-    if len(labels) <= 1:
-        return {
-            "chi2_statistic": 0.0,
-            "p_value": 1.0,
-            "degrees_of_freedom": 0,
-            "reject_null": False,
-            "is_anomalous_at_0.01": False,
-            "observed_counts": dict(observed_counts),
-            "expected_counts": {lb: float(total_shots) for lb in labels},
-            "total_shots": total_shots,
-        }
 
     # Cochran's rule: pool bins where expected count < MIN_EXPECTED_COUNT
     valid_mask = expected_arr >= MIN_EXPECTED_COUNT
@@ -127,6 +128,21 @@ def chi_squared_born_test(
         if low_exp > 0:
             obs_pooled = np.append(obs_pooled, low_obs)
             exp_pooled = np.append(exp_pooled, low_exp)
+        elif low_obs > 0:
+            # Observed counts in zero-expected-probability bins: deterministic extreme anomaly
+            expected_counts_dict = {
+                lb: round(expected_probs[lb] * total_shots, 4) for lb in labels
+            }
+            return {
+                "chi2_statistic": float("inf"),
+                "p_value": 0.0,
+                "degrees_of_freedom": len(labels) - 1,
+                "reject_null": True,
+                "is_anomalous_at_0.01": True,
+                "observed_counts": observed_counts_full,
+                "expected_counts": expected_counts_dict,
+                "total_shots": total_shots,
+            }
 
     if len(obs_pooled) <= 1:
         chi2_stat = 0.0
@@ -149,7 +165,7 @@ def chi_squared_born_test(
         "degrees_of_freedom": dof,
         "reject_null": bool(p_value < 0.05),
         "is_anomalous_at_0.01": bool(p_value < 0.01),
-        "observed_counts": dict(observed_counts),
+        "observed_counts": observed_counts_full,
         "expected_counts": expected_counts_dict,
         "total_shots": total_shots,
     }

@@ -66,9 +66,18 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
 )
 
+ALLOWED_ORIGINS: list[str] = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -206,7 +215,7 @@ def _run_depolarizing_simulation(
 ) -> tuple[dict[str, int], float, float, int]:
     result = simulate_channel_manipulation(
         attack_type="depolarizing",
-        params={"error_rate": req.noise_rate},
+        params={"error_rate": req.noise_rate if req.noise_rate is not None else 0.05},
         shots=req.shots,
         seed=req.seed,
     )

@@ -173,8 +173,7 @@ def simulate_intercept_resend(
     When Eve's basis matches Alice's basis, no error is introduced.
     When they differ, a 50% error rate is injected — yielding the
     theoretical QBER ≈ 0.25 for uniformly random Eve basis choices.
-
-    Parameters
+     Parameters
     ----------
     alice_states : list[NDArray]
         Alice's prepared qubit state vectors, each of shape (2,).
