@@ -109,7 +109,7 @@ export default function ResultsCharts({ data }) {
   const nonrepudiate = Number.isFinite(secBounds?.nonrepudiation_probability_bound) ? secBounds.nonrepudiation_probability_bound : null;
   const helstromP = Number.isFinite(secBounds?.helstrom_p_distinguish) ? secBounds.helstrom_p_distinguish : null;
   const nQubits = secBounds?.n_qubits || sim?.num_qubits || 8;
-  const forgeFormula = secBounds?.forgery_formula_gc || `2^(-${nQubits})`;
+  const forgeFormula = secBounds?.forgery_formula_gc || `2⁻${nQubits}`;
   const forgeCurve = secBounds?.forgery_probability_curve || {};
   const hoeffCurve = secBounds?.hoeffding_confidence_curve || {};
 
@@ -280,7 +280,7 @@ export default function ResultsCharts({ data }) {
               <div className="bound-card">
                 <div className="bound-title">Non-Repudiation Bound</div>
                 <div className="bound-value bound-safe">{nonrepudiate.toExponential(3)}</div>
-                <div className="bound-formula">exp(−(s_v−s_a)²·N/2)</div>
+                <div className="bound-formula">exp(−(sᵥ − sₐ)² · N / 2)</div>
                 <small>Dunjko et al. (2014) Theorem 1</small>
               </div>
             )}
@@ -290,7 +290,7 @@ export default function ResultsCharts({ data }) {
                 <div className={`bound-value ${helstromP > 0.8 ? 'bound-alert' : helstromP > 0.6 ? 'bound-warn' : 'bound-safe'}`}>
                   {(helstromP * 100).toFixed(1)}%
                 </div>
-                <div className="bound-formula">P = (1 + D(ρ,σ)) / 2</div>
+                <div className="bound-formula">P = (1 + D(ρ, σ)) / 2</div>
                 <small>Helstrom (1976) §IV</small>
               </div>
             )}
@@ -309,7 +309,7 @@ export default function ResultsCharts({ data }) {
           {/* Forgery Probability Curve (Interactive Recharts Area) */}
           {showBoundsDetail && forgeChartData.length > 0 && (
             <div className="curve-section" style={{ marginTop: '16px' }}>
-              <h5>P_forge(n) = 2^(−n) — Unconditional Forgery Probability vs Signature Length (Recharts):</h5>
+              <h5>P_forge(n) = 2⁻ⁿ — Unconditional Forgery Probability vs Signature Length (Recharts):</h5>
               <div style={{ width: '100%', height: 160, marginTop: '8px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={forgeChartData} margin={{ top: 10, right: 15, left: -20, bottom: 0 }}>

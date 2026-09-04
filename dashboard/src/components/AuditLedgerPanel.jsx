@@ -63,6 +63,8 @@ export default function AuditLedgerPanel() {
             <tr>
               <th>Record ID</th>
               <th>Timestamp</th>
+              <th>Operational Origin / Source Tab</th>
+              <th>Target Entity</th>
               <th>Event Type</th>
               <th>Session ID</th>
               <th>QBER</th>
@@ -75,8 +77,8 @@ export default function AuditLedgerPanel() {
           <tbody>
             {!Array.isArray(records) || records.length === 0 ? (
               <tr>
-                <td colSpan="9" className="empty-cell">
-                  {loading ? 'Fetching cryptographic audit records...' : 'No ledger entries recorded yet. Run a protocol or attack simulation to commit audit records.'}
+                <td colSpan="11" className="empty-cell">
+                  {loading ? 'Fetching cryptographic audit records...' : 'No ledger entries recorded yet. Run a protocol, attack, or scalable simulation to commit immutable audit records.'}
                 </td>
               </tr>
             ) : (
@@ -85,6 +87,18 @@ export default function AuditLedgerPanel() {
                 const recId = rec.record_id || `aud-${idx + 1}`;
                 const evType = rec.event_type || 'UNKNOWN';
                 const sessId = rec.session_id || '—';
+                const srcTab = rec.source_tab || (
+                  evType === 'ATTACK_SIMULATION' ? 'Tab 2: Adversarial Attack Laboratory' :
+                  evType === 'SIMULATION_RUN' ? 'Tab 1: Honest QDS Protocol Pipeline' :
+                  evType === 'KEY_EXCHANGE' || evType === 'SIGNATURE_GEN' || evType === 'VERIFICATION' ? 'Tab 1: Honest QDS Protocol Pipeline' :
+                  'Operations Control'
+                );
+                const targetEnt = rec.target_entity || (
+                  evType === 'ATTACK_SIMULATION' ? 'Digital Signature Asset' :
+                  evType === 'KEY_EXCHANGE' ? 'Alice-Bob-Charlie Bell Pairs' :
+                  evType === 'VERIFICATION' ? 'Signed Quantum Payload' :
+                  'QDS Quantum State Pipeline'
+                );
                 const qberVal = Number.isFinite(rec.qber) ? `${(rec.qber * 100).toFixed(2)}%` : '—';
                 const fidVal = Number.isFinite(rec.fidelity) ? `${(rec.fidelity * 100).toFixed(1)}%` : '—';
                 const actionVal = rec.recommended_action || 'NONE';
@@ -92,10 +106,26 @@ export default function AuditLedgerPanel() {
                 const nodeHash = typeof rec.node_id_hash === 'string' ? rec.node_id_hash : '00000000';
                 const timeStr = rec.timestamp ? new Date(rec.timestamp * 1000).toLocaleTimeString() : '—';
 
+                // Determine badge style for origin tab
+                let tabBadgeClass = 'tab-badge-generic';
+                if (srcTab.includes('Tab 1')) tabBadgeClass = 'tab-badge-pipeline';
+                else if (srcTab.includes('Tab 2')) tabBadgeClass = 'tab-badge-attack';
+                else if (srcTab.includes('Tab 3')) tabBadgeClass = 'tab-badge-scale';
+
                 return (
                   <tr key={recId} className={`row-${evType.toLowerCase()}`}>
                     <td className="seq-cell">{recId}</td>
                     <td>{timeStr}</td>
+                    <td>
+                      <span className={`tab-origin-badge ${tabBadgeClass}`}>
+                        {srcTab}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="target-entity-pill" title={targetEnt}>
+                        🎯 {targetEnt.length > 28 ? `${targetEnt.slice(0, 26)}...` : targetEnt}
+                      </span>
+                    </td>
                     <td>
                       <span className={`event-badge badge-${evType.toLowerCase()}`}>
                         {evType}

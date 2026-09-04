@@ -211,6 +211,7 @@ async def verify_endpoint(request: VerifyRequest) -> VerifyResponse:
         is_valid = clean_result["is_valid"]
 
         # Record audit log
+        msg_preview = str(request.message)[:24] if request.message else "Generic Message"
         ledger.record_event(
             session_id=sig_payload.get("session_id", "unknown-session"),
             event_type="VERIFICATION",
@@ -221,6 +222,8 @@ async def verify_endpoint(request: VerifyRequest) -> VerifyResponse:
             fidelity=clean_result["fidelity"],
             threat_classification="SECURE" if is_valid else "COMPROMISED",
             recommended_action="NONE" if is_valid else "ABORT",
+            source_tab="Tab 1: Honest QDS Protocol Pipeline",
+            target_entity=f"Signature: {msg_preview}",
         )
 
         return VerifyResponse(**clean_result)

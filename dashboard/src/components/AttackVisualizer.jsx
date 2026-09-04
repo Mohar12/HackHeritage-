@@ -68,7 +68,7 @@ export default function AttackVisualizer({ attackType = 'intercept_resend', atta
           <div className="channel-flow noisy-channel">
             <div className="superoperator-box">
               <span className="superoperator-title">Channel Superoperator E(ρ)</span>
-              <code>(1 - p)ρ + (p/3)(XρX + YρY + ZρZ)</code>
+              <code>(1 − p)ρ + (p/3)(XρX + YρY + ZρZ)</code>
               <small>Uniform thermal phase &amp; bit flips over optical fiber</small>
             </div>
           </div>
@@ -99,7 +99,7 @@ export default function AttackVisualizer({ attackType = 'intercept_resend', atta
             <h5>❌ Forged Signature (Eve)</h5>
             <div className="key-state-card forged-card">
               <code>|K_Eve⟩ = Random Blind Guess</code>
-              <span>Success Probability: P = 2^(-L)</span>
+              <span>Success Probability: P(forgery) ≤ 2⁻ᴸ</span>
             </div>
             <div className="outcome-pill failure">Bob Verification: REJECTED (QBER = {(qber * 100).toFixed(1)}%)</div>
           </div>
@@ -117,7 +117,7 @@ export default function AttackVisualizer({ attackType = 'intercept_resend', atta
             </div>
             <div className="arrow-down">⬇️</div>
             <div className="born-rule-check">
-              <strong>Pearson Chi-Square Born Test Outcome:</strong>
+              <strong>Pearson χ² Born Rule Test Outcome:</strong>
               <div className="chi2-alert-box">
                 <span>Observed p-value: <strong>{pVal < 0.0001 ? '< 0.0001' : pVal.toFixed(6)}</strong></span>
                 <p>Severe distribution skew: Product states violate the quantum Born distribution for Bell pairs!</p>
@@ -156,7 +156,7 @@ export default function AttackVisualizer({ attackType = 'intercept_resend', atta
           <strong style={{ color: qber > 0.11 ? '#ff1744' : '#00e676' }}>{(qber * 100).toFixed(2)}%</strong>
         </div>
         <div className="viz-stat">
-          <span>Born Chi-Square p-val:</span>
+          <span>Born χ² p-value:</span>
           <strong style={{ color: pVal < 0.01 ? '#ff1744' : '#00e676' }}>{pVal < 0.0001 ? '< 0.0001' : pVal.toFixed(4)}</strong>
         </div>
         <div className="viz-stat">

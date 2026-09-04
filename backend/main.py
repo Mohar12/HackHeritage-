@@ -506,6 +506,9 @@ async def simulate(req: SimulationRequest) -> SimulationResponse:
         # Logical EPR protocol samples processed per second
         samples_per_sec = (req.num_qubits / (elapsed / 1000.0))
 
+        target_label = f"QDS-Session-{session_id[:8]}" if session_id else "Quantum State Pipeline"
+        chosen_source_tab = "Tab 3: Scalable Workload Engine" if req.num_qubits > 28 else "Tab 1: Honest QDS Protocol Pipeline"
+
         ledger.record_event(
             session_id=session_id,
             event_type="SIMULATION_RUN",
@@ -517,6 +520,8 @@ async def simulate(req: SimulationRequest) -> SimulationResponse:
             confidence_score=assessment["confidence_score"],
             threat_classification=assessment["qber_classification"],
             recommended_action=assessment["recommended_action"],
+            source_tab=chosen_source_tab,
+            target_entity=target_label,
         )
 
         return SimulationResponse(

@@ -3,137 +3,208 @@
  * =======
  * Production Quantum Security Operations Center (SOC) Root Application.
  * Integrates:
- *  - Global SOC Header & Operational Telemetry Indicators
- *  - 3-Phase Workload Navigation (Honest Protocol, Quantum Attack Lab, Scalable Workload)
- *  - Dual 3D Visualizer Modules (3D Teleportation Flow & 3D Bloch Sphere / Network Mesh)
- *  - Deterministic Zero-ML Threat Verdict Desk & Continuous Pauli/χ² Gauges
- *  - Immutable SHA-256 Hash-Chained Post-Quantum Audit Ledger
- *  - Full Component-Level & Global Error Boundaries
+ *  - Multi-View Architecture:
+ *      * Executive 3D Landing Showcase (LandingHero)
+ *      * Operations Command Center (Horizontal 4-Module Deck)
+ *  - Dedicated 3D Visualizer Modules Distinct Per Tab:
+ *      * Module 1 (Honest Protocol): 3D 4-Stage Teleportation Flow & 3D Bloch Sphere
+ *      * Module 2 (Attack Lab): Synchronized 3D Targeted Attack Architecture & Wiretap
+ *      * Module 3 (Scalable Workload): 3D Multi-Channel Parallel QPU Computing Cluster
+ *      * Module 4 (Audit Ledger): Full-Width Post-Quantum Cryptographic Audit Explorer
+ *  - Explicit Target Signature Entity Dossier & State-Synchronized Operation Phases
+ *  - Liquid Glass Design System & Specular Refraction Styling
  */
 
 import React, { useState } from 'react';
+import StitchLandingPage from './components/StitchLandingPage.jsx';
+import HonestProtocolPage from './components/HonestProtocolPage.jsx';
+import StitchHeader from './components/StitchHeader.jsx';
 import ProtocolRunPanel from './components/ProtocolRunPanel.jsx';
-import AttackSelectionPanel from './components/AttackSelectionPanel.jsx';
+import AttackSelectionPanel, { TARGET_SIGNATURE_ENTITIES } from './components/AttackSelectionPanel.jsx';
 import LargeScaleSimulationPanel from './components/LargeScaleSimulationPanel.jsx';
 import ResultsCharts from './components/ResultsCharts.jsx';
 import BlochSphere3D from './components/BlochSphere3D.jsx';
 import Teleportation3D from './components/Teleportation3D.jsx';
 import NetworkTopology3D from './components/NetworkTopology3D.jsx';
+import AttackArchitecture3D from './components/AttackArchitecture3D.jsx';
+import ScalableCluster3D from './components/ScalableCluster3D.jsx';
 import AuditLedgerPanel from './components/AuditLedgerPanel.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import './index.css';
 
 export default function App() {
+  const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'honest' | 'operations'
   const [activeData, setActiveData] = useState(null);
-  const [activeTab, setActiveTab] = useState('pipeline'); // 'pipeline' | 'attack' | 'large_scale'
+  const [activeTab, setActiveTab] = useState('attack'); // 'attack' | 'large_scale' | 'audit'
   const [activeStage, setActiveStage] = useState(1);
+  const [selectedAttack, setSelectedAttack] = useState('intercept_resend');
+  const [selectedEntity, setSelectedEntity] = useState(TARGET_SIGNATURE_ENTITIES[0]);
+  const [operationPhase, setOperationPhase] = useState('IDLE');
 
   const isAttacked = Boolean(activeData?.detect?.is_malicious || activeData?.type === 'attack');
   const fidelity = typeof activeData?.detect?.fidelity === 'number' ? activeData.detect.fidelity : 0.99;
 
+  const handleNavigate = (view) => {
+    if (view === 'landing') {
+      setCurrentView('landing');
+    } else if (view === 'honest' || view === 'pipeline') {
+      setCurrentView('honest');
+    } else {
+      setCurrentView('operations');
+      setActiveTab(view);
+    }
+  };
+
+  // View 1: Canonical Stitch Landing Page
+  if (currentView === 'landing') {
+    return (
+      <ErrorBoundary title="HyperQDS Landing Page Error">
+        <StitchLandingPage 
+          onEnterSOC={() => handleNavigate('honest')}
+          onNavigate={handleNavigate}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  // View 2: Canonical Honest QDS Protocol Page (Inheriting Stitch Design System)
+  if (currentView === 'honest') {
+    return (
+      <ErrorBoundary title="HyperQDS Honest Protocol Error">
+        <HonestProtocolPage 
+          onNavigate={handleNavigate}
+          onResultData={(data) => setActiveData(data)}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  // View 3: Operational Command Center (Modules 2, 3, 4)
   return (
     <ErrorBoundary title="Quantum SOC Global Error">
-      <div className="soc-container">
-        {/* Top SOC Navigation Bar */}
-        <header className="soc-header">
-          <div className="header-left">
-            <div className="soc-brand">
-              <span className="soc-logo-glow">⚛️</span>
-              <div>
-                <h1>HYPER-QDS QUANTUM SECURITY OPERATIONS CENTER</h1>
-                <p className="soc-tagline">
-                  Deterministic Physics-Based Teleportation Signatures · Zero-ML Pauli &amp; Pearson $\chi^2$ Threat Detection
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="soc-container" style={{ background: '#06070a' }}>
+        {/* Canonical Stitch Header */}
+        <StitchHeader activeTab={activeTab} onNavigate={handleNavigate} />
 
-          <div className="header-right">
-            <div className="status-indicator">
-              <span className="pulse-dot active" />
-              <span>QISKIT AER OPERATIONAL (28-QUBIT CIRCUIT CAP)</span>
-            </div>
-          </div>
-        </header>
+            {/* Dedicated Audit Ledger View (De-cluttered Full-Width) */}
+            {activeTab === 'audit' ? (
+              <main className="soc-audit-deck">
+                <ErrorBoundary title="Audit Ledger Unavailable">
+                  <AuditLedgerPanel />
+                </ErrorBoundary>
+              </main>
+            ) : (
+              /* Primary 2-Column Responsive SOC Operations Grid */
+              <main className="soc-main">
+                {/* Left Column: Interactive Parameters & Control Desks */}
+                <div className="soc-left-column">
+                  <ErrorBoundary title="Interactive Controls Unavailable">
+                    {activeTab === 'pipeline' && (
+                      <ProtocolRunPanel
+                        onResult={setActiveData}
+                        onStageUpdate={setActiveStage}
+                      />
+                    )}
+                    {activeTab === 'attack' && (
+                      <AttackSelectionPanel
+                        onResult={setActiveData}
+                        onStageUpdate={setActiveStage}
+                        selectedAttack={selectedAttack}
+                        onSelectAttack={setSelectedAttack}
+                        selectedEntity={selectedEntity}
+                        onSelectEntity={setSelectedEntity}
+                        onOperationPhase={setOperationPhase}
+                      />
+                    )}
+                    {activeTab === 'large_scale' && (
+                      <LargeScaleSimulationPanel
+                        onResult={setActiveData}
+                      />
+                    )}
+                  </ErrorBoundary>
 
-        {/* Tabbed Pipeline Switcher */}
-        <nav className="soc-nav">
-          <button
-            className={`nav-tab ${activeTab === 'pipeline' ? 'active' : ''}`}
-            onClick={() => setActiveTab('pipeline')}
-          >
-            1. Honest QDS Protocol Pipeline
-          </button>
-          <button
-            className={`nav-tab ${activeTab === 'attack' ? 'active' : ''}`}
-            onClick={() => setActiveTab('attack')}
-          >
-            2. Adversarial Attack Laboratory
-          </button>
-          <button
-            className={`nav-tab ${activeTab === 'large_scale' ? 'active' : ''}`}
-            onClick={() => setActiveTab('large_scale')}
-          >
-            3. Scalable Workload Engine ($N=1\dots 100,000$)
-          </button>
-        </nav>
+                  {/* Supporting 3D Visualizer Row (Context-Aware) */}
+                  <div className="visualizations-row">
+                    {activeTab === 'pipeline' && (
+                      <>
+                        <ErrorBoundary title="3D Bloch Sphere Unavailable">
+                          <BlochSphere3D fidelity={fidelity} isAttacked={false} />
+                        </ErrorBoundary>
+                        <ErrorBoundary title="Network Topology Unavailable">
+                          <NetworkTopology3D isAttacked={false} />
+                        </ErrorBoundary>
+                      </>
+                    )}
 
-        {/* Primary 2-Column Responsive SOC Grid */}
-        <main className="soc-main">
-          {/* Left Column: Interactive Parameters & Control Desks */}
-          <div className="soc-left-column">
-            <ErrorBoundary title="Interactive Controls Unavailable">
-              {activeTab === 'pipeline' && (
-                <ProtocolRunPanel
-                  onResult={setActiveData}
-                  onStageUpdate={setActiveStage}
-                />
-              )}
-              {activeTab === 'attack' && (
-                <AttackSelectionPanel
-                  onResult={setActiveData}
-                  onStageUpdate={setActiveStage}
-                />
-              )}
-              {activeTab === 'large_scale' && (
-                <LargeScaleSimulationPanel
-                  onResult={setActiveData}
-                />
-              )}
-            </ErrorBoundary>
+                    {activeTab === 'attack' && (
+                      <>
+                        <ErrorBoundary title="3D Bloch Sphere Unavailable">
+                          <BlochSphere3D fidelity={fidelity} isAttacked={true} />
+                        </ErrorBoundary>
+                        <ErrorBoundary title="Network Topology Unavailable">
+                          <NetworkTopology3D isAttacked={true} />
+                        </ErrorBoundary>
+                      </>
+                    )}
 
-            {/* Scientific 3D Visualizer Row */}
-            <div className="visualizations-row">
-              <ErrorBoundary title="3D Bloch Sphere Unavailable">
-                <BlochSphere3D fidelity={fidelity} isAttacked={isAttacked} />
-              </ErrorBoundary>
-              <ErrorBoundary title="Network Topology Unavailable">
-                <NetworkTopology3D isAttacked={isAttacked} />
-              </ErrorBoundary>
-            </div>
-          </div>
+                    {activeTab === 'large_scale' && (
+                      <>
+                        <ErrorBoundary title="3D Bloch Sphere Unavailable">
+                          <BlochSphere3D fidelity={fidelity} isAttacked={isAttacked} />
+                        </ErrorBoundary>
+                        <ErrorBoundary title="Network Topology Unavailable">
+                          <NetworkTopology3D isAttacked={isAttacked} />
+                        </ErrorBoundary>
+                      </>
+                    )}
+                  </div>
+                </div>
 
-          {/* Right Column: 3D Teleportation Flow, Live Gauges, Verdicts */}
-          <div className="soc-right-column">
-            <ErrorBoundary title="3D Teleportation Flow Unavailable">
-              <Teleportation3D
-                activeStage={isAttacked ? 7 : activeStage}
-                isCompromised={isAttacked}
-              />
-            </ErrorBoundary>
+                {/* Right Column: Tab-Specific Primary 3D Animation & Telemetry Desk */}
+                <div className="soc-right-column">
+                  {/* TAB 1 ANIMATION: 4-Stage Quantum Teleportation Signature Journey */}
+                  {activeTab === 'pipeline' && (
+                    <ErrorBoundary title="3D Teleportation Flow Unavailable">
+                      <Teleportation3D
+                        activeStage={activeStage}
+                        isCompromised={isAttacked}
+                      />
+                    </ErrorBoundary>
+                  )}
 
-            <ErrorBoundary title="Telemetry & Verdict Desk Unavailable">
-              <ResultsCharts data={activeData} />
-            </ErrorBoundary>
-          </div>
-        </main>
+                  {/* TAB 2 ANIMATION: Targeted Adversarial Architecture & Wiretap Probe */}
+                  {activeTab === 'attack' && (
+                    <ErrorBoundary title="3D Attack Architecture Unavailable">
+                      <AttackArchitecture3D
+                        attackType={selectedAttack}
+                        isAttacked={isAttacked}
+                        targetEntity={selectedEntity}
+                        operationPhase={operationPhase}
+                        attackData={activeData?.attack}
+                        detectData={activeData?.detect}
+                      />
+                    </ErrorBoundary>
+                  )}
 
-        {/* Bottom Section: Immutable Cryptographic Audit Ledger */}
-        <footer className="soc-bottom-section">
-          <ErrorBoundary title="Audit Ledger Unavailable">
-            <AuditLedgerPanel />
-          </ErrorBoundary>
-        </footer>
+                  {/* TAB 3 ANIMATION: High-Throughput Quantum Computing Cluster & Parallel Batch Bus */}
+                  {activeTab === 'large_scale' && (
+                    <ErrorBoundary title="3D Scalable Cluster Unavailable">
+                      <ScalableCluster3D
+                        numSamples={activeData?.sim?.num_qubits || 100}
+                        batchesExecuted={activeData?.sim?.batches_executed || 8}
+                        throughput={activeData?.sim?.samples_per_sec || 450}
+                        status={activeData ? 'done' : 'idle'}
+                      />
+                    </ErrorBoundary>
+                  )}
+
+                  {/* Continuous Deterministic Verdict & Telemetry Desk */}
+                  <ErrorBoundary title="Telemetry & Verdict Desk Unavailable">
+                    <ResultsCharts data={activeData} />
+                  </ErrorBoundary>
+                </div>
+              </main>
+            )}
       </div>
     </ErrorBoundary>
   );

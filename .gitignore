@@ -12,8 +12,8 @@ __pycache__/
 *.pyo
 *.egg
 *.egg-info/
-dist/
-build/
+/dist/
+/build/
 eggs/
 parts/
 var/
@@ -23,7 +23,7 @@ pip-wheel-metadata/
 share/python-wheels/
 *.manifest
 *.spec
-MANIFEST
+/MANIFEST
 
 # Virtual environments
 .venv/
@@ -104,3 +104,11 @@ desktop.ini
 # --- Logs ---
 *.log
 logs/
+
+# --- Skills Folders Tracking ---
+!/.agents/**
+!/agent/**
+!/.claude/**
+!/.postman/**
+!/postman/**
+!skills-lock.json

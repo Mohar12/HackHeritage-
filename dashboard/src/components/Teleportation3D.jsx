@@ -92,22 +92,50 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
       return;
     }
 
-    // Node Materials
-    const matAlice = new THREE.MeshPhongMaterial({ color: 0x00f2fe, emissive: 0x003344, shininess: 80 });
-    const matBob = new THREE.MeshPhongMaterial({ color: 0x00e676, emissive: 0x003322, shininess: 80 });
-    const matCharlie = new THREE.MeshPhongMaterial({ color: 0xffd600, emissive: 0x332b00, shininess: 80 });
-    const matEPR = new THREE.MeshPhongMaterial({ color: 0xa855f7, emissive: 0x2e1065, shininess: 90 });
-    const matEve = new THREE.MeshPhongMaterial({ color: 0xff1744, emissive: 0x440011, shininess: 100 });
+    // Authentic Laboratory Quantum Optics Materials (Refined Stitch Palette)
+    const matAlice = new THREE.MeshStandardMaterial({ color: 0xc084fc, metalness: 0.8, roughness: 0.25 });
+    const matBob = new THREE.MeshStandardMaterial({ color: 0x818cf8, metalness: 0.8, roughness: 0.25 });
+    const matCharlie = new THREE.MeshStandardMaterial({ color: 0xd8b4fe, metalness: 0.8, roughness: 0.25 });
+    const matEPR = new THREE.MeshStandardMaterial({ color: 0x7e22ce, metalness: 0.8, roughness: 0.25 });
+    const matEve = new THREE.MeshStandardMaterial({ color: 0xf43f5e, metalness: 0.8, roughness: 0.25 });
 
-    const createNode = (mat, pos, label, radius = 0.30) => {
+    // Optical Breadboard Base
+    const tableGeo = new THREE.BoxGeometry(7.2, 0.15, 3.6);
+    const tableMat = new THREE.MeshStandardMaterial({ color: 0x070b14, metalness: 0.9, roughness: 0.3 });
+    const tableMesh = new THREE.Mesh(tableGeo, tableMat);
+    tableMesh.position.y = -1.6;
+    scene.add(tableMesh);
+
+    const holeGrid = new THREE.GridHelper(6.8, 24, 0x818cf8, 0x111624);
+    holeGrid.position.y = -1.52;
+    scene.add(holeGrid);
+
+    const createNode = (mat, pos, label, radius = 0.28) => {
       const group = new THREE.Group();
-      const geo = new THREE.SphereGeometry(radius, 24, 24);
-      const mesh = new THREE.Mesh(geo, mat);
-      group.add(mesh);
+      
+      // Precision Anodized Aluminum Cylinder Mount
+      const postGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.5, 16);
+      const postMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.2 });
+      const post = new THREE.Mesh(postGeo, postMat);
+      post.position.y = -radius - 0.25;
+      group.add(post);
 
-      // Rotating halo ring
-      const ringGeo = new THREE.RingGeometry(radius * 1.2, radius * 1.45, 32);
-      const ringMat = new THREE.MeshBasicMaterial({ color: mat.color, side: THREE.DoubleSide, transparent: true, opacity: 0.55 });
+      // Optics Housing (Hexagonal / Beveled Prism Enclosure)
+      const housingGeo = new THREE.CylinderGeometry(radius, radius * 1.1, radius * 0.9, 8);
+      const housingMat = new THREE.MeshStandardMaterial({ color: 0x0b1329, metalness: 0.85, roughness: 0.3 });
+      const housing = new THREE.Mesh(housingGeo, housingMat);
+      group.add(housing);
+
+      // Laser Aperture Glass Lens
+      const lensGeo = new THREE.CylinderGeometry(radius * 0.65, radius * 0.65, 0.05, 24);
+      const lensMat = new THREE.MeshBasicMaterial({ color: mat.color });
+      const lens = new THREE.Mesh(lensGeo, lensMat);
+      lens.position.y = radius * 0.46;
+      group.add(lens);
+
+      // Alignment Reticle / Reticle Ring
+      const ringGeo = new THREE.RingGeometry(radius * 1.15, radius * 1.35, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: mat.color, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.rotation.x = Math.PI / 2;
       group.add(ring);
@@ -121,14 +149,9 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
     const aliceNode = createNode(matAlice, [-2.4, 0.2, 0], 'Alice');
     const bobNode = createNode(matBob, [2.2, 0.8, -0.6], 'Bob');
     const charlieNode = createNode(matCharlie, [2.2, -0.8, 0.6], 'Charlie');
-    const eprNode = createNode(matEPR, [0, -1.3, 0], 'EPR Source', 0.24);
+    const eprNode = createNode(matEPR, [0, -1.1, 0], 'EPR BBO Crystal', 0.24);
 
-    let eveNode = null;
-    if (isCompromised) {
-      eveNode = createNode(matEve, [0, 1.4, 0], 'Eve', 0.32);
-    }
-
-    // Channels
+    // Channels Factory Helper
     const createChannel = (p1, p2, color, dashed = false) => {
       const geo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(...p1),
@@ -143,18 +166,39 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
       return line;
     };
 
-    // 1. Quantum Channel Alice -> Bob
-    const lineQuantum = createChannel([-2.4, 0.2, 0], [2.2, 0.8, -0.6], isCompromised ? 0xff1744 : 0x00f2fe, true);
-    // 2. Classical Pauli Channel Alice -> Bob
-    const lineClassical = createChannel([-2.4, -0.1, 0], [2.2, 0.5, -0.6], 0xffd600, false);
-    // 3. EPR Entanglement channels from EPR source
-    const lineEPRtoAlice = createChannel([0, -1.3, 0], [-2.4, 0.2, 0], 0xa855f7, true);
-    const lineEPRtoBob = createChannel([0, -1.3, 0], [2.2, 0.8, -0.6], 0xa855f7, true);
+    let eveNode = null;
+    let eveBeam1 = null;
+    let eveBeam2 = null;
+    let eveAlertLight = null;
 
-    if (isCompromised && eveNode) {
-      createChannel([-2.4, 0.2, 0], [0, 1.4, 0], 0xff1744, true);
-      createChannel([0, 1.4, 0], [2.2, 0.8, -0.6], 0xff1744, true);
+    if (isCompromised) {
+      // Eve's Precision Optical Micro-Bend Wiretap Bench
+      eveNode = createNode(matEve, [0, 1.2, 0], 'Eve Wiretap Bench', 0.32);
+
+      // Warning wiretap clamp frame
+      const clampGeo = new THREE.BoxGeometry(0.5, 0.25, 0.4);
+      const clampMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.85, roughness: 0.25 });
+      const clamp = new THREE.Mesh(clampGeo, clampMat);
+      clamp.position.y = -0.15;
+      eveNode.add(clamp);
+
+      // Crimson interception lasers connecting Alice-Eve and Eve-Bob
+      eveBeam1 = createChannel([-2.4, 0.2, 0], [0, 1.2, 0], 0xf43f5e, true);
+      eveBeam2 = createChannel([0, 1.2, 0], [2.2, 0.8, -0.6], 0xf43f5e, true);
+
+      // Red alert point light
+      eveAlertLight = new THREE.PointLight(0xf43f5e, 2.5, 8);
+      eveAlertLight.position.set(0, 1.4, 0);
+      scene.add(eveAlertLight);
     }
+
+    // 1. Quantum Channel Alice -> Bob (Red if compromised)
+    const lineQuantum = createChannel([-2.4, 0.2, 0], [2.2, 0.8, -0.6], isCompromised ? 0xf43f5e : 0x00e5ff, true);
+    // 2. Classical Pauli Channel Alice -> Bob
+    const lineClassical = createChannel([-2.4, -0.1, 0], [2.2, 0.5, -0.6], 0xf59e0b, false);
+    // 3. EPR Entanglement channels from EPR source
+    const lineEPRtoAlice = createChannel([0, -1.1, 0], [-2.4, 0.2, 0], 0x0284c7, true);
+    const lineEPRtoBob = createChannel([0, -1.1, 0], [2.2, 0.8, -0.6], 0x0284c7, true);
 
     // --- Dynamic Stage Particles ---
     // Twin Entangled Photons (Stage 1)
@@ -256,10 +300,28 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
         pauliGate.visible = false;
         shieldRing.visible = false;
 
-        // Quantum signature photon: Alice -> Bob
-        quantumPhoton.position.x = -2.4 + progress * 4.6;
-        quantumPhoton.position.y = 0.2 + progress * 0.6 + Math.sin(progress * Math.PI) * 0.4;
-        quantumPhoton.position.z = 0.0 - progress * 0.6;
+        if (isCompromised && eveNode) {
+          // Diverted interception trajectory: Alice -> Eve -> Bob
+          if (progress < 0.5) {
+            const f = progress / 0.5;
+            quantumPhoton.position.x = -2.4 + f * 2.4;
+            quantumPhoton.position.y = 0.2 + f * 1.0;
+            quantumPhoton.position.z = 0;
+            quantumPhoton.material.color.setHex(0x00e5ff);
+          } else {
+            const f = (progress - 0.5) / 0.5;
+            quantumPhoton.position.x = 0 + f * 2.2;
+            quantumPhoton.position.y = 1.2 - f * 0.4;
+            quantumPhoton.position.z = 0 - f * 0.6;
+            quantumPhoton.material.color.setHex(0xf43f5e); // Corrupted / Wiretapped state
+          }
+        } else {
+          // Normal honest direct quantum channel
+          quantumPhoton.position.x = -2.4 + progress * 4.6;
+          quantumPhoton.position.y = 0.2 + progress * 0.6 + Math.sin(progress * Math.PI) * 0.4;
+          quantumPhoton.position.z = 0.0 - progress * 0.6;
+          quantumPhoton.material.color.setHex(0x00e5ff);
+        }
 
         aliceNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.18);
       }

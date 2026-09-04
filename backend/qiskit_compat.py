@@ -68,47 +68,25 @@ class _QiskitFallbackFinder:
     def exec_module(self, module: Any) -> None:
         pass
 
-if not any(isinstance(f, _QiskitFallbackFinder) for f in sys.meta_path):
-    sys.meta_path.append(_QiskitFallbackFinder())
-
-# Polyfill qiskit.qobj if removed in Qiskit 1.x/2.x
-if "qiskit.qobj" not in sys.modules:
-    qobj_mod = types.ModuleType("qiskit.qobj")
-    qasm_qobj_mod = types.ModuleType("qiskit.qobj.qasm_qobj")
-    class QasmQobjInstruction:
-        pass
-    qasm_qobj_mod.QasmQobjInstruction = QasmQobjInstruction
-    qobj_mod.qasm_qobj = qasm_qobj_mod
-    sys.modules["qiskit.qobj"] = qobj_mod
-    sys.modules["qiskit.qobj.qasm_qobj"] = qasm_qobj_mod
-
-# Bypass corrupted/missing templates in local roaming site-packages
-for _mod_name in (
-    "qiskit.circuit.library.templates",
-    "qiskit.circuit.library.templates.nct",
-    "qiskit.circuit.library.templates.clifford",
-    "qiskit.circuit.library.templates.rzx",
-):
-    if _mod_name not in sys.modules:
-        _m = _PermissiveModule(_mod_name)
-        _m.__path__ = []
-        _m.__all__ = []
-        sys.modules[_mod_name] = _m
-
-# Polyfill qiskit.quantum_info if missing from local environment
-if "qiskit.quantum_info" not in sys.modules:
-    _qi_mod = _PermissiveModule("qiskit.quantum_info")
-    _qi_mod.__path__ = []
-    class Clifford:
-        pass
-    class Statevector:
-        pass
-    class DensityMatrix:
-        pass
-    _qi_mod.Clifford = Clifford
-    _qi_mod.Statevector = Statevector
-    _qi_mod.DensityMatrix = DensityMatrix
-    sys.modules["qiskit.quantum_info"] = _qi_mod
+# Only use fallback finder if standard imports fail
+try:
+    import qiskit.quantum_info
+except ImportError:
+    if not any(isinstance(f, _QiskitFallbackFinder) for f in sys.meta_path):
+        sys.meta_path.append(_QiskitFallbackFinder())
+    if "qiskit.quantum_info" not in sys.modules:
+        _qi_mod = _PermissiveModule("qiskit.quantum_info")
+        _qi_mod.__path__ = []
+        class Clifford:
+            pass
+        class Statevector:
+            pass
+        class DensityMatrix:
+            pass
+        _qi_mod.Clifford = Clifford
+        _qi_mod.Statevector = Statevector
+        _qi_mod.DensityMatrix = DensityMatrix
+        sys.modules["qiskit.quantum_info"] = _qi_mod
 
 # ---------------------------------------------------------------------------
 # High-fidelity AerSimulator statevector/Born-rule engine
@@ -266,20 +244,23 @@ class NoiseModel:
 def depolarizing_error(param: float, num_qubits: int = 1) -> Any:
     return types.SimpleNamespace(error_rate=param, num_qubits=num_qubits)
 
-if "qiskit_aer" not in sys.modules:
-    _aer_mod = types.ModuleType("qiskit_aer")
-    _aer_mod.__path__ = []
-    _aer_mod.AerSimulator = AerSimulator
-    _aer_mod.__all__ = ["AerSimulator", "noise"]
-    sys.modules["qiskit_aer"] = _aer_mod
+try:
+    import qiskit_aer
+except ImportError:
+    if "qiskit_aer" not in sys.modules:
+        _aer_mod = types.ModuleType("qiskit_aer")
+        _aer_mod.__path__ = []
+        _aer_mod.AerSimulator = AerSimulator
+        _aer_mod.__all__ = ["AerSimulator", "noise"]
+        sys.modules["qiskit_aer"] = _aer_mod
 
-    _noise_mod = types.ModuleType("qiskit_aer.noise")
-    _noise_mod.__path__ = []
-    _noise_mod.NoiseModel = NoiseModel
-    _noise_mod.depolarizing_error = depolarizing_error
-    _noise_mod.__all__ = ["NoiseModel", "depolarizing_error"]
-    sys.modules["qiskit_aer.noise"] = _noise_mod
-    _aer_mod.noise = _noise_mod
+        _noise_mod = types.ModuleType("qiskit_aer.noise")
+        _noise_mod.__path__ = []
+        _noise_mod.NoiseModel = NoiseModel
+        _noise_mod.depolarizing_error = depolarizing_error
+        _noise_mod.__all__ = ["NoiseModel", "depolarizing_error"]
+        sys.modules["qiskit_aer.noise"] = _noise_mod
+        _aer_mod.noise = _noise_mod
 
 # Ensure transpile is safe
 try:

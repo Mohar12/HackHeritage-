@@ -30,6 +30,8 @@ class AttackSimRequest(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
     shots: int = Field(default=1024, ge=64, le=8192)
     seed: int = Field(default=42, ge=0)
+    target_identity: str | None = None
+    target_payload: str | None = None
 
     @field_validator("params")
     @classmethod
@@ -264,6 +266,13 @@ async def simulate_attack_endpoint(attack_type: str, request: AttackSimRequest) 
     if "received_bits" in clean_res:
         measurement_data["received_bits"] = clean_res["received_bits"]
 
+    target_ent = (
+        request.target_identity
+        or request.target_payload
+        or params.get("target_identity")
+        or params.get("target_payload")
+        or "Digital Signature Asset"
+    )
     ledger.record_event(
         session_id=measurement_data["session_id"],
         event_type="ATTACK_SIMULATION",
@@ -273,6 +282,8 @@ async def simulate_attack_endpoint(attack_type: str, request: AttackSimRequest) 
         fidelity=fidelity,
         threat_classification="ATTACK_DETECTED",
         recommended_action="ABORT",
+        source_tab="Tab 2: Adversarial Attack Laboratory",
+        target_entity=str(target_ent),
     )
 
     return {

@@ -111,6 +111,8 @@ class AuditRecord(BaseModel):
     # New post-quantum fields
     hmac_tag: str = ""         # HMAC-SHA3-512 authentication tag (hex)
     hash_algorithm: str = "sha3-512"  # Documents which hash was used
+    source_tab: str | None = None      # Operational origin module / tab
+    target_entity: str | None = None   # Target digital signature document / asset
 
 
 # ---------------------------------------------------------------------------
@@ -176,6 +178,8 @@ class AuditLedger:
         confidence_score: float | None = None,
         threat_classification: str | None = None,
         recommended_action: str | None = None,
+        source_tab: str | None = None,
+        target_entity: str | None = None,
     ) -> AuditRecord:
         """Atomically generate record_id, chain previous SHA3-512 hash, and append record."""
         ts = time.time()
@@ -201,6 +205,8 @@ class AuditLedger:
                 "threat_classification": threat_classification,
                 "recommended_action": recommended_action,
                 "prev_hash": prev_hash,
+                "source_tab": source_tab,
+                "target_entity": target_entity,
             }
 
             # Post-quantum hash chain using SHA3-512
@@ -227,6 +233,8 @@ class AuditLedger:
                 record_hash=rec_hash,
                 hmac_tag=hmac_tag,
                 hash_algorithm="sha3-512",
+                source_tab=source_tab,
+                target_entity=target_entity,
             )
 
             self._records.append(record)
@@ -246,9 +254,12 @@ class AuditLedger:
         confidence_score: float | None = None,
         threat_classification: str | None = None,
         recommended_action: str | None = None,
+        source_tab: str | None = None,
+        target_entity: str | None = None,
     ) -> AuditRecord:
         """Asynchronous coroutine-safe wrapper using asyncio.Lock."""
-        async with self._get_async_lock():
+        lock = self._get_async_lock()
+        async with lock:
             return self.record_event(
                 session_id=session_id,
                 event_type=event_type,
@@ -262,6 +273,8 @@ class AuditLedger:
                 confidence_score=confidence_score,
                 threat_classification=threat_classification,
                 recommended_action=recommended_action,
+                source_tab=source_tab,
+                target_entity=target_entity,
             )
 
     def get_records(self, limit: int = 50) -> list[AuditRecord]:

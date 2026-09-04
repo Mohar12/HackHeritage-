@@ -311,7 +311,7 @@ export default function ProtocolRunPanel({ onResult, onStageUpdate }) {
           disabled={status === 'running'}
         />
         <small className="field-explanation">
-          Security Bound: <strong>P(forgery) ≤ 2^{`-${nQubits}`} ({Math.pow(2, -nQubits).toExponential(2)})</strong>. Uses {nQubits * 2} physical qubits on Aer.
+          Security Bound: <strong>P(forgery) ≤ 2<sup>-{nQubits}</sup> ({Math.pow(2, -nQubits).toExponential(2)})</strong>. Uses {nQubits * 2} physical qubits on Aer.
         </small>
       </div>
 
