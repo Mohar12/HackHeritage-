@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Any
 
 from qds_core.key_distribution import distribute_public_keys
@@ -39,6 +39,13 @@ class GenerateKeysRequest(BaseModel):
     shots: int = Field(default=1024, ge=64, le=8192)
     seed: int = Field(default=42, ge=0)
 
+    @field_validator("n_qubits", "shots", "seed", mode="before")
+    @classmethod
+    def validate_numeric_not_bool(cls, v: Any) -> Any:
+        if isinstance(v, bool):
+            raise ValueError("Numeric key generation parameters cannot be boolean.")
+        return v
+
 
 class GenerateKeysResponse(BaseModel):
     session_id: str
@@ -52,7 +59,8 @@ class GenerateKeysResponse(BaseModel):
     charlie_shared_material: dict[str, Any]
 
 
-@router.post("/", response_model=GenerateKeysResponse, tags=["Keys"])
+@router.post("", response_model=GenerateKeysResponse, tags=["Keys"], include_in_schema=False)
+@router.post("/", response_model=GenerateKeysResponse, tags=["Keys"], summary="Generate quantum keys and distributed EPR pairs")
 async def generate_keys_endpoint(request: GenerateKeysRequest) -> GenerateKeysResponse:
     """Generate quantum public keys, distributed EPR pairs, and record audit event."""
     try:

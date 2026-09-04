@@ -9,6 +9,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
+import numpy as np
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -60,7 +61,7 @@ class RecommendedAction(str, Enum):
 
 class MeasurementDataSchema(BaseModel):
     """Strictly typed schema for threat detection measurement payloads."""
-    measurement_counts: dict[str, int] = Field(description="Raw measurement counts")
+    measurement_counts: dict[str, int] = Field(description="Raw observed measurement counts.")
     fidelity: float = Field(ge=0.0, le=1.0, description="Quantum state fidelity")
     measured_qber: float | None = Field(default=None, ge=0.0, le=1.0)
     sent_bits: list[int] | None = Field(default=None, description="Sequence of sent bits")
@@ -69,6 +70,78 @@ class MeasurementDataSchema(BaseModel):
     received_bases: list[str] | None = Field(default=None, description="Sequence of received Pauli bases")
     expected_distribution: dict[str, float] | None = None
     session_id: str | None = None
+    total_shots: int | None = Field(default=None, ge=1, description="Actual observed measurement count total.")
+    shot_count_mismatch: bool | None = Field(default=None, description="Indicator if observed shots differ from requested shots.")
+
+    @field_validator("fidelity", "measured_qber", mode="before")
+    @classmethod
+    def validate_float_not_bool(cls, v: Any) -> Any:
+        if isinstance(v, bool):
+            raise ValueError("Floating-point metric cannot be a boolean.")
+        return v
+
+    @field_validator("total_shots", mode="before")
+    @classmethod
+    def validate_total_shots_not_bool(cls, v: Any) -> Any:
+        if isinstance(v, bool):
+            raise ValueError("total_shots cannot be a boolean.")
+        return v
+
+    @field_validator("measurement_counts", mode="before")
+    @classmethod
+    def validate_measurement_counts(cls, v: Any) -> dict[str, int]:
+        if not isinstance(v, dict):
+            raise ValueError("measurement_counts must be a dictionary/object.")
+        if len(v) == 0:
+            raise ValueError("measurement_counts dictionary cannot be empty.")
+        validated: dict[str, int] = {}
+        for key, count in v.items():
+            if not isinstance(key, str) or not key.strip():
+                raise ValueError("measurement_counts keys must be non-empty strings.")
+            if isinstance(count, bool):
+                raise ValueError(f"measurement_counts value for key '{key}' cannot be a boolean.")
+            if not isinstance(count, (int, np.integer)):
+                raise ValueError(f"measurement_counts value for key '{key}' must be an integer, got {type(count).__name__}.")
+            count_val = int(count)
+            if count_val < 0:
+                raise ValueError(f"measurement_counts value for key '{key}' must be >= 0 (got {count_val}).")
+            validated[key] = count_val
+        return validated
+
+    @field_validator("expected_distribution", mode="before")
+    @classmethod
+    def validate_expected_distribution(cls, v: Any) -> dict[str, float] | None:
+        if v is None:
+            return v
+        if not isinstance(v, dict):
+            raise ValueError("expected_distribution must be a dictionary/object.")
+        if len(v) == 0:
+            raise ValueError("expected_distribution dictionary cannot be empty when provided.")
+        validated: dict[str, float] = {}
+        for key, prob in v.items():
+            if not isinstance(key, str) or not key.strip():
+                raise ValueError("expected_distribution keys must be non-empty strings.")
+            if isinstance(prob, bool):
+                raise ValueError(f"expected_distribution value for key '{key}' cannot be a boolean.")
+            if not isinstance(prob, (int, float, np.floating, np.integer)):
+                raise ValueError(f"expected_distribution value for key '{key}' must be numeric.")
+            p_val = float(prob)
+            if p_val < 0.0:
+                raise ValueError(f"expected_distribution probability for key '{key}' must be >= 0 (got {p_val}).")
+            validated[key] = p_val
+        total_p = sum(validated.values())
+        if not (0.95 <= total_p <= 1.05):
+            raise ValueError(f"expected_distribution probabilities must sum to approximately 1.0 (got {total_p:.4f}).")
+        return validated
+
+    @field_validator("session_id", mode="before")
+    @classmethod
+    def validate_session_id(cls, v: Any) -> str | None:
+        if v is None:
+            return v
+        if not isinstance(v, str) or not v.strip():
+            raise ValueError("session_id must be a non-empty string.")
+        return v.strip()
 
     @field_validator("sent_bits", "received_bits", mode="before")
     @classmethod
@@ -78,6 +151,8 @@ class MeasurementDataSchema(BaseModel):
         if not isinstance(v, (list, tuple)):
             raise ValueError("Must be a list or sequence of binary integers, not a scalar.")
         for b in v:
+            if isinstance(b, bool):
+                raise ValueError(f"Bit values cannot be boolean. Got: {b}")
             if b not in (0, 1):
                 raise ValueError(f"Bit values must be 0 or 1. Got: {b}")
         return list(v)
@@ -90,9 +165,55 @@ class MeasurementDataSchema(BaseModel):
         if not isinstance(v, (list, tuple)):
             raise ValueError("Must be a list or sequence of basis strings ('X', 'Z').")
         for b in v:
-            if str(b).upper() not in ("X", "Z"):
+            if not isinstance(b, str) or str(b).upper() not in ("X", "Z"):
                 raise ValueError(f"Bases must be 'X' or 'Z'. Got: {b}")
         return [str(b).upper() for b in v]
+
+    @model_validator(mode="after")
+    def validate_sequence_consistency(self) -> MeasurementDataSchema:
+        sent_b = self.sent_bits
+        rec_b = self.received_bits
+        sent_bases = self.sent_bases
+        rec_bases = self.received_bases
+
+        # 1. sent_bits and received_bits must have same length
+        if sent_b is not None and rec_b is not None:
+            if len(sent_b) != len(rec_b):
+                raise ValueError(
+                    f"sent_bits length ({len(sent_b)}) must match received_bits length ({len(rec_b)})."
+                )
+
+        # 2. sent_bases and received_bases must have same length
+        if sent_bases is not None and rec_bases is not None:
+            if len(sent_bases) != len(rec_bases):
+                raise ValueError(
+                    f"sent_bases length ({len(sent_bases)}) must match received_bases length ({len(rec_bases)})."
+                )
+
+        # 3. If sent_bits and sent_bases are both provided, they must have same length
+        if sent_b is not None and sent_bases is not None:
+            if len(sent_b) != len(sent_bases):
+                raise ValueError(
+                    f"sent_bits length ({len(sent_b)}) must match sent_bases length ({len(sent_bases)})."
+                )
+
+        # 4. If received_bits and received_bases are both provided, they must have same length
+        if rec_b is not None and rec_bases is not None:
+            if len(rec_b) != len(rec_bases):
+                raise ValueError(
+                    f"received_bits length ({len(rec_b)}) must match received_bases length ({len(rec_bases)})."
+                )
+
+        # 5. If expected_distribution is provided, observed measurement_counts keys must be valid states in expected_distribution
+        if self.expected_distribution is not None and self.measurement_counts is not None:
+            exp_keys = set(self.expected_distribution.keys())
+            cnt_keys = set(self.measurement_counts.keys())
+            if not cnt_keys.issubset(exp_keys):
+                raise ValueError(
+                    f"measurement_counts contains unknown states not present in expected_distribution: {sorted(cnt_keys - exp_keys)}."
+                )
+
+        return self
 
 
 class SignaturePayloadSchema(BaseModel):
@@ -170,13 +291,20 @@ class SimulationRequest(BaseModel):
         default=1024,
         ge=64,
         le=8192,
-        description="Aer simulation shot count.",
+        description="Requested simulation/Aer shot count.",
     )
     seed: int = Field(
         default=42,
         ge=0,
         description="RNG seed for deterministic simulation runs.",
     )
+
+    @field_validator("num_qubits", "batch_size", "noise_rate", "shots", "seed", mode="before")
+    @classmethod
+    def validate_simulation_numeric_not_bool(cls, v: Any) -> Any:
+        if isinstance(v, bool):
+            raise ValueError("Simulation numeric parameters cannot be boolean.")
+        return v
 
     @model_validator(mode="after")
     def validate_noise_rate_scope(self) -> "SimulationRequest":
@@ -205,8 +333,13 @@ class StatisticsDetail(BaseModel):
     chi2_statistic: float = Field(ge=0.0)
     chi2_p_value: float = Field(ge=0.0, le=1.0)
     shannon_entropy: float = Field(ge=0.0)
-    total_shots: int = Field(ge=1)
-    measurement_counts: dict[str, int]
+    total_shots: int = Field(
+        ge=1,
+        description="Actual number of measurement observations represented by measurement_counts.",
+    )
+    measurement_counts: dict[str, int] = Field(
+        description="Raw observed measurement counts.",
+    )
 
 
 class ThreatClassification(BaseModel):
@@ -222,12 +355,18 @@ class SimulationResponse(BaseModel):
     fidelity: float = Field(ge=0.0, le=1.0)
     attack_type: str
     num_qubits: int = Field(ge=1)
-    shots: int = Field(ge=1)
+    shots: int = Field(
+        ge=1,
+        description="Requested simulation/Aer shot count.",
+    )
     seed: int = Field(ge=0)
     batches_executed: int = Field(default=1)
     physical_qubits_per_circuit: int = Field(default=28)
     execution_time_ms: float = Field(default=0.0)
-    samples_per_sec: float = Field(default=0.0)
+    samples_per_sec: float = Field(
+        default=0.0,
+        description="Simulation throughput in logical EPR protocol samples processed per second.",
+    )
     statistics: StatisticsDetail
     classification: ThreatClassification
     thresholds: dict[str, float]
@@ -245,3 +384,16 @@ class ErrorDetail(BaseModel):
     error: str
     detail: str
     status_code: int = Field(default=500, ge=400, le=599)
+
+
+class AuditVerifyResponse(BaseModel):
+    valid: bool
+    records_checked: int
+    error: str | None = None
+
+
+class VerifyRequest(BaseModel):
+    signature: SignaturePayloadSchema = Field(description="Strictly typed and validated quantum digital signature payload.")
+    public_key: dict[str, Any] = Field(default_factory=dict)
+    message: str | None = None
+
