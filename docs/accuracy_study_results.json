@@ -1,0 +1,767 @@
+{
+  "clean": {
+    "scenario_key": "clean",
+    "display_name": "Clean / Legitimate Transmission",
+    "num_trials": 200,
+    "expectation": "verified",
+    "primary_metric_name": "Acceptance Rate",
+    "primary_metric_rate": 1.0,
+    "ci_95_wilson": [
+      0.981155,
+      1.0
+    ],
+    "false_positive_rate": 0.005,
+    "false_negative_rate": 0.0,
+    "detector_flagged_rate": 0.005,
+    "verification_rejected_rate": 0.0,
+    "qber_stats": {
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fidelity_stats": {
+      "mean": 0.99964,
+      "std": 0.000107,
+      "min": 0.999188,
+      "max": 0.999887
+    },
+    "chi2_p_stats": {
+      "mean": 0.529425,
+      "std": 0.282105,
+      "min": 0.000584,
+      "max": 0.995635
+    },
+    "confidence_stats": {
+      "mean": 0.134708,
+      "std": 0.068584,
+      "min": 0.0,
+      "max": 0.985398
+    },
+    "trials_sample": [
+      {
+        "seed": 1000,
+        "qber": 0.0,
+        "fidelity": 0.999595,
+        "chi2_p_value": 0.469146,
+        "confidence_score": 0.127386,
+        "is_valid": true,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 0
+      },
+      {
+        "seed": 1001,
+        "qber": 0.0,
+        "fidelity": 0.999706,
+        "chi2_p_value": 0.164578,
+        "confidence_score": 0.128297,
+        "is_valid": true,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 1
+      },
+      {
+        "seed": 1002,
+        "qber": 0.0,
+        "fidelity": 0.999609,
+        "chi2_p_value": 0.056514,
+        "confidence_score": 0.253164,
+        "is_valid": true,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 2
+      },
+      {
+        "seed": 1003,
+        "qber": 0.0,
+        "fidelity": 0.999475,
+        "chi2_p_value": 0.000584,
+        "confidence_score": 0.985398,
+        "is_valid": true,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 3
+      },
+      {
+        "seed": 1004,
+        "qber": 0.0,
+        "fidelity": 0.99964,
+        "chi2_p_value": 0.046478,
+        "confidence_score": 0.290534,
+        "is_valid": true,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 4
+      },
+      {
+        "seed": 1005,
+        "qber": 0.0,
+        "fidelity": 0.999756,
+        "chi2_p_value": 0.422248,
+        "confidence_score": 0.127298,
+        "is_valid": true,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 5
+      },
+      {
+        "seed": 1006,
+        "qber": 0.0,
+        "fidelity": 0.9996,
+        "chi2_p_value": 0.561734,
+        "confidence_score": 0.127383,
+        "is_valid": true,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 6
+      },
+      {
+        "seed": 1007,
+        "qber": 0.0,
+        "fidelity": 0.999595,
+        "chi2_p_value": 0.136091,
+        "confidence_score": 0.131384,
+        "is_valid": true,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 7
+      },
+      {
+        "seed": 1008,
+        "qber": 0.0,
+        "fidelity": 0.999655,
+        "chi2_p_value": 0.453293,
+        "confidence_score": 0.127353,
+        "is_valid": true,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 8
+      },
+      {
+        "seed": 1009,
+        "qber": 0.0,
+        "fidelity": 0.999677,
+        "chi2_p_value": 0.961163,
+        "confidence_score": 0.127341,
+        "is_valid": true,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 9
+      }
+    ],
+    "total_trials_recorded": 200
+  },
+  "forgery": {
+    "scenario_key": "forgery",
+    "display_name": "Quantum Signature Forgery",
+    "num_trials": 200,
+    "expectation": "detected/rejected",
+    "primary_metric_name": "Detection Rate",
+    "primary_metric_rate": 1.0,
+    "ci_95_wilson": [
+      0.981155,
+      1.0
+    ],
+    "false_positive_rate": 0.0,
+    "false_negative_rate": 0.0,
+    "detector_flagged_rate": 1.0,
+    "verification_rejected_rate": 1.0,
+    "qber_stats": {
+      "mean": 0.504375,
+      "std": 0.188961,
+      "min": 0.0,
+      "max": 0.875
+    },
+    "fidelity_stats": {
+      "mean": 0.5,
+      "std": 0.0,
+      "min": 0.5,
+      "max": 0.5
+    },
+    "chi2_p_stats": {
+      "mean": 1.0,
+      "std": 0.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "confidence_stats": {
+      "mean": 0.867862,
+      "std": 0.042703,
+      "min": 0.821429,
+      "max": 0.964888
+    },
+    "trials_sample": [
+      {
+        "seed": 1000,
+        "qber": 0.125,
+        "fidelity": 0.5,
+        "chi2_p_value": 1.0,
+        "confidence_score": 0.821429,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 0
+      },
+      {
+        "seed": 1001,
+        "qber": 0.625,
+        "fidelity": 0.5,
+        "chi2_p_value": 1.0,
+        "confidence_score": 0.894663,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 1
+      },
+      {
+        "seed": 1002,
+        "qber": 0.5,
+        "fidelity": 0.5,
+        "chi2_p_value": 1.0,
+        "confidence_score": 0.859551,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 2
+      },
+      {
+        "seed": 1003,
+        "qber": 0.75,
+        "fidelity": 0.5,
+        "chi2_p_value": 1.0,
+        "confidence_score": 0.929775,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 3
+      },
+      {
+        "seed": 1004,
+        "qber": 0.875,
+        "fidelity": 0.5,
+        "chi2_p_value": 1.0,
+        "confidence_score": 0.964888,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 4
+      },
+      {
+        "seed": 1005,
+        "qber": 0.375,
+        "fidelity": 0.5,
+        "chi2_p_value": 1.0,
+        "confidence_score": 0.824438,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 5
+      },
+      {
+        "seed": 1006,
+        "qber": 0.5,
+        "fidelity": 0.5,
+        "chi2_p_value": 1.0,
+        "confidence_score": 0.859551,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 6
+      },
+      {
+        "seed": 1007,
+        "qber": 0.125,
+        "fidelity": 0.5,
+        "chi2_p_value": 1.0,
+        "confidence_score": 0.821429,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 7
+      },
+      {
+        "seed": 1008,
+        "qber": 0.5,
+        "fidelity": 0.5,
+        "chi2_p_value": 1.0,
+        "confidence_score": 0.859551,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 8
+      },
+      {
+        "seed": 1009,
+        "qber": 0.75,
+        "fidelity": 0.5,
+        "chi2_p_value": 1.0,
+        "confidence_score": 0.929775,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 9
+      }
+    ],
+    "total_trials_recorded": 200
+  },
+  "impersonation": {
+    "scenario_key": "impersonation",
+    "display_name": "Alice Impersonation Attack",
+    "num_trials": 200,
+    "expectation": "detected/rejected",
+    "primary_metric_name": "Detection Rate",
+    "primary_metric_rate": 1.0,
+    "ci_95_wilson": [
+      0.981155,
+      1.0
+    ],
+    "false_positive_rate": 0.0,
+    "false_negative_rate": 0.0,
+    "detector_flagged_rate": 1.0,
+    "verification_rejected_rate": 1.0,
+    "qber_stats": {
+      "mean": 0.5075,
+      "std": 0.185718,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "fidelity_stats": {
+      "mean": 0.45,
+      "std": 0.0,
+      "min": 0.45,
+      "max": 0.45
+    },
+    "chi2_p_stats": {
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "confidence_stats": {
+      "mean": 1.0,
+      "std": 0.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "trials_sample": [
+      {
+        "seed": 1000,
+        "qber": 0.75,
+        "fidelity": 0.45,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 0
+      },
+      {
+        "seed": 1001,
+        "qber": 0.5,
+        "fidelity": 0.45,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 1
+      },
+      {
+        "seed": 1002,
+        "qber": 0.5,
+        "fidelity": 0.45,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 2
+      },
+      {
+        "seed": 1003,
+        "qber": 0.75,
+        "fidelity": 0.45,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 3
+      },
+      {
+        "seed": 1004,
+        "qber": 0.625,
+        "fidelity": 0.45,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 4
+      },
+      {
+        "seed": 1005,
+        "qber": 0.5,
+        "fidelity": 0.45,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 5
+      },
+      {
+        "seed": 1006,
+        "qber": 0.75,
+        "fidelity": 0.45,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 6
+      },
+      {
+        "seed": 1007,
+        "qber": 0.375,
+        "fidelity": 0.45,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 7
+      },
+      {
+        "seed": 1008,
+        "qber": 0.375,
+        "fidelity": 0.45,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 8
+      },
+      {
+        "seed": 1009,
+        "qber": 0.75,
+        "fidelity": 0.45,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": false,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 9
+      }
+    ],
+    "total_trials_recorded": 200
+  },
+  "replay": {
+    "scenario_key": "replay",
+    "display_name": "Signature Replay Attack",
+    "num_trials": 200,
+    "expectation": "detected/rejected",
+    "primary_metric_name": "Detection Rate",
+    "primary_metric_rate": 1.0,
+    "ci_95_wilson": [
+      0.981155,
+      1.0
+    ],
+    "false_positive_rate": 0.0,
+    "false_negative_rate": 0.0,
+    "detector_flagged_rate": 0.015,
+    "verification_rejected_rate": 1.0,
+    "qber_stats": {
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fidelity_stats": {
+      "mean": 0.999641,
+      "std": 0.000101,
+      "min": 0.999257,
+      "max": 0.999845
+    },
+    "chi2_p_stats": {
+      "mean": 0.530457,
+      "std": 0.268729,
+      "min": 0.000662,
+      "max": 0.996565
+    },
+    "confidence_stats": {
+      "mean": 0.141256,
+      "std": 0.097382,
+      "min": 0.0,
+      "max": 0.983439
+    },
+    "trials_sample": [
+      {
+        "seed": 1000,
+        "qber": 0.0,
+        "fidelity": 0.999706,
+        "chi2_p_value": 0.723159,
+        "confidence_score": 0.127177,
+        "is_valid": false,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 0
+      },
+      {
+        "seed": 1001,
+        "qber": 0.0,
+        "fidelity": 0.999607,
+        "chi2_p_value": 0.377541,
+        "confidence_score": 0.127192,
+        "is_valid": false,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 1
+      },
+      {
+        "seed": 1002,
+        "qber": 0.0,
+        "fidelity": 0.999481,
+        "chi2_p_value": 0.243394,
+        "confidence_score": 0.127219,
+        "is_valid": false,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 2
+      },
+      {
+        "seed": 1003,
+        "qber": 0.0,
+        "fidelity": 0.99956,
+        "chi2_p_value": 0.149476,
+        "confidence_score": 0.129271,
+        "is_valid": false,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 3
+      },
+      {
+        "seed": 1004,
+        "qber": 0.0,
+        "fidelity": 0.999666,
+        "chi2_p_value": 0.367728,
+        "confidence_score": 0.127193,
+        "is_valid": false,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 4
+      },
+      {
+        "seed": 1005,
+        "qber": 0.0,
+        "fidelity": 0.999551,
+        "chi2_p_value": 0.232368,
+        "confidence_score": 0.127235,
+        "is_valid": false,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 5
+      },
+      {
+        "seed": 1006,
+        "qber": 0.0,
+        "fidelity": 0.99962,
+        "chi2_p_value": 0.403828,
+        "confidence_score": 0.12719,
+        "is_valid": false,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 6
+      },
+      {
+        "seed": 1007,
+        "qber": 0.0,
+        "fidelity": 0.999659,
+        "chi2_p_value": 0.292078,
+        "confidence_score": 0.127199,
+        "is_valid": false,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 7
+      },
+      {
+        "seed": 1008,
+        "qber": 0.0,
+        "fidelity": 0.999625,
+        "chi2_p_value": 0.946344,
+        "confidence_score": 0.127169,
+        "is_valid": false,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 8
+      },
+      {
+        "seed": 1009,
+        "qber": 0.0,
+        "fidelity": 0.999652,
+        "chi2_p_value": 0.577489,
+        "confidence_score": 0.127182,
+        "is_valid": false,
+        "is_malicious": false,
+        "matches_ground_truth": true,
+        "trial_idx": 9
+      }
+    ],
+    "total_trials_recorded": 200
+  },
+  "intercept_resend": {
+    "scenario_key": "intercept_resend",
+    "display_name": "Intercept-Resend / Eavesdropping",
+    "num_trials": 200,
+    "expectation": "detected/rejected",
+    "primary_metric_name": "Detection Rate",
+    "primary_metric_rate": 1.0,
+    "ci_95_wilson": [
+      0.981155,
+      1.0
+    ],
+    "false_positive_rate": 0.0,
+    "false_negative_rate": null,
+    "detector_flagged_rate": 1.0,
+    "verification_rejected_rate": null,
+    "qber_stats": {
+      "mean": 0.37625,
+      "std": 0.177216,
+      "min": 0.0,
+      "max": 0.875
+    },
+    "fidelity_stats": {
+      "mean": 0.5,
+      "std": 0.0,
+      "min": 0.5,
+      "max": 0.5
+    },
+    "chi2_p_stats": {
+      "mean": 0.0,
+      "std": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "confidence_stats": {
+      "mean": 1.0,
+      "std": 0.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "trials_sample": [
+      {
+        "seed": 1000,
+        "qber": 0.25,
+        "fidelity": 0.5,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": null,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 0
+      },
+      {
+        "seed": 1001,
+        "qber": 0.0,
+        "fidelity": 0.5,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": null,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 1
+      },
+      {
+        "seed": 1002,
+        "qber": 0.5,
+        "fidelity": 0.5,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": null,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 2
+      },
+      {
+        "seed": 1003,
+        "qber": 0.625,
+        "fidelity": 0.5,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": null,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 3
+      },
+      {
+        "seed": 1004,
+        "qber": 0.375,
+        "fidelity": 0.5,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": null,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 4
+      },
+      {
+        "seed": 1005,
+        "qber": 0.625,
+        "fidelity": 0.5,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": null,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 5
+      },
+      {
+        "seed": 1006,
+        "qber": 0.125,
+        "fidelity": 0.5,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": null,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 6
+      },
+      {
+        "seed": 1007,
+        "qber": 0.375,
+        "fidelity": 0.5,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": null,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 7
+      },
+      {
+        "seed": 1008,
+        "qber": 0.25,
+        "fidelity": 0.5,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": null,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 8
+      },
+      {
+        "seed": 1009,
+        "qber": 0.25,
+        "fidelity": 0.5,
+        "chi2_p_value": 0.0,
+        "confidence_score": 1.0,
+        "is_valid": null,
+        "is_malicious": true,
+        "matches_ground_truth": true,
+        "trial_idx": 9
+      }
+    ],
+    "total_trials_recorded": 200
+  }
+}

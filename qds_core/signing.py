@@ -58,6 +58,9 @@ def sign(
 ) -> dict[str, Any]:
     msg_hash = hash_message(message)
     private_key = private_key or {}
+    # Note: Seeded/deterministic UUIDv5 session identifiers are a reproducibility construct for
+    # simulation and automated testing; a deployed production system requires cryptographically
+    # random CSPRNG identifiers (e.g., uuid.uuid4() or secrets.token_bytes()) to prevent prediction.
     session_id: str = private_key.get(
         "session_id",
         str(uuid.uuid5(uuid.NAMESPACE_DNS, f"qds-sign-{seed}")) if seed is not None else str(uuid.uuid4())

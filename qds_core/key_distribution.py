@@ -186,6 +186,9 @@ def distribute_public_keys(
     if num_keys < 1:
         raise ValueError(f"num_keys must be >= 1. Got {num_keys}.")
 
+    # Note: Seeded/deterministic UUIDv5 session identifiers are a reproducibility construct for
+    # simulation and automated testing; a deployed production system requires cryptographically
+    # random CSPRNG identifiers (e.g., uuid.uuid4() or secrets.token_bytes()) to prevent prediction.
     session_id: str = (
         str(uuid.uuid5(uuid.NAMESPACE_DNS, f"qds-session-{seed}-{num_keys}"))
         if seed is not None

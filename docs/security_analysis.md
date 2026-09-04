@@ -2,7 +2,7 @@
 
 ## Protocol Security Model
 
-The teleportation-based QDS protocol achieves **Information-Theoretic Security (ITS)** under the following explicit physical and cryptographic assumptions:
+This simulation demonstrates the security mechanisms underlying an information-theoretically-secure QDS scheme under the following explicit physical and cryptographic assumptions:
 
 | Assumption | Justification |
 |---|---|

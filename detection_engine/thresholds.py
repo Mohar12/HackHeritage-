@@ -18,6 +18,8 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 QBER_SECURE_MAX: float = 0.05
+# Standard Shor-Preskill / BB84 security bound from QKD literature (Shor & Preskill, 2000, PRL 85, 441),
+# below which error correction and privacy amplification guarantee security, not an arbitrary tuned constant.
 QBER_COMPROMISED_MIN: float = 0.11
 
 CHI2_P_NORMAL_MIN: float = 0.05

@@ -2,6 +2,10 @@
 pauli_ops.py
 ============
 Purpose: Core linear algebra, Pauli matrices, Bell-state definitions, and state fidelity.
+Key distribution uses a two-basis (X/Z) BB84-style Pauli eigenstate protocol; the 
+teleportation-based signing payload is deterministically Z-basis encoded per message bit; 
+the Y basis is implemented in pauli_ops.py's general measurement machinery but not 
+exercised in the current protocol flow.
 """
 
 from __future__ import annotations

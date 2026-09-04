@@ -12,7 +12,7 @@
 An exhaustive, ground-up independent audit was performed across all modules of the HyperQDS repository (`qds_core/`, `attack_sim/`, `detection_engine/`, `backend/`, `dashboard/`, `scripts/`, `tests/`, `docs/`). 
 
 ### Core Audit Principles & Verified Posture:
-1. **Pure Physics & Statistics**: The architecture is entirely deterministic and physics-driven (Qiskit Aer quantum state evolution, projective Bell measurements, Pauli corrections, Pearson $\chi^2$ hypothesis testing, Bhattacharyya overlap, Shannon entropy). There is **zero unverified ML/AI** or arbitrary heuristic magic numbers.
+1. **Pure Physics & Statistics**: The architecture is entirely deterministic and physics-driven (Qiskit Aer quantum state evolution, projective Bell measurements, Pauli corrections, Pearson $\chi^2$ hypothesis testing, Bhattacharyya overlap, Shannon entropy). Key distribution uses a two-basis (X/Z) BB84-style Pauli eigenstate protocol; the teleportation-based signing payload is deterministically Z-basis encoded per message bit; the Y basis is implemented in pauli_ops.py's general measurement machinery but not exercised in the current protocol flow. There is **zero unverified ML/AI** or arbitrary heuristic magic numbers.
 2. **Simulation-Based Scope**: All quantum mechanics run deterministically on high-performance statevector/QASM simulation (`AerSimulator`). No unphysical claims of real quantum hardware deployment are made.
 3. **True Mathematical Computation**: All security metrics (QBER, fidelity, p-values, degrees of freedom, confidence scores, hash chains) are computed from real raw measurement vectors rather than caller-supplied overrides or hardcoded stubs.
 4. **Seed Determinism**: Fixed seeds (`seed=42`) guarantee bit-for-bit identical quantum key distributions, measurement counts, Pauli correction bit arrays, fidelity metrics, and audit ledger entries across repeated runs.
@@ -74,6 +74,8 @@ No caller-supplied overrides (`measured_qber`) are trusted.
 | **11.1% Bound ($\text{Threshold} + \epsilon$)** | 1000 bits (111 flips) | 1000 bits | 0.1110 | 0.1110 | `COMPROMISED` | `ABORT` |
 | **50% (Full Intercept-Resend)** | `[0, 0, 0, 0, 1, 1, 1, 1]` | `[1, 0, 1, 0, 0, 1, 0, 1]` | 0.5000 | 0.5000 | `COMPROMISED` | `ABORT` |
 | **100% Inversion** | `[0, 0, 1, 1]` | `[1, 1, 0, 0]` | 1.0000 | 1.0000 | `COMPROMISED` | `ABORT` |
+
+*Note: The QBER threshold of 0.11 ($QBER_{\text{comp}}$) is the standard Shor-Preskill / BB84 security bound from quantum key distribution literature (Shor & Preskill, 2000, Phys. Rev. Lett. 85, 441), below which error correction and privacy amplification guarantee information-theoretic security, rather than an arbitrary tuned constant.*
 
 ---
 
@@ -212,7 +214,7 @@ CONFIDENCE_MALICIOUS    = 0.50   # Threshold for binary is_malicious classificat
 ## 13. Findings Intentionally Documented (Assumptions & Proxies)
 
 1. **Classical Distribution Overlap vs Quantum State Tomography**: `compute_teleportation_fidelity()` computes the Bhattacharyya distribution overlap of 4-branch Bell measurement counts. Full quantum state fidelity $F(\rho, \sigma)$ is implemented in `qds_core/pauli_ops.py` for density matrices, but classical branch overlap is the physically accessible metric in projective shot-based QASM simulation.
-2. **Deterministic PRNG Domain Separation**: When deriving deterministic UUIDs from seeds, `uuid.uuid5(uuid.NAMESPACE_DNS, ...)` is used to guarantee platform-independent determinism.
+2. **Deterministic PRNG Domain Separation**: When deriving deterministic UUIDs from seeds, `uuid.uuid5(uuid.NAMESPACE_DNS, ...)` is used to guarantee platform-independent determinism. Note that seeded/deterministic IDs are a reproducibility construct for this simulation and testing context, not a production security property — a deployed system would require cryptographically random session identifiers (such as `uuid.uuid4()` or `secrets.token_bytes()`).
 
 ---
 
