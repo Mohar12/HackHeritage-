@@ -13,6 +13,10 @@ import re
 import time
 from typing import Any
 
+# Ensure Qiskit 1.x/2.x compatibility polyfills are active before any qiskit imports
+import backend.qiskit_compat
+backend.qiskit_compat.apply_qiskit_compat()
+
 import numpy as np
 from fastapi import FastAPI, APIRouter, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,6 +52,7 @@ from attack_sim.impersonation import simulate_impersonation
 from attack_sim.replay import simulate_replay
 from backend.audit_ledger import ledger, AuditRecord
 from backend.qiskit_compat import apply_qiskit_compat
+from qds_core.protocol_dag import get_dag_json
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +92,11 @@ TAGS_METADATA = [
     },
     {
         "name": "Audit Ledger",
-        "description": "Post-quantum append-only immutable SHA-256 hash-chained audit ledger.",
+        "description": "Post-quantum append-only immutable SHA-256/SHA3-512 hash-chained audit ledger.",
+    },
+    {
+        "name": "Protocol DAG",
+        "description": "rustworkx protocol topology analysis, acyclicity invariants, and attack paths.",
     },
 ]
 
@@ -241,6 +250,15 @@ async def get_audit_ledger(limit: int = 50) -> list[AuditRecord]:
 )
 async def verify_audit_ledger() -> AuditVerifyResponse:
     return AuditVerifyResponse(**ledger.verify_chain())
+
+
+@router.get(
+    "/protocol-dag",
+    summary="Retrieve rustworkx protocol DAG model and topology analysis",
+    tags=["Protocol DAG"],
+)
+async def get_protocol_dag(include_attacks: bool = True) -> dict[str, Any]:
+    return get_dag_json(include_attacks=include_attacks)
 
 
 def _fill_bell_basis_counts(counts: dict[str, int]) -> dict[str, int]:
@@ -476,6 +494,8 @@ async def simulate(req: SimulationRequest) -> SimulationResponse:
             qber=qber,
             chi_sq_p_val=chi2_p_val,
             fidelity=fidelity,
+            n_qubits=req.num_qubits,
+            n_samples=total_shots,
         )
 
         # Keep the final malicious verdict consistent with an abort-level assessment.
@@ -527,7 +547,10 @@ async def simulate(req: SimulationRequest) -> SimulationResponse:
                 recommended_action=assessment["recommended_action"],
             ),
             thresholds=assessment["thresholds"],
+            # Quantum security bounds from information theory
+            quantum_security_bounds=assessment.get("quantum_security_bounds", {}),
         )
+
 
     except HTTPException:
         raise

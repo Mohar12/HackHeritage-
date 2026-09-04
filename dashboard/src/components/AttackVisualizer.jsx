@@ -43,7 +43,7 @@ export default function AttackVisualizer({ attackType = 'intercept_resend', atta
             <div className="eve-interceptor">
               <span className="eve-icon">🕵️‍♀️ Eve</span>
               <span className="eve-action">Measures in random Pauli basis (X or Z)</span>
-              <span className="eve-effect">Collapses Bell entanglement $\rightarrow$ Induces ~25% QBER</span>
+              <span className="eve-effect">Collapses Bell entanglement → Induces ~25% QBER</span>
             </div>
             <div className="beam beam-collapsed">|ψ'⟩ Collapsed</div>
           </div>
@@ -67,7 +67,7 @@ export default function AttackVisualizer({ attackType = 'intercept_resend', atta
 
           <div className="channel-flow noisy-channel">
             <div className="superoperator-box">
-              <span className="superoperator-title">Channel Superoperator $\mathcal{E}(\rho)$</span>
+              <span className="superoperator-title">Channel Superoperator E(ρ)</span>
               <code>(1 - p)ρ + (p/3)(XρX + YρY + ZρZ)</code>
               <small>Uniform thermal phase &amp; bit flips over optical fiber</small>
             </div>
@@ -87,7 +87,7 @@ export default function AttackVisualizer({ attackType = 'intercept_resend', atta
           <div className="comparison-col legitimate">
             <h5>✅ Legitimate Signature (Alice)</h5>
             <div className="key-state-card">
-              <code>|K_A⟩ = ⊗_{"{i=1}"}^L (|00⟩ + |11⟩)/√2</code>
+              <code>|K_A⟩ = EPR Bell Pairs (|00⟩ + |11⟩)/√2</code>
               <span>Pauli Encoded with Private EPR Keys</span>
             </div>
             <div className="outcome-pill success">Bob Verification: ACCEPTED</div>
@@ -99,7 +99,7 @@ export default function AttackVisualizer({ attackType = 'intercept_resend', atta
             <h5>❌ Forged Signature (Eve)</h5>
             <div className="key-state-card forged-card">
               <code>|K_Eve⟩ = Random Blind Guess</code>
-              <span>Success Probability: P = 2^{"{-L}"}</span>
+              <span>Success Probability: P = 2^(-L)</span>
             </div>
             <div className="outcome-pill failure">Bob Verification: REJECTED (QBER = {(qber * 100).toFixed(1)}%)</div>
           </div>
@@ -117,7 +117,7 @@ export default function AttackVisualizer({ attackType = 'intercept_resend', atta
             </div>
             <div className="arrow-down">⬇️</div>
             <div className="born-rule-check">
-              <strong>Pearson's $\chi^2$ Born Test Outcome:</strong>
+              <strong>Pearson Chi-Square Born Test Outcome:</strong>
               <div className="chi2-alert-box">
                 <span>Observed p-value: <strong>{pVal < 0.0001 ? '< 0.0001' : pVal.toFixed(6)}</strong></span>
                 <p>Severe distribution skew: Product states violate the quantum Born distribution for Bell pairs!</p>
@@ -156,7 +156,7 @@ export default function AttackVisualizer({ attackType = 'intercept_resend', atta
           <strong style={{ color: qber > 0.11 ? '#ff1744' : '#00e676' }}>{(qber * 100).toFixed(2)}%</strong>
         </div>
         <div className="viz-stat">
-          <span>Born $\chi^2$ p-val:</span>
+          <span>Born Chi-Square p-val:</span>
           <strong style={{ color: pVal < 0.01 ? '#ff1744' : '#00e676' }}>{pVal < 0.0001 ? '< 0.0001' : pVal.toFixed(4)}</strong>
         </div>
         <div className="viz-stat">

@@ -41,7 +41,7 @@ from detection_engine.detector import (
     _classify_fidelity,
     _compute_confidence_score,
 )
-from qds_core.key_distribution import HARDWARE_BASELINE_QBER
+from detection_engine.statistics import HARDWARE_BASELINE_QBER
 
 
 # ===========================================================================

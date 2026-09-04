@@ -72,8 +72,12 @@ export async function getAuditLedger(limit = 20) {
 
 /** Unified single-call simulation endpoint */
 export async function runUnifiedSimulation(params) {
+  const cleanParams = { ...params };
+  if (cleanParams.attack_type !== 'depolarizing') {
+    delete cleanParams.noise_rate;
+  }
   return apiFetch('/api/v1/simulate', {
     method: 'POST',
-    body: JSON.stringify(params),
+    body: JSON.stringify(cleanParams),
   });
 }

@@ -120,7 +120,7 @@ export default function AttackSelectionPanel({ onResult, onStageUpdate }) {
       <div className="form-row">
         {/* Input: Target Signature Qubits */}
         <div className="form-group half">
-          <label htmlFor="attack-qubits">Signature Length ($L$ Qubits):</label>
+          <label htmlFor="attack-qubits">Signature Length (L Qubits):</label>
           <input
             id="attack-qubits"
             type="number"
@@ -134,7 +134,7 @@ export default function AttackSelectionPanel({ onResult, onStageUpdate }) {
 
         {/* Input: Channel Disturbance Rate */}
         <div className="form-group half">
-          <label htmlFor="attack-error">Channel Noise Rate ($p$):</label>
+          <label htmlFor="attack-error">Channel Noise Rate (p):</label>
           <input
             id="attack-error"
             type="number"

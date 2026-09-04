@@ -13,9 +13,9 @@ import { runUnifiedSimulation } from '../api/client.js';
 const SAMPLE_PRESETS = [
   { label: '10 Samples (1 Batch)', value: 10 },
   { label: '100 Samples (8 Batches)', value: 100 },
+  { label: '500 Samples (36 Batches)', value: 500 },
   { label: '1,000 Samples (72 Batches)', value: 1000 },
-  { label: '5,000 Samples (358 Batches)', value: 5000 },
-  { label: '10,000 Samples (715 Batches)', value: 10000 },
+  { label: '5,000 Samples (358 Batches - Max)', value: 5000 },
 ];
 
 export default function LargeScaleSimulationPanel({ onResult }) {
@@ -40,14 +40,18 @@ export default function LargeScaleSimulationPanel({ onResult }) {
 
     try {
       setProgress(40);
-      const res = await runUnifiedSimulation({
-        num_qubits: Number(numSamples),
+      const safeSamples = Math.min(5000, Math.max(1, Number(numSamples)));
+      const payload = {
+        num_qubits: safeSamples,
         batch_size: maxPairsPerBatch,
         attack_type: attackType,
-        noise_rate: Number(noiseRate),
         shots: 1024,
         seed: Number(seed),
-      });
+      };
+      if (attackType === 'depolarizing') {
+        payload.noise_rate = Number(noiseRate) >= 0 && noiseRate !== '' ? Number(noiseRate) : 0.02;
+      }
+      const res = await runUnifiedSimulation(payload);
 
       setProgress(100);
       const totalTimeMs = Math.round(performance.now() - startTime);
@@ -117,13 +121,13 @@ export default function LargeScaleSimulationPanel({ onResult }) {
         <input
           type="number"
           min="1"
-          max="100000"
+          max="5000"
           value={numSamples}
-          onChange={(e) => setNumSamples(Math.max(1, parseInt(e.target.value) || 1))}
+          onChange={(e) => setNumSamples(Math.min(5000, Math.max(1, parseInt(e.target.value) || 1)))}
           disabled={status === 'running'}
         />
         <small className="calc-note">
-          Partitioning into <strong>{calculatedBatches} independent batches</strong> (max 14 EPR pairs / 28 physical qubits per circuit).
+          Partitioning into <strong>{calculatedBatches} independent batches</strong> (max 14 EPR pairs / 28 physical qubits per circuit). Enforces safe upper bound (max 5,000 samples).
         </small>
       </div>
 
@@ -145,15 +149,27 @@ export default function LargeScaleSimulationPanel({ onResult }) {
         </div>
 
         <div className="form-group half">
-          <label>Thermal Noise Rate (p):</label>
+          <label>
+            Thermal Noise Rate (p):{' '}
+            <span style={{ fontSize: '0.8em', color: attackType === 'depolarizing' ? '#38bdf8' : '#94a3b8' }}>
+              {attackType === 'depolarizing' ? '● Active' : '(Auto-activates Depolarizing mode)'}
+            </span>
+          </label>
           <input
             type="number"
             step="0.01"
             min="0.0"
             max="1.0"
             value={noiseRate}
-            onChange={(e) => setNoiseRate(parseFloat(e.target.value))}
+            onChange={(e) => {
+              const val = e.target.value;
+              setNoiseRate(val === '' ? '' : parseFloat(val));
+              if (attackType !== 'depolarizing') {
+                setAttackType('depolarizing');
+              }
+            }}
             disabled={status === 'running'}
+            placeholder="0.02"
           />
         </div>
       </div>

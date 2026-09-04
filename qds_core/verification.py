@@ -145,8 +145,8 @@ def verify(
         }
 
     n = len(outcomes)
-    expected_states = encode_message_to_states(target_msg, n_qubits=n)
-    sent_bits = [int(np.argmax(np.abs(s)**2)) for s in expected_states]
+    from qds_core.signing import get_message_bits
+    sent_bits = get_message_bits(target_msg, n_qubits=n)
     received_bits = [int(b) for b in outcomes]
 
     # Always compute empirical QBER on teleported message states from raw bit outcomes

@@ -1,35 +1,60 @@
 /**
  * Teleportation3D.jsx
  * ===================
- * Complete 8-stage 3D Quantum Teleportation and QDS Verification Pipeline Visualizer:
- *  - Models Alice, Bob, and Charlie as quantum optical nodes with optical fiber links
- *  - Distinguishes Quantum Entanglement Beams (cyan/magenta) from Classical Pauli Bits (amber)
- *  - Interactive Bell-State Measurement (BSM) convergence and conditional Pauli correction gates (X^c1 · Z^c0)
- *  - Full WebGL context safety and 2D animated fallback.
+ * Dynamic, Stage-Aware 3D Quantum Teleportation and QDS Visualizer:
+ *  - Genuinely transforms 3D animations and particle streams based on the active pipeline stage
+ *  - Stage 1: Central EPR Source generates entangled Bell pairs (|Φ⁺⟩), firing twin photons to Alice & Bob
+ *  - Stage 2: Alice encodes signature state |ψ⟩, performs joint Bell-State Measurement (BSM)
+ *  - Stage 3: Classical channel carries correction bits (c0, c1); Bob applies dynamic Pauli X/Z gate rotations
+ *  - Stage 4+: Quantum verification sweep — emerald green security shield or crimson Eve alert
+ *  - Interactive playback controls: Auto-cycle, manual stage navigation, WebGL fallback.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 const STAGES = [
-  { id: 1, name: 'EPR Pair Distribution', desc: 'Bell pair (|Φ⁺⟩) generated via H + CNOT on Aer simulator' },
-  { id: 2, name: 'Message State Preparation', desc: 'Alice encodes signature state |ψ⟩ = α|0⟩ + β|1⟩' },
-  { id: 3, name: 'Bell-State Measurement (BSM)', desc: 'Alice measures joint state on Bell basis (q0, q1)' },
-  { id: 4, name: 'Classical Bit Transmission', desc: 'Classical correction bits (c0, c1) sent over public channel' },
-  { id: 5, name: 'Conditional Pauli Correction', desc: 'Bob/Charlie apply (X^c1 · Z^c0) to recover state' },
-  { id: 6, name: 'Teleported State Verification', desc: 'Projective measurement in Alice declared bases' },
-  { id: 7, name: 'Statistical Threat Detection', desc: 'QBER vs BB84 bound (0.11) & χ² Born test' },
-  { id: 8, name: 'Immutable Audit Ledger Commit', desc: 'SHA-256 hash-chained post-quantum record committed' },
+  { id: 1, name: 'EPR Pair Distribution', desc: 'Central EPR source distributes entangled twin photons (|Φ⁺⟩) to Alice & Bob' },
+  { id: 2, name: 'Message State Preparation', desc: 'Alice encodes signature state |ψ⟩ into MUB eigenstate bases' },
+  { id: 3, name: 'Bell-State Measurement (BSM)', desc: 'Alice performs joint projective measurement on message & EPR qubits' },
+  { id: 4, name: 'Classical Bit Transmission', desc: 'Classical Pauli correction bits (c0, c1) sent over classical channel' },
+  { id: 5, name: 'Conditional Pauli Correction', desc: 'Bob applies conditional (X^c1 · Z^c0) unitary operators to recover |ψ⟩' },
+  { id: 6, name: 'Teleported State Sifting', desc: 'Projective measurements in Alice declared bases yield raw key bits' },
+  { id: 7, name: 'Statistical Threat Detection', desc: 'QBER tested vs BB84 bound (0.11) & Pearson χ² Born test verifies authenticity' },
+  { id: 8, name: 'Immutable Audit Ledger Commit', desc: 'SHA3-512 post-quantum cryptographic hash committed to immutable ledger' },
 ];
 
 export default function Teleportation3D({ activeStage = 1, isCompromised = false }) {
   const mountRef = useRef(null);
   const [currentStage, setCurrentStage] = useState(activeStage);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [webglSupported, setWebglSupported] = useState(true);
+  const stageRef = useRef(activeStage);
 
+  // Synchronize stageRef whenever activeStage prop or currentStage state changes
   useEffect(() => {
-    setCurrentStage(Math.max(1, Math.min(8, activeStage || 1)));
+    const s = Math.max(1, Math.min(8, activeStage || 1));
+    setCurrentStage(s);
+    stageRef.current = s;
   }, [activeStage]);
+
+  // Auto-play animation cycle
+  useEffect(() => {
+    if (!isPlaying) return;
+    const timer = setInterval(() => {
+      setCurrentStage((prev) => {
+        const next = prev >= 8 ? 1 : prev + 1;
+        stageRef.current = next;
+        return next;
+      });
+    }, 1600);
+    return () => clearInterval(timer);
+  }, [isPlaying]);
+
+  function handleSelectStage(stageId) {
+    setCurrentStage(stageId);
+    stageRef.current = stageId;
+  }
 
   useEffect(() => {
     const container = mountRef.current;
@@ -48,11 +73,11 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
     }
 
     const width = container.clientWidth || 540;
-    const height = 260;
+    const height = 270;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
-    camera.position.set(0, 3.8, 5.8);
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
+    camera.position.set(0, 3.6, 6.2);
     camera.lookAt(0, 0, 0);
 
     let renderer;
@@ -62,93 +87,126 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       container.appendChild(renderer.domElement);
     } catch (err) {
-      console.warn('WebGL initialization failed in Teleportation3D:', err);
+      console.warn('WebGL init failed:', err);
       setWebglSupported(false);
       return;
     }
 
     // Node Materials
-    const nodeMatAlice = new THREE.MeshPhongMaterial({ color: 0x00f2fe, emissive: 0x003344 });
-    const nodeMatBob = new THREE.MeshPhongMaterial({ color: 0x00e676, emissive: 0x003322 });
-    const nodeMatCharlie = new THREE.MeshPhongMaterial({ color: 0xffd600, emissive: 0x332b00 });
-    const nodeMatEve = new THREE.MeshPhongMaterial({ color: 0xff1744, emissive: 0x440011 });
+    const matAlice = new THREE.MeshPhongMaterial({ color: 0x00f2fe, emissive: 0x003344, shininess: 80 });
+    const matBob = new THREE.MeshPhongMaterial({ color: 0x00e676, emissive: 0x003322, shininess: 80 });
+    const matCharlie = new THREE.MeshPhongMaterial({ color: 0xffd600, emissive: 0x332b00, shininess: 80 });
+    const matEPR = new THREE.MeshPhongMaterial({ color: 0xa855f7, emissive: 0x2e1065, shininess: 90 });
+    const matEve = new THREE.MeshPhongMaterial({ color: 0xff1744, emissive: 0x440011, shininess: 100 });
 
-    const createNode = (mat, pos, label) => {
+    const createNode = (mat, pos, label, radius = 0.30) => {
       const group = new THREE.Group();
-      const geo = new THREE.SphereGeometry(0.32, 24, 24);
+      const geo = new THREE.SphereGeometry(radius, 24, 24);
       const mesh = new THREE.Mesh(geo, mat);
       group.add(mesh);
 
-      // Add a ring halo
-      const ringGeo = new THREE.RingGeometry(0.38, 0.44, 32);
-      const ringMat = new THREE.MeshBasicMaterial({ color: mat.color, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+      // Rotating halo ring
+      const ringGeo = new THREE.RingGeometry(radius * 1.2, radius * 1.45, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: mat.color, side: THREE.DoubleSide, transparent: true, opacity: 0.55 });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.rotation.x = Math.PI / 2;
       group.add(ring);
+      group.ringMesh = ring;
 
       group.position.set(...pos);
       scene.add(group);
       return group;
     };
 
-    const aliceNode = createNode(nodeMatAlice, [-2.2, 0, 0], 'Alice');
-    const bobNode = createNode(nodeMatBob, [2.0, 0.8, -0.6], 'Bob');
-    const charlieNode = createNode(nodeMatCharlie, [2.0, -0.8, 0.6], 'Charlie');
+    const aliceNode = createNode(matAlice, [-2.4, 0.2, 0], 'Alice');
+    const bobNode = createNode(matBob, [2.2, 0.8, -0.6], 'Bob');
+    const charlieNode = createNode(matCharlie, [2.2, -0.8, 0.6], 'Charlie');
+    const eprNode = createNode(matEPR, [0, -1.3, 0], 'EPR Source', 0.24);
+
     let eveNode = null;
     if (isCompromised) {
-      eveNode = createNode(nodeMatEve, [0, 1.3, 0], 'Eve');
+      eveNode = createNode(matEve, [0, 1.4, 0], 'Eve', 0.32);
     }
 
-    // Channels: Quantum Entanglement Beam (Cyan/Magenta) vs Classical Bits Channel (Amber)
-    const lineMatQuantum = new THREE.LineDashedMaterial({
-      color: isCompromised ? 0xff1744 : 0x00f2fe,
-      dashSize: 0.18,
-      gapSize: 0.08,
-      linewidth: 2,
-    });
-
-    const lineMatClassical = new THREE.LineBasicMaterial({
-      color: 0xffd600,
-      transparent: true,
-      opacity: 0.5,
-    });
-
-    const createChannel = (p1, p2, mat) => {
+    // Channels
+    const createChannel = (p1, p2, color, dashed = false) => {
       const geo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(...p1),
         new THREE.Vector3(...p2),
       ]);
+      const mat = dashed
+        ? new THREE.LineDashedMaterial({ color, dashSize: 0.18, gapSize: 0.09, linewidth: 2 })
+        : new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.45, linewidth: 2 });
       const line = new THREE.Line(geo, mat);
-      line.computeLineDistances();
+      if (dashed) line.computeLineDistances();
       scene.add(line);
       return line;
     };
 
-    createChannel([-2.2, 0, 0], [2.0, 0.8, -0.6], lineMatQuantum);
-    createChannel([-2.2, 0, 0], [2.0, -0.8, 0.6], lineMatQuantum);
-    createChannel([-2.2, -0.3, 0], [2.0, 0.5, -0.6], lineMatClassical); // Classical Pauli channel
+    // 1. Quantum Channel Alice -> Bob
+    const lineQuantum = createChannel([-2.4, 0.2, 0], [2.2, 0.8, -0.6], isCompromised ? 0xff1744 : 0x00f2fe, true);
+    // 2. Classical Pauli Channel Alice -> Bob
+    const lineClassical = createChannel([-2.4, -0.1, 0], [2.2, 0.5, -0.6], 0xffd600, false);
+    // 3. EPR Entanglement channels from EPR source
+    const lineEPRtoAlice = createChannel([0, -1.3, 0], [-2.4, 0.2, 0], 0xa855f7, true);
+    const lineEPRtoBob = createChannel([0, -1.3, 0], [2.2, 0.8, -0.6], 0xa855f7, true);
 
-    if (isCompromised) {
-      createChannel([-2.2, 0, 0], [0, 1.3, 0], lineMatQuantum);
-      createChannel([0, 1.3, 0], [2.0, 0.8, -0.6], lineMatQuantum);
+    if (isCompromised && eveNode) {
+      createChannel([-2.4, 0.2, 0], [0, 1.4, 0], 0xff1744, true);
+      createChannel([0, 1.4, 0], [2.2, 0.8, -0.6], 0xff1744, true);
     }
 
-    // Flying Qubit particle
-    const photonGeo = new THREE.SphereGeometry(0.09, 16, 16);
-    const photonMat = new THREE.MeshBasicMaterial({ color: isCompromised ? 0xff1744 : 0x00f2fe });
-    const photon = new THREE.Mesh(photonGeo, photonMat);
-    scene.add(photon);
+    // --- Dynamic Stage Particles ---
+    // Twin Entangled Photons (Stage 1)
+    const eprPhoton1 = new THREE.Mesh(
+      new THREE.SphereGeometry(0.08, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0xa855f7 })
+    );
+    const eprPhoton2 = new THREE.Mesh(
+      new THREE.SphereGeometry(0.08, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0xa855f7 })
+    );
+    scene.add(eprPhoton1);
+    scene.add(eprPhoton2);
 
-    // Flying Classical Bit particle (Amber)
-    const bitGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-    const bitMat = new THREE.MeshBasicMaterial({ color: 0xffd600 });
-    const classicalBit = new THREE.Mesh(bitGeo, bitMat);
+    // Flying Quantum Signature Photon (Stage 2 & 3)
+    const quantumPhoton = new THREE.Mesh(
+      new THREE.SphereGeometry(0.11, 16, 16),
+      new THREE.MeshBasicMaterial({ color: isCompromised ? 0xff1744 : 0x00f2fe })
+    );
+    scene.add(quantumPhoton);
+
+    // Flying Classical Bit Packets (Stage 4 & 5)
+    const classicalBit = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.12, 0.12),
+      new THREE.MeshBasicMaterial({ color: 0xffd600 })
+    );
     scene.add(classicalBit);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const light = new THREE.PointLight(0x00f2fe, 1.4, 10);
-    light.position.set(0, 3, 2);
-    scene.add(light);
+    // Bob's Pauli Correction Gate Ring (Stage 5)
+    const pauliGateGeo = new THREE.TorusGeometry(0.46, 0.03, 16, 32);
+    const pauliGateMat = new THREE.MeshBasicMaterial({ color: 0x00e676, wireframe: true });
+    const pauliGate = new THREE.Mesh(pauliGateGeo, pauliGateMat);
+    pauliGate.position.set(2.2, 0.8, -0.6);
+    scene.add(pauliGate);
+
+    // Security Verification Wave / Shield (Stage 7 & 8)
+    const shieldGeo = new THREE.RingGeometry(0.1, 0.2, 32);
+    const shieldMat = new THREE.MeshBasicMaterial({
+      color: isCompromised ? 0xff1744 : 0x00e676,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.7,
+    });
+    const shieldRing = new THREE.Mesh(shieldGeo, shieldMat);
+    shieldRing.position.set(2.2, 0.8, -0.6);
+    scene.add(shieldRing);
+
+    // Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const pointLight = new THREE.PointLight(0x00f2fe, 1.8, 12);
+    pointLight.position.set(0, 3, 2);
+    scene.add(pointLight);
 
     let progress = 0;
     let reqId;
@@ -157,22 +215,101 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
     const animate = () => {
       if (isDisposed) return;
       reqId = requestAnimationFrame(animate);
-      progress = (progress + 0.015) % 1.0;
 
-      // Animate Quantum Photon (Alice -> Bob)
-      photon.position.x = -2.2 + progress * 4.2;
-      photon.position.y = 0.0 + progress * 0.8 + (Math.sin(progress * Math.PI) * 0.35);
-      photon.position.z = 0.0 - progress * 0.6;
+      const stage = stageRef.current || 1;
+      progress = (progress + 0.016) % 1.0;
 
-      // Animate Classical Bit (delayed)
-      const bitProgress = (progress + 0.5) % 1.0;
-      classicalBit.position.x = -2.2 + bitProgress * 4.2;
-      classicalBit.position.y = -0.3 + bitProgress * 0.8;
-      classicalBit.position.z = 0.0 - bitProgress * 0.6;
-      classicalBit.rotation.x += 0.05;
-      classicalBit.rotation.y += 0.05;
+      // Base rotations
+      if (aliceNode?.ringMesh) aliceNode.ringMesh.rotation.z += 0.02;
+      if (bobNode?.ringMesh) bobNode.ringMesh.rotation.z += 0.02;
+      if (eprNode?.ringMesh) eprNode.ringMesh.rotation.z += 0.03;
 
-      scene.rotation.y = Math.sin(Date.now() * 0.0004) * 0.18;
+      // --- STAGE-SPECIFIC 3D BEHAVIORS ---
+
+      // STAGE 1: EPR Pair Distribution (Source -> Alice & Bob)
+      if (stage === 1) {
+        eprPhoton1.visible = true;
+        eprPhoton2.visible = true;
+        quantumPhoton.visible = false;
+        classicalBit.visible = false;
+        pauliGate.visible = false;
+        shieldRing.visible = false;
+
+        // EPR Photon 1: [0, -1.3, 0] -> Alice [-2.4, 0.2, 0]
+        eprPhoton1.position.x = 0 + progress * (-2.4);
+        eprPhoton1.position.y = -1.3 + progress * 1.5;
+        eprPhoton1.position.z = 0;
+
+        // EPR Photon 2: [0, -1.3, 0] -> Bob [2.2, 0.8, -0.6]
+        eprPhoton2.position.x = 0 + progress * 2.2;
+        eprPhoton2.position.y = -1.3 + progress * 2.1;
+        eprPhoton2.position.z = 0 + progress * (-0.6);
+
+        eprNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 4) * 0.15);
+      }
+      // STAGE 2 & 3: Message Encoding & Teleportation (Alice BSM -> Flying Photon)
+      else if (stage === 2 || stage === 3) {
+        eprPhoton1.visible = false;
+        eprPhoton2.visible = false;
+        quantumPhoton.visible = true;
+        classicalBit.visible = false;
+        pauliGate.visible = false;
+        shieldRing.visible = false;
+
+        // Quantum signature photon: Alice -> Bob
+        quantumPhoton.position.x = -2.4 + progress * 4.6;
+        quantumPhoton.position.y = 0.2 + progress * 0.6 + Math.sin(progress * Math.PI) * 0.4;
+        quantumPhoton.position.z = 0.0 - progress * 0.6;
+
+        aliceNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.18);
+      }
+      // STAGE 4 & 5: Classical Pauli Bit Transmission & Bob Correction
+      else if (stage === 4 || stage === 5) {
+        eprPhoton1.visible = false;
+        eprPhoton2.visible = false;
+        quantumPhoton.visible = false;
+        classicalBit.visible = true;
+        pauliGate.visible = true;
+        shieldRing.visible = false;
+
+        // Classical bit: Alice -> Bob
+        classicalBit.position.x = -2.4 + progress * 4.6;
+        classicalBit.position.y = -0.1 + progress * 0.6;
+        classicalBit.position.z = 0.0 - progress * 0.6;
+        classicalBit.rotation.x += 0.06;
+        classicalBit.rotation.y += 0.06;
+
+        // Bob's Pauli Correction gate ring expands & spins
+        pauliGate.rotation.x += 0.04;
+        pauliGate.rotation.y += 0.05;
+        const gateScale = 1.0 + (progress * 0.5);
+        pauliGate.scale.set(gateScale, gateScale, gateScale);
+      }
+      // STAGE 6, 7 & 8: Verification & Threat Detection Sweep
+      else {
+        eprPhoton1.visible = false;
+        eprPhoton2.visible = false;
+        quantumPhoton.visible = false;
+        classicalBit.visible = false;
+        pauliGate.visible = false;
+        shieldRing.visible = true;
+
+        // Verification shield wave expanding
+        const shieldScale = 1.0 + progress * 4.0;
+        shieldRing.scale.set(shieldScale, shieldScale, shieldScale);
+        shieldMat.opacity = Math.max(0, 0.8 - progress * 0.8);
+
+        if (isCompromised && eveNode) {
+          eveNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 6) * 0.25);
+          scene.rotation.y = Math.sin(Date.now() * 0.002) * 0.15;
+        } else {
+          bobNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.1);
+        }
+      }
+
+      // Gentle camera orbit
+      scene.rotation.y = Math.sin(Date.now() * 0.0003) * 0.12;
+
       if (renderer && scene && camera) {
         renderer.render(scene, camera);
       }
@@ -206,10 +343,42 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
       <div className="widget-header">
         <div>
           <span className="viz-badge">3D QUANTUM TELEPORTATION ENGINE</span>
-          <h4>Alice $\rightarrow$ Bob $\rightarrow$ Charlie Optical Pipeline</h4>
+          <h4>Alice → Bob → Charlie Optical Pipeline</h4>
         </div>
-        <span className={`pill-tag ${isCompromised ? 'pill-danger' : 'pill-green'}`}>
-          {isCompromised ? '🚨 Channel Intercepted by Eve' : '🔒 Entangled Bell Pair Validated'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            type="button"
+            className="btn-preset"
+            style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem' }}
+            onClick={() => setIsPlaying(!isPlaying)}
+          >
+            {isPlaying ? '⏸ Pause' : '▶ Auto Play'}
+          </button>
+          <span className={`pill-tag ${isCompromised ? 'pill-danger' : 'pill-green'}`}>
+            {isCompromised ? '🚨 Channel Intercepted by Eve' : '🔒 Entangled Bell Pair Validated'}
+          </span>
+        </div>
+      </div>
+
+      {/* Live Stage Banner Overlay */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '0.4rem 0.8rem',
+          background: 'rgba(0, 242, 254, 0.08)',
+          border: '1px solid rgba(0, 242, 254, 0.25)',
+          borderRadius: '6px',
+          marginBottom: '0.5rem',
+          fontSize: '0.78rem',
+        }}
+      >
+        <span style={{ color: 'var(--accent-cyan)', fontWeight: 800 }}>
+          ACTIVE STAGE {currentStage}/8: {STAGES[currentStage - 1]?.name}
+        </span>
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+          Click any stage below to inspect 3D flow
         </span>
       </div>
 
@@ -231,7 +400,8 @@ export default function Teleportation3D({ activeStage = 1, isCompromised = false
           <div
             key={s.id}
             className={`stage-step ${s.id === currentStage ? 'active' : s.id < currentStage ? 'passed' : ''}`}
-            onClick={() => setCurrentStage(s.id)}
+            onClick={() => handleSelectStage(s.id)}
+            title="Click to view stage animation"
           >
             <span className="step-num">{s.id}</span>
             <span className="step-name">{s.name}</span>

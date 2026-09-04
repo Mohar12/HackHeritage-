@@ -19,3 +19,6 @@ from pathlib import Path
 _ROOT = Path(__file__).parent.parent.resolve()
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
+
+import backend.qiskit_compat  # Polyfill Qiskit 1.x/2.x adapters for all tests
+backend.qiskit_compat.apply_qiskit_compat()

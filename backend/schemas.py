@@ -370,6 +370,17 @@ class SimulationResponse(BaseModel):
     statistics: StatisticsDetail
     classification: ThreatClassification
     thresholds: dict[str, float]
+    # Quantum-mechanical security bounds (Hoeffding, Helstrom, Dunjko, Gottesman-Chuang)
+    quantum_security_bounds: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Information-theoretic quantum security bounds: "
+            "Hoeffding QBER confidence, Helstrom distinguishability, "
+            "Dunjko unforgeability/non-repudiation bounds, and "
+            "Gottesman-Chuang random-guessing forgery probability."
+        ),
+    )
+
 
 
 class HealthResponse(BaseModel):
