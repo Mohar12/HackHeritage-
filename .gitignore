@@ -112,3 +112,5 @@ logs/
 !/.postman/**
 !/postman/**
 !skills-lock.json
+**/__pycache__/**
+
