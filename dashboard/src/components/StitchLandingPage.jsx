@@ -17,7 +17,9 @@ import QuantumCoreAnomaly from './QuantumCoreAnomaly.jsx';
 import StitchHeader from './StitchHeader.jsx';
 
 export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
-  const [revealedSections, setRevealedSections] = useState(new Set());
+  const [revealedSections, setRevealedSections] = useState(
+    () => new Set(['paradigm', 'pillars', 'comparison', 'cta'])
+  );
 
   // Cursor light effect helper: updates CSS variables directly with zero React re-renders
   const handleMouseMove = (e) => {
@@ -138,12 +140,12 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               <div className="hqds-proof-divider" />
               <div className="hqds-proof-item">
                 <span className="hqds-proof-label">CONFIDENCE</span>
-                <span className="hqds-proof-value">Pearson χ² (p &lt; 0.001)</span>
+                <span className="hqds-proof-value" style={{ color: '#39FF14' }}>Pearson χ² (p &lt; 0.001)</span>
               </div>
               <div className="hqds-proof-divider" />
               <div className="hqds-proof-item">
                 <span className="hqds-proof-label">SIMULATION ENGINE</span>
-                <span className="hqds-proof-value text-accent">Qiskit Aer (28-Qubit)</span>
+                <span className="hqds-proof-value" style={{ color: '#00F0FF' }}>Qiskit Aer (28-Qubit)</span>
               </div>
             </div>
           </div>

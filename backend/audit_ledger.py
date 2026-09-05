@@ -358,7 +358,9 @@ class AuditLedger:
                 "confidence_score": record.confidence_score,
                 "threat_classification": record.threat_classification,
                 "recommended_action": record.recommended_action,
-                "prev_hash": prev_hash,
+                "prev_hash": record.prev_hash,
+                "source_tab": record.source_tab,
+                "target_entity": record.target_entity,
             }
 
             calculated_hash = self._compute_record_hash(payload)

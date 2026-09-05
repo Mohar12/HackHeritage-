@@ -33,9 +33,28 @@ import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import './index.css';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'honest' | 'operations'
+  const getInitialView = () => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const qView = params.get('view');
+      if (qView === 'honest' || qView === 'pipeline') return 'honest';
+      if (qView === 'attack' || qView === 'large_scale' || qView === 'audit') return 'operations';
+      if (window.location.hash === '#honest' || window.location.hash === '#pipeline') return 'honest';
+      if (window.location.hash === '#attack') return 'operations';
+    }
+    return 'landing';
+  };
+
+  const [currentView, setCurrentView] = useState(getInitialView); // 'landing' | 'honest' | 'operations'
   const [activeData, setActiveData] = useState(null);
-  const [activeTab, setActiveTab] = useState('attack'); // 'attack' | 'large_scale' | 'audit'
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const qView = params.get('view');
+      if (qView === 'large_scale' || qView === 'audit') return qView;
+    }
+    return 'attack';
+  }); // 'attack' | 'large_scale' | 'audit'
   const [activeStage, setActiveStage] = useState(1);
   const [selectedAttack, setSelectedAttack] = useState('intercept_resend');
   const [selectedEntity, setSelectedEntity] = useState(TARGET_SIGNATURE_ENTITIES[0]);
@@ -47,11 +66,20 @@ export default function App() {
   const handleNavigate = (view) => {
     if (view === 'landing') {
       setCurrentView('landing');
+      if (typeof window !== 'undefined' && window.history?.pushState) {
+        window.history.pushState(null, '', window.location.pathname);
+      }
     } else if (view === 'honest' || view === 'pipeline') {
       setCurrentView('honest');
+      if (typeof window !== 'undefined' && window.history?.pushState) {
+        window.history.pushState(null, '', '?view=honest');
+      }
     } else {
       setCurrentView('operations');
       setActiveTab(view);
+      if (typeof window !== 'undefined' && window.history?.pushState) {
+        window.history.pushState(null, '', `?view=${view}`);
+      }
     }
   };
 

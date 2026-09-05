@@ -88,6 +88,17 @@ except ImportError:
         _qi_mod.DensityMatrix = DensityMatrix
         sys.modules["qiskit.quantum_info"] = _qi_mod
 
+if "qiskit.circuit.library.templates.nct.template_nct_9d_7" not in sys.modules:
+    _tmpl_mod = _PermissiveModule("qiskit.circuit.library.templates.nct.template_nct_9d_7")
+    def template_nct_9d_7(*args: Any, **kwargs: Any) -> Any:
+        return None
+    _tmpl_mod.template_nct_9d_7 = template_nct_9d_7
+    sys.modules["qiskit.circuit.library.templates.nct.template_nct_9d_7"] = _tmpl_mod
+
+def apply_qiskit_compat() -> None:
+    """Polyfill entrypoint for Qiskit compatibility layer."""
+    pass
+
 # ---------------------------------------------------------------------------
 # High-fidelity AerSimulator statevector/Born-rule engine
 # ---------------------------------------------------------------------------

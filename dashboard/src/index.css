@@ -2812,17 +2812,66 @@ body {
 .hqds-reveal-item.delay-4 { animation-delay: 0.50s; }
 .hqds-reveal-item.delay-5 { animation-delay: 0.64s; }
 
-/* Apple-Style Section Scroll Reveal */
+/* Stitch MCP & Apple-Style Section Scroll Reveal */
 .hqds-scroll-section {
-  opacity: 0;
-  transform: translateY(32px);
-  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .hqds-scroll-section.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Stitch MCP Status & Fluorescent Accents */
+.status-safe {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #39FF14;
+  box-shadow: 0 0 8px 2px rgba(57, 255, 20, 0.5);
+  display: inline-block;
+}
+
+.status-compromised {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #FF003C;
+  box-shadow: 0 0 8px 2px rgba(255, 0, 60, 0.7);
+  display: inline-block;
+  animation: hqdsPulseAlert 1.5s infinite;
+}
+
+@keyframes hqdsPulseAlert {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.hqds-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(14, 17, 26, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(57, 255, 20, 0.3);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.1);
+}
+
+.hqds-status-pill.danger {
+  border-color: rgba(255, 0, 60, 0.4);
+  box-shadow: 0 0 12px rgba(255, 0, 60, 0.15);
 }
 
 .hqds-eyebrow {
@@ -3044,6 +3093,20 @@ body {
   background: rgba(192, 132, 252, 0.12);
   color: #c084fc;
   border: 1px solid rgba(192, 132, 252, 0.3);
+}
+
+.hqds-card-badge.green {
+  background: rgba(57, 255, 20, 0.12);
+  color: #39FF14;
+  border: 1px solid rgba(57, 255, 20, 0.35);
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.18);
+}
+
+.hqds-card-badge.cyan {
+  background: rgba(0, 240, 255, 0.12);
+  color: #00F0FF;
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
 }
 
 .hqds-card-title {
@@ -3570,6 +3633,447 @@ body {
   }
 }
 
+/* ==========================================================================
+   DESIGN SYSTEM CONTINUITY — Honest Protocol ↔ Landing Page Color Sync
+   Both pages use: Violet #c084fc accent, #06070a base, Epilogue/Plus Jakarta Sans/JetBrains Mono
+   ========================================================================== */
 
+/* ── Shared Design Tokens ── */
+:root {
+  --hqds-violet: #c084fc;
+  --hqds-violet-dim: rgba(192, 132, 252, 0.35);
+  --hqds-violet-glow: rgba(192, 132, 252, 0.2);
+  --hqds-violet-bg: rgba(192, 132, 252, 0.08);
+  --hqds-neon-green: #39FF14;
+  --hqds-cyber-cyan: #00F0FF;
+  --hqds-surface: rgba(14, 17, 26, 0.65);
+  --hqds-border: #1b2234;
+  --hqds-border-subtle: rgba(255, 255, 255, 0.07);
+}
 
+/* ── Google Fonts: Epilogue, Plus Jakarta Sans, JetBrains Mono loaded via index.html ── */
+
+/* ══════════════════════════════════════════════════════════
+   HEADER — Deeper glass (applies to both pages)
+   ══════════════════════════════════════════════════════════ */
+
+.hqds-header {
+  background: rgba(8, 9, 14, 0.82) !important;
+  backdrop-filter: blur(32px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(192, 132, 252, 0.15) !important;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.55) !important;
+}
+
+/* Brand name — white to lavender gradient */
+.hqds-brand-name {
+  background: linear-gradient(135deg, #ffffff 30%, #e9d5ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Status pill — violet border matching both pages */
+.hqds-status-pill {
+  border-color: rgba(192, 132, 252, 0.28) !important;
+}
+
+/* ── Pulse dot (used in header status pill) ── */
+.stitch-pulse-dot-green {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #39FF14;
+  box-shadow: 0 0 8px rgba(57, 255, 20, 0.6);
+  display: inline-block;
+  flex-shrink: 0;
+  animation: hqdsPulseAlive 2s infinite ease-in-out;
+}
+
+@keyframes hqdsPulseAlive {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.55; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   HONEST PROTOCOL PAGE — Color Matching to Landing Page
+   Uses identical violet #c084fc palette as the landing page
+   ══════════════════════════════════════════════════════════ */
+
+/* Hero padding */
+.hqds-honest-hero {
+  padding: 60px 24px 28px;
+}
+
+/* Stage card — violet focus state (matching landing's hover/active colors) */
+.hqds-stage-focused {
+  border-color: rgba(192, 132, 252, 0.5) !important;
+  box-shadow: 0 0 24px rgba(192, 132, 252, 0.2), 0 16px 40px rgba(0,0,0,0.5) !important;
+  background: linear-gradient(180deg, rgba(26, 32, 54, 0.8) 0%, rgba(14, 17, 26, 0.8) 100%) !important;
+}
+
+/* Stage active — violet glow during pipeline run */
+.stitch-stage-active {
+  border-color: rgba(192, 132, 252, 0.5) !important;
+  background: rgba(126, 34, 206, 0.08) !important;
+  box-shadow: 0 0 20px rgba(192, 132, 252, 0.18), inset 0 0 12px rgba(126, 34, 206, 0.05) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Scanline animation on active stages — violet */
+.stitch-stage-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #c084fc, transparent);
+  animation: hqdsScanline 2s infinite linear;
+}
+
+@keyframes hqdsScanline {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Stage complete — neon green (same as landing's CONFIDENCE value) */
+.stitch-stage-complete {
+  border-color: rgba(57, 255, 20, 0.35) !important;
+  background: rgba(57, 255, 20, 0.04) !important;
+}
+
+/* 3D Visualizer Wrap — deeper glass matching landing card depth */
+.hqds-honest-vis-wrap {
+  background: rgba(10, 12, 20, 0.75) !important;
+  border-color: rgba(27, 34, 52, 0.9) !important;
+  box-shadow: 0 24px 56px rgba(0,0,0,0.65) !important;
+}
+
+.hqds-honest-vis-wrap:hover {
+  border-color: rgba(192, 132, 252, 0.35) !important;
+  box-shadow: 0 24px 56px rgba(0,0,0,0.65), 0 0 32px rgba(126, 34, 206, 0.12) !important;
+}
+
+.hqds-honest-vis-header {
+  background: rgba(16, 18, 28, 0.85) !important;
+  border-bottom-color: #1b2234 !important;
+}
+
+.hqds-honest-vis-footer {
+  background: rgba(8, 10, 18, 0.9) !important;
+  border-top-color: #1b2234 !important;
+}
+
+/* Input focus — violet ring (same as landing's eyebrow/accent) */
+.hqds-honest-input:focus {
+  border-color: #c084fc !important;
+  box-shadow: 0 0 0 2px rgba(192, 132, 252, 0.2) !important;
+}
+
+/* ── Verdict Banner — matches landing's green/red telemetry style ── */
+.hqds-honest-verdict-accept {
+  background: linear-gradient(180deg, rgba(14, 38, 22, 0.88) 0%, rgba(8, 20, 12, 0.95) 100%);
+  border: 1px solid rgba(57, 255, 20, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(57, 255, 20, 0.15);
+}
+
+.hqds-honest-verdict-reject {
+  background: linear-gradient(180deg, rgba(58, 14, 22, 0.88) 0%, rgba(32, 8, 14, 0.95) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(244, 63, 94, 0.15);
+}
+
+/* ── Bell Distribution Chart — matches landing's comparison table glass style ── */
+.stitch-chart-container {
+  background: rgba(14, 17, 26, 0.65);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid #1b2234;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  transition: border-color 0.3s ease;
+}
+
+.stitch-chart-container:hover {
+  border-color: rgba(192, 132, 252, 0.3);
+}
+
+/* ── QBER Progress Bars — matches landing's accent colors ── */
+.stitch-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.stitch-bar-fill-green {
+  height: 100%;
+  background: linear-gradient(90deg, #39FF14, #10b981);
+  border-radius: 9999px;
+  box-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stitch-bar-fill-violet {
+  height: 100%;
+  background: linear-gradient(90deg, #c084fc, #a855f7);
+  border-radius: 9999px;
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.4);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stitch-bar-fill-red {
+  height: 100%;
+  background: linear-gradient(90deg, #f43f5e, #e11d48);
+  border-radius: 9999px;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.4);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Metric Cards — match landing's pillar card style ── */
+.stitch-metric-card {
+  background: rgba(14, 17, 26, 0.65);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid #1b2234;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stitch-metric-card:hover {
+  border-color: rgba(192, 132, 252, 0.35);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 0 24px rgba(126, 34, 206, 0.12);
+}
+
+/* Metric values — violet (matches landing's .text-accent) */
+.stitch-metric-value-violet {
+  font-family: 'Epilogue', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #c084fc;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(192, 132, 252, 0.3));
+}
+
+/* Metric values — neon green (matches landing's CONFIDENCE telemetry) */
+.stitch-metric-value-green {
+  font-family: 'Epilogue', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #39FF14;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(57, 255, 20, 0.3));
+}
+
+/* Metric values — cyan (matches landing's Qiskit badge) */
+.stitch-metric-value-cyan {
+  font-family: 'Epilogue', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #00F0FF;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.3));
+}
+
+/* Metric values — white */
+.stitch-metric-value-white {
+  font-family: 'Epilogue', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.stitch-metric-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── Status Badges — matching landing's badge system ── */
+.stitch-badge-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(192, 132, 252, 0.1);
+  border: 1px solid rgba(192, 132, 252, 0.3);
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #c084fc;
+  letter-spacing: 0.1em;
+}
+
+.stitch-badge-nominal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(57, 255, 20, 0.1);
+  border: 1px solid rgba(57, 255, 20, 0.35);
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #39FF14;
+  box-shadow: 0 0 10px rgba(57, 255, 20, 0.12);
+}
+
+/* ── Runtime Log — matches dark code-block styling ── */
+.stitch-runtime-log {
+  background: rgba(6, 7, 10, 0.85);
+  border: 1px solid #1b2234;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  line-height: 1.7;
+}
+
+/* ── VisionOS Glass — utility class for premium surface effect ── */
+.stitch-glass {
+  background: rgba(14, 17, 26, 0.65);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid #1b2234;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stitch-glass:hover {
+  border-color: rgba(192, 132, 252, 0.3);
+  box-shadow: 0 24px 56px rgba(0,0,0,0.65), 0 0 28px rgba(126, 34, 206, 0.12);
+}
+
+/* ── Glass card variant ── */
+.stitch-card {
+  background: rgba(14, 17, 26, 0.65);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid #1b2234;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stitch-card:hover {
+  border-color: rgba(192, 132, 252, 0.35);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 28px rgba(126, 34, 206, 0.15);
+}
+
+/* ── Telemetry Section Header ── */
+.stitch-telemetry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #1b2234;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RECHARTS GRAPH — Dark theme aligned to landing design
+   ══════════════════════════════════════════════════════════ */
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: rgba(10, 12, 20, 0.96) !important;
+  border: 1px solid rgba(192, 132, 252, 0.25) !important;
+  border-radius: 8px !important;
+  color: #f8fafc !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6), 0 0 20px rgba(126, 34, 206, 0.1) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 12px !important;
+}
+
+.recharts-tooltip-wrapper .recharts-tooltip-label {
+  color: #c084fc !important;
+  font-weight: 700 !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   CUSTOM SCROLLBAR
+   ══════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(192, 132, 252, 0.25);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(192, 132, 252, 0.5);
+}
+
+/* ══════════════════════════════════════════════════════════
+   RANGE SLIDER — Violet thumb matching landing's accent
+   ══════════════════════════════════════════════════════════ */
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: #c084fc;
+  box-shadow: 0 0 12px rgba(192, 132, 252, 0.6);
+  cursor: pointer;
+  margin-top: -6px;
+  transition: transform 0.2s ease;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE IMPROVEMENTS
+   ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .stitch-metric-value-green,
+  .stitch-metric-value-violet,
+  .stitch-metric-value-cyan,
+  .stitch-metric-value-white {
+    font-size: 1.6rem;
+  }
+  .hqds-honest-3d-mount {
+    min-height: 220px;
+  }
+}
+
+@media (max-width: 640px) {
+  .visualizations-row {
+    grid-template-columns: 1fr;
+  }
+}
 

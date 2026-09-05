@@ -4,11 +4,11 @@
  * Canonical Stitch Navigation Header shared across all HyperQDS pages.
  * 
  * Features:
- * - Unified 74px height, 28px glassmorphism backdrop-filter blur.
- * - Epilogue brand typography + Plus Jakarta Sans navigation labels.
- * - Cursor-following soft radial light effect on tabs and action button.
- * - Seamless page navigation: Overview (Landing) -> Honest Protocol -> Attack Lab -> Scalable Engine -> Audit Ledger.
- * - Sophisticated violet / lavender / blue-violet color tokens with zero neon green.
+ * - Unified 74px height, 32px glassmorphism backdrop-filter blur.
+ * - Epilogue brand typography + Plus Jakarta Sans navigation labels + JetBrains Mono status.
+ * - Cohesive violet / lavender quantum palette matching the landing page.
+ * - Cursor-following soft radial light effect on tabs and action buttons.
+ * - Seamless page navigation: Overview -> Honest Protocol -> Attack Lab -> Scalable Engine -> Audit Ledger.
  */
 
 import React from 'react';
@@ -41,10 +41,16 @@ export default function StitchHeader({ activeTab = 'landing', onNavigate }) {
         >
           <div className="hqds-logo-symbol">
             <svg viewBox="0 0 28 28" fill="none" className="hqds-logo-svg">
-              <rect x="2" y="2" width="24" height="24" rx="6" stroke="#c084fc" strokeWidth="1.5" />
-              <circle cx="14" cy="14" r="5" fill="#6b21a8" fillOpacity="0.7" />
-              <circle cx="14" cy="14" r="2.5" fill="#e9d5ff" />
-              <path d="M7 14H10M18 14H21M14 7V10M14 18V21" stroke="#a855f7" strokeWidth="1.5" strokeLinecap="round" />
+              {/* Outer frame — Violet border matching landing */}
+              <rect x="2" y="2" width="24" height="24" rx="6" stroke="#c084fc" strokeWidth="1.5" strokeOpacity="0.85" />
+              {/* Inner nucleus — violet core */}
+              <circle cx="14" cy="14" r="5" fill="#4a1272" fillOpacity="0.8" />
+              <circle cx="14" cy="14" r="2.5" fill="#e9b3ff" />
+              {/* Quantum arms — Violet */}
+              <path d="M7 14H10M18 14H21M14 7V10M14 18V21" stroke="#c084fc" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.8" />
+              {/* Corner accent dots */}
+              <circle cx="3.5" cy="3.5" r="1" fill="#c084fc" fillOpacity="0.6" />
+              <circle cx="24.5" cy="3.5" r="1" fill="#c084fc" fillOpacity="0.6" />
             </svg>
           </div>
           <div className="hqds-brand-text">
@@ -72,8 +78,14 @@ export default function StitchHeader({ activeTab = 'landing', onNavigate }) {
           })}
         </nav>
 
-        {/* Action Button */}
-        <div className="hqds-header-action">
+        {/* Action Button & Live Link Pill */}
+        <div className="hqds-header-action" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Status Pill */}
+          <div className="hqds-status-pill hidden-mobile">
+            <span className="stitch-pulse-dot-green" />
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem', letterSpacing: '0.05em' }}>LINK: ONLINE · 28-QPU</span>
+          </div>
+
           {activeTab === 'landing' ? (
             <button
               className="hqds-btn-primary hqds-cursor-light"

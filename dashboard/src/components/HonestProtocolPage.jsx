@@ -109,8 +109,10 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
     e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
   };
 
-  // Scroll reveal observer
-  const [revealedSections, setRevealedSections] = useState(new Set());
+  // Scroll reveal observer with immediate default visibility for key sections
+  const [revealedSections, setRevealedSections] = useState(
+    () => new Set(['stages', 'visualizer', 'controls'])
+  );
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -405,22 +407,22 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
               return (
                 <div
                   key={s.id}
-                  className={`hqds-pillar-card hqds-cursor-light ${isFocused ? 'hqds-stage-focused' : ''}`}
+                  className={`hqds-pillar-card hqds-cursor-light ${
+                    isFocused ? 'hqds-stage-focused' : ''
+                  } ${
+                    isCompleted ? 'stitch-stage-complete' : isActive ? 'stitch-stage-active' : ''
+                  }`}
                   onMouseMove={handleMouseMove}
                   onClick={() => handleStageCardClick(s)}
-                  style={{
-                    cursor: 'pointer',
-                    borderColor: isFocused ? 'rgba(192, 132, 252, 0.5)' : undefined,
-                    background: isFocused ? 'linear-gradient(180deg, rgba(26, 32, 54, 0.8) 0%, rgba(14, 17, 26, 0.8) 100%)' : undefined,
-                  }}
+                  style={{ cursor: 'pointer' }}
                 >
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <div className="hqds-pillar-icon-box" style={{ marginBottom: 0 }}>
+                      <div className="hqds-pillar-icon-box" style={{ marginBottom: 0, borderColor: isCompleted ? 'rgba(57, 255, 20, 0.3)' : undefined, background: isCompleted ? 'rgba(57, 255, 20, 0.08)' : undefined }}>
                         <span style={{ fontSize: '1.2rem' }}>{s.icon}</span>
                       </div>
-                      <span className="hqds-card-badge violet">
-                        STAGE {s.num} {isCompleted ? '✓' : isActive ? '⏳' : ''}
+                      <span className={`hqds-card-badge ${isCompleted ? 'green' : isActive ? 'violet' : 'violet'}`}>
+                        STAGE {s.num} {isCompleted ? '✓ VERIFIED' : isActive ? '⚡ ACTIVE' : ''}
                       </span>
                     </div>
 
@@ -434,7 +436,7 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
 
                   <div className="hqds-pillar-spec" style={{ width: '100%', justifyContent: 'space-between' }}>
                     <span>{s.spec}</span>
-                    <span className="spec-dot" style={{ background: isCompleted ? '#34d399' : isActive ? '#c084fc' : '#64748b' }} />
+                    <span className="spec-dot" style={{ background: isCompleted ? '#39FF14' : isActive ? '#c084fc' : '#64748b', boxShadow: isCompleted ? '0 0 8px #39FF14' : isActive ? '0 0 8px #c084fc' : 'none' }} />
                   </div>
                 </div>
               );
@@ -462,9 +464,13 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
                 </span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="hqds-card-badge violet">
-                  QISKIT AER · 28-QUBIT CAPABLE
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className={`hqds-status-pill ${willReject ? 'danger' : ''}`}>
+                  <span className={willReject ? "status-compromised" : "status-safe"} />
+                  <span>{willReject ? 'CHANNEL: EVE TAMPERED' : 'CHANNEL: BELL-FIDELITY NOMINAL'}</span>
+                </div>
+                <span className="hqds-card-badge cyan">
+                  QISKIT AER · 28-QUBIT VERIFIED
                 </span>
               </div>
             </div>
@@ -619,10 +625,10 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
             <div className={`hqds-paradigm-card hqds-cursor-light ${willReject ? 'hqds-threat-card' : ''}`} onMouseMove={handleMouseMove}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <span className={`hqds-card-badge ${willReject ? 'red' : 'violet'}`}>
+                  <span className={`hqds-card-badge ${willReject ? 'red' : 'cyan'}`}>
                     INTERVENTION CONTROLS
                   </span>
-                  <span className={`hqds-card-badge ${willReject ? 'red' : 'violet'}`} style={{ fontWeight: 800 }}>
+                  <span className={`hqds-card-badge ${willReject ? 'red' : 'green'}`} style={{ fontWeight: 800 }}>
                     {willReject ? '⚡ FORECAST: WILL ABORT' : '🔒 FORECAST: WILL ACCEPT'}
                   </span>
                 </div>
@@ -652,7 +658,7 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
                     <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f1f5f9' }}>
                       In-Transit Bit-Flip Injection (Eve Tap):
                     </label>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: inducedQber > currentQberThreshold ? '#f43f5e' : '#c084fc' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: inducedQber > currentQberThreshold ? '#f43f5e' : '#39FF14' }}>
                       {injectedBitErrors} / {nQubits} ({(inducedQber * 100).toFixed(1)}%)
                     </span>
                   </div>
@@ -664,10 +670,10 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
                     value={injectedBitErrors}
                     onChange={(e) => setInjectedBitErrors(Number(e.target.value))}
                     disabled={status === 'running'}
-                    style={{ width: '100%', accentColor: '#c084fc', marginBottom: '8px' }}
+                    style={{ width: '100%', accentColor: willReject ? '#f43f5e' : '#39FF14', marginBottom: '8px' }}
                   />
 
-                  <small style={{ fontSize: '0.72rem', color: inducedQber > currentQberThreshold ? '#f43f5e' : '#94a3b8' }}>
+                  <small style={{ fontSize: '0.72rem', color: inducedQber > currentQberThreshold ? '#f43f5e' : '#39FF14' }}>
                     {inducedQber > currentQberThreshold
                       ? `🚨 QBER exceeds ${(currentQberThreshold * 100).toFixed(0)}% limit → Bob will abort signature!`
                       : `✓ QBER within ${(currentQberThreshold * 100).toFixed(0)}% limit → Bob will accept authentic state.`}
@@ -745,16 +751,11 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
           >
             {/* Verdict Banner */}
             <div 
-              className="hqds-cursor-light"
+              className={`hqds-cursor-light ${isAccepted ? 'hqds-honest-verdict-accept' : 'hqds-honest-verdict-reject'}`}
               onMouseMove={handleMouseMove}
               style={{
                 padding: '24px 32px',
                 borderRadius: '16px',
-                background: isAccepted
-                  ? 'linear-gradient(180deg, rgba(20, 48, 38, 0.8) 0%, rgba(11, 26, 20, 0.9) 100%)'
-                  : 'linear-gradient(180deg, rgba(58, 20, 30, 0.8) 0%, rgba(32, 11, 16, 0.9) 100%)',
-                border: isAccepted ? '1px solid rgba(52, 211, 153, 0.35)' : '1px solid rgba(244, 63, 94, 0.35)',
-                boxShadow: isAccepted ? '0 16px 40px rgba(52, 211, 153, 0.15)' : '0 16px 40px rgba(244, 63, 94, 0.15)',
                 marginBottom: '32px',
                 display: 'flex',
                 alignItems: 'center',
@@ -764,7 +765,7 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
               }}
             >
               <div>
-                <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.14em', color: isAccepted ? '#34d399' : '#f43f5e' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.14em', color: isAccepted ? '#39FF14' : '#f43f5e' }}>
                   DETERMINISTIC VERDICT
                 </span>
                 <h3 style={{ fontFamily: 'Epilogue', fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', marginTop: '4px' }}>
@@ -780,7 +781,7 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
               </div>
 
               <div style={{ textAlign: 'right' }}>
-                <span className={`hqds-card-badge ${isAccepted ? 'violet' : 'red'}`} style={{ fontSize: '0.8rem', padding: '6px 14px' }}>
+                <span className={`hqds-card-badge ${isAccepted ? 'green' : 'red'}`} style={{ fontSize: '0.8rem', padding: '6px 14px' }}>
                   RECOMMENDED ACTION: {isAccepted ? 'COMMIT' : 'ABORT'}
                 </span>
               </div>
@@ -791,42 +792,42 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
               <div className="hqds-pillar-card hqds-cursor-light" onMouseMove={handleMouseMove}>
                 <span className="hqds-pillar-num">TELEMETRY 01</span>
                 <h4 className="hqds-pillar-title" style={{ fontSize: '1rem', marginBottom: '8px' }}>Quantum Bit Error Rate (QBER)</h4>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: inducedQber > currentQberThreshold ? '#f43f5e' : '#c084fc', marginBottom: '8px' }}>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: inducedQber > currentQberThreshold ? '#f43f5e' : '#39FF14', marginBottom: '8px' }}>
                   {(inducedQber * 100).toFixed(1)}%
                 </div>
                 <div className="hqds-pillar-spec" style={{ width: '100%' }}>
                   <span>Threshold: {(currentQberThreshold * 100).toFixed(0)}%</span>
-                  <span className="spec-dot" style={{ background: inducedQber > currentQberThreshold ? '#f43f5e' : '#34d399' }} />
+                  <span className="spec-dot" style={{ background: inducedQber > currentQberThreshold ? '#f43f5e' : '#39FF14', boxShadow: inducedQber > currentQberThreshold ? '0 0 8px #f43f5e' : '0 0 8px #39FF14' }} />
                 </div>
               </div>
 
               <div className="hqds-pillar-card hqds-cursor-light" onMouseMove={handleMouseMove}>
                 <span className="hqds-pillar-num">TELEMETRY 02</span>
                 <h4 className="hqds-pillar-title" style={{ fontSize: '1rem', marginBottom: '8px' }}>Uhlmann State Fidelity</h4>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f1f5f9', marginBottom: '8px' }}>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#00F0FF', marginBottom: '8px' }}>
                   {(resultData?.sig?.fidelity ?? 0.99).toFixed(4)}
                 </div>
                 <div className="hqds-pillar-spec" style={{ width: '100%' }}>
                   <span>Classification: {resultData?.detect?.fidelity_classification || 'HIGH'}</span>
-                  <span className="spec-dot" />
+                  <span className="spec-dot" style={{ background: '#39FF14', boxShadow: '0 0 8px #39FF14' }} />
                 </div>
               </div>
 
               <div className="hqds-pillar-card hqds-cursor-light" onMouseMove={handleMouseMove}>
                 <span className="hqds-pillar-num">TELEMETRY 03</span>
                 <h4 className="hqds-pillar-title" style={{ fontSize: '1rem', marginBottom: '8px' }}>Pearson χ² Born Test</h4>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: resultData?.detect?.chi2_classification === 'CONSISTENT' ? '#34d399' : '#f43f5e', marginBottom: '8px' }}>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: resultData?.detect?.chi2_classification === 'CONSISTENT' ? '#39FF14' : '#f43f5e', marginBottom: '8px' }}>
                   p = {typeof resultData?.detect?.chi2_p_value === 'number' ? resultData.detect.chi2_p_value.toFixed(4) : '1.000'}
                 </div>
                 <div className="hqds-pillar-spec" style={{ width: '100%' }}>
                   <span>State: {resultData?.detect?.chi2_classification || 'CONSISTENT'}</span>
-                  <span className="spec-dot" style={{ background: resultData?.detect?.chi2_classification === 'CONSISTENT' ? '#34d399' : '#f43f5e' }} />
+                  <span className="spec-dot" style={{ background: resultData?.detect?.chi2_classification === 'CONSISTENT' ? '#39FF14' : '#f43f5e', boxShadow: resultData?.detect?.chi2_classification === 'CONSISTENT' ? '0 0 8px #39FF14' : '0 0 8px #f43f5e' }} />
                 </div>
               </div>
             </div>
 
             {/* Born Distribution Chart */}
-            <div className="hqds-comparison-table-wrap hqds-cursor-light" onMouseMove={handleMouseMove} style={{ padding: '28px' }}>
+            <div className="stitch-chart-container hqds-cursor-light" onMouseMove={handleMouseMove}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
                   <h4 style={{ fontFamily: 'Epilogue', fontSize: '1.1rem', fontWeight: 800, color: '#ffffff' }}>
@@ -836,7 +837,7 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
                     Born rule distribution over EPR measurement basis states (|00⟩, |01⟩, |10⟩, |11⟩)
                   </p>
                 </div>
-                <span className="hqds-card-badge violet">TOTAL SHOTS: {shots}</span>
+                <span className="hqds-card-badge cyan">TOTAL SHOTS: {shots}</span>
               </div>
 
               <div style={{ height: '220px', width: '100%' }}>
