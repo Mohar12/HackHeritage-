@@ -24,6 +24,7 @@ import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 
 export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
   const [activeAct, setActiveAct] = useState('hero');
+  const [activePillar, setActivePillar] = useState('01');
   const [initialCalibrationDone, setInitialCalibrationDone] = useState(false);
 
   // Direct DOM refs for 60-120fps performance without React re-render overhead
@@ -69,8 +70,8 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
       }
       if (heroCardsRef.current) {
         // Drift cards upward as blob rises into frame during hero scroll (prevents clipping)
-        const heroDrift = Math.min(52, progress * 280);
-        heroCardsRef.current.style.transform = `translateY(-${heroDrift}px)`;
+        const heroDrift = Math.min(64, progress * 320);
+        heroCardsRef.current.style.transform = `translate3d(0, -${heroDrift}px, 0)`;
       }
       ticking = false;
     };
@@ -305,10 +306,9 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
   return (
     <div className={`hqds-root ${initialCalibrationDone ? 'is-calibrated' : ''}`}>
       {/* 3D WebGL Canvas: Genuinely Scroll-Driven Single 3D Hero Object */}
-      <QuantumEntanglementCanvas />
+      <QuantumEntanglementCanvas activePillar={activePillar} />
 
-      {/* Atmospheric Cryogenic Bloom Backdrop & Ambient Scrim */}
-      <div className="hqds-bloom-backdrop" aria-hidden="true" />
+      {/* Atmospheric Cryogenic Ambient Scrim */}
       <div className="hqds-ambient-scrim" aria-hidden="true" />
 
       {/* Minimal Lateral Progress Rail */}
@@ -383,6 +383,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               ref={primaryBtnRef}
               onMouseMove={(e) => handleMagneticMove(e, primaryBtnRef)}
               onMouseLeave={() => handleMagneticLeave(primaryBtnRef)}
+              style={{ display: 'inline-flex' }}
             >
               <button
                 type="button"
@@ -508,7 +509,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
           </div>
         </section>
 
-        {/* ACT 3: THREE TECHNOLOGICAL PILLARS (Actual Scroll Sequence - No Click-to-Switch Tabs) */}
+        {/* ACT 3: THREE TECHNOLOGICAL PILLARS (Single Unified Pillars Container with Synchronized Internal Selector) */}
         <section id="pillars" className="hqds-act">
           <div className="hqds-act-container">
             <header className="hqds-act-header">
@@ -519,43 +520,71 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               </p>
             </header>
 
-            {/* Continuous Scroll Sequence: Each Pillar Takes Over the Viewport in Order */}
-            <div className="hqds-pillars-flow">
-              {pillars.map((p) => (
-                <div key={p.digit} className="hqds-glass-sharp hqds-pillar-scroll-stage" onMouseMove={handleMouseMove}>
-                  <div className="hqds-pillar-header-row">
-                    <div>
-                      <span className="hqds-pillar-eyebrow">
-                        PILLAR {p.digit} · PHYSICAL PROTOCOL
-                      </span>
-                      <h3 className="hqds-pillar-display">{p.title}</h3>
-                      <p className="hqds-pillar-subtext">{p.subtitle}</p>
-                    </div>
-                    <div className="hqds-pillar-equation-box">
-                      <span className="hqds-equation-label">{p.equationLabel}</span>
-                      <code className="hqds-equation-code">{p.equation}</code>
-                    </div>
-                  </div>
+            {/* Single Unified Pillars Container */}
+            <div className="hqds-pillars-unified-container">
+              {/* Localized Internal Horizontal Selector Menu */}
+              <div className="hqds-pillar-internal-menu" role="tablist" aria-label="Core Cryptographic Pillars">
+                {pillars.map((p) => {
+                  const isActive = p.digit === activePillar;
+                  return (
+                    <button
+                      key={p.digit}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      className={`hqds-pillar-tab-btn pillar-tab-${p.digit} ${isActive ? 'is-active' : ''}`}
+                      onClick={() => setActivePillar(p.digit)}
+                    >
+                      <span className="pillar-tab-num">[ {p.digit} ]</span>
+                      <span className="pillar-tab-label">{p.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-                  <div className="hqds-pillar-content-split">
-                    <div>
-                      <p className="hqds-pillar-body">{p.body}</p>
-                      <div className="hqds-specs-grid">
-                        {p.specs.map((spec) => (
-                          <div key={spec.label} className="hqds-spec-box">
-                            <span className="hqds-spec-lbl">{spec.label}</span>
-                            <span className="hqds-spec-val">{spec.val}</span>
-                          </div>
-                        ))}
+              {/* Single Active Pillar Display Card */}
+              {(() => {
+                const currentPillar = pillars.find((p) => p.digit === activePillar) || pillars[0];
+                return (
+                  <div
+                    key={currentPillar.digit}
+                    className={`hqds-glass-sharp hqds-pillar-single-card pillar-card-${currentPillar.digit}`}
+                    onMouseMove={handleMouseMove}
+                  >
+                    <div className="hqds-pillar-header-row">
+                      <div>
+                        <span className="hqds-pillar-eyebrow">
+                          PILLAR {currentPillar.digit} · PHYSICAL PROTOCOL
+                        </span>
+                        <h3 className="hqds-pillar-display">{currentPillar.title}</h3>
+                        <p className="hqds-pillar-subtext">{currentPillar.subtitle}</p>
+                      </div>
+                      <div className="hqds-pillar-equation-box">
+                        <span className="hqds-equation-label">{currentPillar.equationLabel}</span>
+                        <code className="hqds-equation-code">{currentPillar.equation}</code>
                       </div>
                     </div>
 
-                    <div>
-                      {p.schematic}
+                    <div className="hqds-pillar-content-split">
+                      <div>
+                        <p className="hqds-pillar-body">{currentPillar.body}</p>
+                        <div className="hqds-specs-grid">
+                          {currentPillar.specs.map((spec) => (
+                            <div key={spec.label} className="hqds-spec-box">
+                              <span className="hqds-spec-lbl">{spec.label}</span>
+                              <span className="hqds-spec-val">{spec.val}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        {currentPillar.schematic}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })()}
             </div>
           </div>
         </section>
@@ -644,7 +673,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                 ref={ctaBtnRef}
                 onMouseMove={(e) => handleMagneticMove(e, ctaBtnRef)}
                 onMouseLeave={() => handleMagneticLeave(ctaBtnRef)}
-                style={{ display: 'inline-block' }}
+                style={{ display: 'inline-flex' }}
               >
                 <button
                   type="button"

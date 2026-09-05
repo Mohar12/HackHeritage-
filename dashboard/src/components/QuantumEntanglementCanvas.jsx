@@ -1,26 +1,23 @@
 /**
  * QuantumEntanglementCanvas.jsx
  * =============================
- * Liquid Brokers Visual System Port for HyperQDS.
- * Single 3D Hero Object with Material State Machine:
+ * Liquid Brokers Visual System & Cinematic Quantum Fluid Model.
  * 
- * 1. Act 1 (Hero): Liquid Glass State (cryogenic teal core, luminous cyan caustics, crisp white fresnel)
- * 2. Act 2 (Problem): Wireframe / Structural State (electric blue-white line-arcs, sparse fill, decoherence turbulence)
- * 3. Act 3 (Pillars): Liquid Glass with Hue Progression:
- *    - Pillar 01: Pure Cryogenic Teal-White
- *    - Pillar 02: Teal-to-Warm Dilution Gold blend
- *    - Pillar 03: Radiant Gold-White photonic state
- * 4. Act 4 (Comparison): Split Treatment (turbulent classical wireframe on left, pristine quantum glass on right)
- * 5. Act 5 (Closing): Volumetric Smoke / Deep Violet-to-Teal blend state (anchoring behind CTA)
- * 
- * Damped spring lerp (~0.085) on all uniforms & transforms for zero stutter.
- * Passive rAF scroll tracking, devicePixelRatio capped at 1.5, reduced-motion compliant.
+ * Upgraded 3D Sphere Specifications:
+ * - Massive perceived scale (1.45x radius 4.8, 128x128 high subdivision)
+ * - 75–85% dense visual body (dark liquid metal / deep water absorption base)
+ * - Broad, slow, continuous liquid waves covering the entire globe
+ * - Colored torchlight reflection with stretched wave-ridge highlights
+ * - Narrative color progression: Deep Violet/Indigo -> Muted Magenta -> Dark Burgundy/Crimson
+ * - Synchronized reflection response to active Pillar (01 / 02 / 03)
+ * - Controlled end-of-scroll recession as user reaches the closing CTA and footer
+ * - Time-aware exponential damping for 60Hz/120Hz/144Hz consistency
  */
 
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-// Vertex shader: Multi-octave wave displacement, pointer shockwaves, and dynamic normal calculation
+// Vertex shader: Broad, slow, continuous liquid waves and surface normal perturbation
 const fluidVertexShader = `
   uniform float uTime;
   uniform float uScroll;
@@ -36,48 +33,57 @@ const fluidVertexShader = `
   varying vec3 vWorldPosition;
   varying vec3 vPosition;
   varying float vRippleElevation;
-  varying float vCausticCoord;
+  varying float vWaveRidge;
 
   void main() {
     vPosition = position;
     vec3 p = position;
     vec3 n = normalize(position);
     
-    // 1. Viscous macro swell (liquid breathing)
-    float macroSwell = sin(p.x * 0.95 + uTime * 0.85) * cos(p.y * 1.15 + uTime * 0.65) * 0.28 * uNoiseAmplitude;
-    float crossSwell = sin(p.z * 1.25 - uTime * 0.75 + p.x * 0.4) * 0.18 * uNoiseAmplitude;
+    // Slow cinematic wave time (calm, majestic deep water)
+    float t = uTime * 0.26;
     
-    // 2. High-frequency fluid ripples
-    float ripplePhase1 = length(p.xy) * 4.2 - uTime * 3.2;
-    float fluidRipple1 = sin(ripplePhase1) * 0.12 * uNoiseAmplitude;
+    // 1. Primary macro wave (broad wavelength traversing diagonally across sphere)
+    float phase1 = (p.x * 0.36 + p.y * 0.44 + p.z * 0.28) - t * 0.92;
+    float wave1 = sin(phase1) * 0.36 * uNoiseAmplitude;
     
-    float ripplePhase2 = length(p.yz) * 5.5 + uTime * 2.8;
-    float fluidRipple2 = cos(ripplePhase2) * 0.08 * uNoiseAmplitude;
+    // 2. Broad secondary wave (wrapping around the sphere in opposing direction)
+    float phase2 = (p.z * 0.42 - p.x * 0.38 + p.y * 0.22) + t * 0.72;
+    float wave2 = sin(phase2) * 0.25 * uNoiseAmplitude;
     
-    // 3. Pointer ripples (interactive shockwaves)
-    vec3 pointerDir = normalize(vec3(uPointer.x * 3.0, uPointer.y * 3.0, 3.5));
+    // 3. Equatorial deep water surge (slow breathing deformation)
+    float phase3 = sin(p.x * 0.22 + t * 0.52) * cos(p.z * 0.26 - t * 0.42);
+    float wave3 = phase3 * 0.22 * uNoiseAmplitude;
+    
+    // 4. Smooth continuous crest wave
+    float phase4 = length(p.xy) * 0.72 - t * 0.62;
+    float wave4 = cos(phase4 + p.z * 0.28) * 0.14 * uNoiseAmplitude;
+    
+    // 5. Very subtle micro detail (organic liquid tension)
+    float phase5 = (p.x * 1.15 + p.y * 0.95 - p.z * 0.85) - t * 1.15;
+    float wave5 = sin(phase5) * 0.035 * uNoiseAmplitude;
+    
+    // 6. Interactive pointer wake (expanding liquid ripple)
+    vec3 pointerDir = normalize(vec3(uPointer.x * 2.5, uPointer.y * 2.5, 3.5));
     float distToPointer = length(n - pointerDir);
-    float pointerRipple = sin(distToPointer * 16.0 - uTime * 7.0) * exp(-distToPointer * 1.9) * (0.28 * uPointerActive);
+    float pointerWave = sin(distToPointer * 5.2 - uTime * 1.5) * exp(-distToPointer * 1.1) * (0.18 * uPointerActive);
     
-    // 4. Scroll impulse ripples
-    float scrollShock = sin(length(p) * 6.8 - uTime * 9.0) * (uScrollVelocity * 0.55);
+    // 7. Viscous scroll mass inertia
+    float scrollSurge = sin(p.y * 0.75 + t * 0.85) * (uScrollVelocity * 0.22);
     
-    // 5. Decoherence turbulence
-    float noiseWave = sin(p.x * 3.4 + uTime * 2.8) * cos(p.z * 3.4 - uTime * 2.5) * (uTurbulence * 0.32);
-    
-    // Total displacement along surface normal
-    float totalElevation = macroSwell + crossSwell + fluidRipple1 + fluidRipple2 + pointerRipple + scrollShock + noiseWave;
+    // Total displacement along normal
+    float totalElevation = wave1 + wave2 + wave3 + wave4 + wave5 + pointerWave + scrollSurge;
     vRippleElevation = totalElevation;
-    vCausticCoord = ripplePhase1 + ripplePhase2 + pointerRipple * 4.0;
+    vWaveRidge = totalElevation;
     
     vec3 displaced = p + n * totalElevation;
     
-    // Normal perturbation
+    // Accurate normal perturbation for metallic reflections across waves
     vec3 tangentX = vec3(-p.y, p.x, 0.0);
     vec3 tangentY = cross(n, tangentX);
-    float dTx = cos(ripplePhase1) * 0.18 + cos(distToPointer * 16.0 - uTime * 7.0) * 0.22 * uPointerActive;
-    float dTy = sin(ripplePhase2) * 0.15;
-    vec3 perturbedNormal = normalize(n - (tangentX * dTx + tangentY * dTy) * 0.35);
+    float dTx = cos(phase1) * 0.28 + cos(phase2) * (-0.20) + cos(distToPointer * 5.2 - uTime * 1.5) * 0.15 * uPointerActive;
+    float dTy = cos(phase1) * 0.24 + cos(phase2) * 0.18;
+    vec3 perturbedNormal = normalize(n - (tangentX * dTx + tangentY * dTy) * 0.42);
     
     vNormal = normalize(normalMatrix * perturbedNormal);
     
@@ -90,7 +96,7 @@ const fluidVertexShader = `
   }
 `;
 
-// Fragment shader: Material State Machine with Caustics, Procedural Wireframe, and Volumetric Smoke
+// Fragment shader: Dark liquid-metal / Water with colored torchlight reflection
 const fluidFragmentShader = `
   uniform float uTime;
   uniform float uScroll;
@@ -102,18 +108,19 @@ const fluidFragmentShader = `
   uniform float uOpacity;
   
   // State Machine Blend Weights
-  uniform float uWireframeMix;   // Act 2 & Comparison Left: 0.0 (glass) -> 1.0 (structural line-arcs)
-  uniform float uFillDensity;     // Volume fill opacity: 1.0 (opaque liquid) -> 0.25 (sparse structural)
-  uniform float uSmokeMix;        // Act 5: 0.0 (liquid) -> 1.0 (volumetric smoke)
-  uniform float uSplitMix;        // Act 4: 0.0 (uniform) -> 1.0 (left classical / right quantum)
+  uniform float uWireframeMix;
+  uniform float uFillDensity;
+  uniform float uSmokeMix;
+  uniform float uSplitMix;
   
   // Interpolated Color Tokens
   uniform vec3 uColorDeepVoid;
   uniform vec3 uColorCore;
   uniform vec3 uColorMid;
   uniform vec3 uColorBright;
-  uniform vec3 uColorMintPhoton;
-  uniform vec3 uColorIceWhite;
+  uniform vec3 uColorTorchGlint; // Colored torch reflection
+  uniform vec3 uColorSpecGlint;  // Sharp specular glint
+  uniform vec3 uColorRim;        // Edge reflection tint
   uniform vec3 uColorWireframe;
   
   varying vec3 vNormal;
@@ -121,164 +128,138 @@ const fluidFragmentShader = `
   varying vec3 vWorldPosition;
   varying vec3 vPosition;
   varying float vRippleElevation;
-  varying float vCausticCoord;
+  varying float vWaveRidge;
 
   void main() {
     vec3 normal = normalize(vNormal);
     vec3 viewDir = normalize(vViewPosition);
     float NdotV = max(0.0, dot(normal, viewDir));
     
-    // 1. Chromatic Dispersion Fresnel
-    float fresnelR = pow(1.0 - NdotV, uFresnelPower * 0.90);
-    float fresnelG = pow(1.0 - NdotV, uFresnelPower * 1.10);
-    float fresnelB = pow(1.0 - NdotV, uFresnelPower * 1.35);
+    // 1. Primary Colored Torch Light Source (Sweeping angled light across dark water)
+    vec3 lightDir1 = normalize(vec3(0.95, 1.25, 1.65));
+    vec3 halfDir1 = normalize(lightDir1 + viewDir);
+    float NdotH1 = max(0.0, dot(normal, halfDir1));
     
-    // 2. Optical Caustic Web
-    float c1 = pow(abs(sin(vPosition.x * 5.2 + sin(vPosition.y * 3.8 + uTime * 1.6) + uTime * 2.2)), 14.0);
-    float c2 = pow(abs(cos(vPosition.z * 4.6 - sin(vPosition.x * 3.4 - uTime * 1.4) + uTime * 1.8)), 12.0);
-    float causticPattern = (c1 + c2 * 0.85);
-    float rippleGlint = smoothstep(0.10, 0.28, vRippleElevation) * 0.65;
+    // Sharp specular wave-ridge glint
+    float sharpSpec1 = pow(NdotH1, 140.0) * 2.8;
+    // Mid-tier curved wave reflection (stretched across wave ridges)
+    float midSpec1 = pow(NdotH1, 38.0) * 1.15;
     
-    // 3. Inner Core Glow
-    float pulse = sin(uTime * 2.0) * 0.15 + 0.85;
-    float coreDistance = length(vPosition) / 3.8;
-    float coreGlow = clamp(1.0 - coreDistance, 0.0, 1.0);
-    coreGlow = pow(coreGlow, 1.3) * pulse * (1.1 + uScrollVelocity * 1.8);
+    // 2. Secondary Opposing Torch (Catch light from opposite quadrant)
+    vec3 lightDir2 = normalize(vec3(-1.3, -0.65, 1.15));
+    vec3 halfDir2 = normalize(lightDir2 + viewDir);
+    float NdotH2 = max(0.0, dot(normal, halfDir2));
+    float secondarySpec = pow(NdotH2, 64.0) * 0.95;
     
-    // Internal photonic current
-    float flowPhase = vPosition.y * 0.7 + vPosition.x * 0.5 + uTime * 0.8 + uScroll * 4.5;
-    float internalCurrent = sin(flowPhase) * 0.5 + 0.5;
-    float dualCore = sin(vPosition.x * 2.0 + uTime * 1.5) * cos(vPosition.z * 2.0 - uTime * 1.2) * 0.5 + 0.5;
+    // 3. Fresnel Reflectance (Water-like grazing reflection)
+    float fresnel = pow(1.0 - NdotV, uFresnelPower);
     
-    // 4. Color Synthesis (Liquid Glass State)
-    vec3 deepBase = mix(uColorDeepVoid, uColorCore, 0.85);
-    vec3 midLayer = mix(uColorCore, uColorMid, internalCurrent);
-    vec3 activeLayer = mix(uColorBright, uColorMintPhoton, dualCore * (0.35 + uInternalFlux * 0.65));
+    // 4. Wave Ridge vs Trough Lighting:
+    // Wave ridges catch bright torch reflection; troughs remain deep, dark liquid
+    float ridgeFactor = smoothstep(-0.15, 0.32, vWaveRidge);
+    float troughShadow = smoothstep(0.12, -0.22, vWaveRidge);
     
-    vec3 liquidColor = mix(deepBase, midLayer, coreGlow * 0.85 + 0.15);
-    liquidColor = mix(liquidColor, activeLayer, fresnelG * 0.65 + internalCurrent * 0.35);
+    // 5. Dark Liquid-Metal Base
+    // Center facing camera is deep near-black liquid
+    vec3 liquidBase = mix(uColorDeepVoid, uColorCore, 0.85);
+    liquidBase = mix(liquidBase, uColorMid, (1.0 - troughShadow * 0.6) * 0.35);
     
-    // Specular Highlights
-    vec3 lightDir = normalize(vec3(0.8, 1.4, 2.2));
-    vec3 halfDir = normalize(lightDir + viewDir);
-    float specBase = max(0.0, dot(normal, halfDir));
-    float broadSpec = pow(specBase, 24.0) * 0.45;
-    float sharpSpec = pow(specBase, 128.0) * 1.2;
+    // 6. Colored Torch Reflection Synthesis
+    // Torch reflection bends around wave curvature
+    vec3 torchReflection = uColorTorchGlint * (midSpec1 * (0.6 + 0.6 * ridgeFactor));
+    // Bright specular highlight at the wave apex
+    torchReflection += uColorSpecGlint * (sharpSpec1 + secondarySpec * 0.7);
     
-    liquidColor += uColorMintPhoton * (causticPattern * (0.45 + uInternalFlux * 0.55));
-    liquidColor += uColorIceWhite * (rippleGlint + sharpSpec);
-    liquidColor += uColorBright * (broadSpec + coreGlow * 0.4);
+    // Secondary rim reflection along silhouette
+    vec3 rimLight = mix(uColorRim, uColorTorchGlint, 0.45) * (fresnel * 1.35 * uFresnelStrength);
     
-    // Chromatic Dispersion Rim
-    vec3 dispersionRim = vec3(
-      uColorMid.r * fresnelR,
-      uColorBright.g * fresnelG,
-      uColorIceWhite.b * fresnelB
-    ) * (1.25 * uFresnelStrength);
-    liquidColor += dispersionRim;
+    // Internal liquid luminescence (subtle optical depth)
+    float corePulse = (sin(uTime * 0.8) * 0.12 + 0.88);
+    float internalDepth = clamp(1.0 - length(vPosition) / 4.8, 0.0, 1.0);
+    vec3 internalGlow = uColorMid * (pow(internalDepth, 1.8) * corePulse * 0.4);
     
-    // 5. Procedural Wireframe / Structural Line-Arcs (Act 2 & Comparison)
-    // Latitudinal rings
-    float lat = sin(vPosition.y * 14.0 + uTime * 0.4);
-    float latLine = smoothstep(0.91, 0.98, abs(lat));
+    // Combine Metallic / Water Surface
+    vec3 metallicSurface = liquidBase + torchReflection + rimLight + internalGlow;
     
-    // Longitudinal meridian arcs
+    // 7. Procedural Structural Line-Arcs (Act 2 Problem & Comparison Left)
+    float lat = sin(vPosition.y * 12.0 + uTime * 0.25);
+    float latLine = smoothstep(0.92, 0.985, abs(lat));
     float lonAngle = atan(vPosition.z, vPosition.x);
-    float lon = sin(lonAngle * 18.0 + uTime * 0.3);
-    float lonLine = smoothstep(0.89, 0.98, abs(lon));
-    
-    // Orbiting geodesic diagonals
-    float diag = sin((vPosition.x * 0.7 + vPosition.y * 0.7 + vPosition.z * 0.7) * 9.0 - uTime * 0.6);
-    float diagLine = smoothstep(0.92, 0.98, abs(diag));
-    
+    float lon = sin(lonAngle * 16.0 + uTime * 0.2);
+    float lonLine = smoothstep(0.90, 0.985, abs(lon));
+    float diag = sin((vPosition.x * 0.6 + vPosition.y * 0.6 + vPosition.z * 0.6) * 8.0 - uTime * 0.35);
+    float diagLine = smoothstep(0.93, 0.985, abs(diag));
     float wireframeRays = max(max(latLine, lonLine), diagLine * 0.75);
-    vec3 wireframeGlow = uColorWireframe * (wireframeRays * 2.4 + fresnelG * 1.2);
     
-    // Sparse fill structural blend
-    vec3 structuralColor = mix(uColorDeepVoid * 0.5, uColorCore * 0.8, wireframeRays * 0.3);
-    structuralColor += wireframeGlow;
-    structuralColor += uColorIceWhite * (pow(specBase, 64.0) * wireframeRays * 1.8);
+    vec3 wireframeGlow = uColorWireframe * (wireframeRays * 2.2 + fresnel * 1.1);
+    vec3 structuralColor = mix(uColorDeepVoid * 0.4, uColorCore * 0.7, wireframeRays * 0.3) + wireframeGlow;
+    structuralColor += uColorSpecGlint * (sharpSpec1 * 0.8);
     
-    // Blend Liquid Glass -> Wireframe
-    vec3 finalColor = mix(liquidColor, structuralColor, uWireframeMix);
+    vec3 finalColor = mix(metallicSurface, structuralColor, uWireframeMix);
     
-    // 6. Volumetric Smoke State (Act 5)
+    // 8. Volumetric Smoke State (Closing Act)
     if (uSmokeMix > 0.001) {
-      float smokeDensity = sin(vPosition.x * 2.8 + uTime * 0.7) * cos(vPosition.y * 2.2 - uTime * 0.5) * 0.5 + 0.5;
-      smokeDensity = pow(smokeDensity, 1.8);
-      
-      vec3 smokeBase = mix(uColorDeepVoid, uColorCore, 0.92);
-      vec3 smokeMid = mix(uColorCore, uColorMid, smokeDensity * 0.7);
-      vec3 smokeGlow = mix(smokeMid, uColorBright * 0.7, fresnelG * 0.5);
-      smokeGlow += uColorMintPhoton * (causticPattern * 0.2);
-      
+      float smokeDensity = sin(vPosition.x * 2.2 + uTime * 0.4) * cos(vPosition.y * 1.8 - uTime * 0.3) * 0.5 + 0.5;
+      vec3 smokeGlow = mix(uColorDeepVoid, uColorTorchGlint * 0.65, pow(smokeDensity, 1.6) * fresnel);
       finalColor = mix(finalColor, smokeGlow, uSmokeMix);
     }
     
-    // 7. Comparison Split Treatment (Act 4)
+    // 9. Comparison Split Treatment (Act 4)
     if (uSplitMix > 0.001) {
       float splitEdge = smoothstep(-0.25, 0.25, vWorldPosition.x);
-      
-      // Left classical side: turbulent wireframe + alert stress glints
       vec3 classicalSide = structuralColor;
-      float stressFlicker = sin(uTime * 18.0 + vPosition.y * 8.0) * 0.5 + 0.5;
-      vec3 stressColor = vec3(0.94, 0.27, 0.27);
-      classicalSide = mix(classicalSide, stressColor * (0.8 + stressFlicker * 0.4), wireframeRays * 0.45);
-      
-      // Right quantum side: pristine optical glass
-      vec3 quantumSide = liquidColor;
-      
-      vec3 splitComposite = mix(classicalSide, quantumSide, splitEdge);
+      float stressFlicker = sin(uTime * 14.0 + vPosition.y * 6.0) * 0.5 + 0.5;
+      vec3 stressColor = vec3(0.85, 0.22, 0.22);
+      classicalSide = mix(classicalSide, stressColor * 0.75, wireframeRays * 0.45);
+      vec3 splitComposite = mix(classicalSide, metallicSurface, splitEdge);
       finalColor = mix(finalColor, splitComposite, uSplitMix);
     }
     
-    // Turbulence agitation
-    if (uTurbulence > 0.2) {
-      float flicker = sin(uTime * 22.0 + vPosition.y * 12.0) * (uTurbulence * 0.16);
-      finalColor += uColorMintPhoton * flicker;
-    }
+    // 10. Opacity: 75–85% Solid Visual Presence with subtle translucent rim
+    float baseAlpha = mix(0.82 * uFillDensity, 0.94, fresnel * 0.8);
+    float alpha = uOpacity * clamp(baseAlpha + wireframeRays * uWireframeMix * 0.3, 0.0, 1.0);
     
-    // Opacity with fill density modulation
-    float baseAlpha = mix(uFillDensity * 0.88, 0.95, fresnelG);
-    float alpha = uOpacity * (baseAlpha + wireframeRays * uWireframeMix * 0.5);
-    gl_FragColor = vec4(finalColor, clamp(alpha, 0.0, 1.0));
+    gl_FragColor = vec4(finalColor, alpha);
   }
 `;
 
-// Halo vertex shader
+// Halo vertex shader: Camera-facing planar billboard coordinates for ambient light pool
 const haloVertexShader = `
-  varying vec3 vNormal;
-  varying vec3 vViewPosition;
+  varying vec2 vUv;
 
   void main() {
-    vNormal = normalize(normalMatrix * normal);
+    vUv = uv;
     vec4 mvPosition = viewMatrix * modelMatrix * vec4(position, 1.0);
-    vViewPosition = -mvPosition.xyz;
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
 
-// Halo fragment shader: Additive atmospheric glow
+// Halo fragment shader: Soft radial ambient light pool (bright center falling off smoothly to edge)
 const haloFragmentShader = `
   uniform vec3 uGlowColor;
   uniform float uGlowIntensity;
   uniform float uPulse;
 
-  varying vec3 vNormal;
-  varying vec3 vViewPosition;
+  varying vec2 vUv;
 
   void main() {
-    vec3 normal = normalize(vNormal);
-    vec3 viewDir = normalize(vViewPosition);
-    float NdotV = max(0.0, dot(normal, viewDir));
+    float dist = length(vUv - vec2(0.5)) * 2.0; // 0.0 at center, 1.0 at outer circle
+    if (dist > 1.0) discard;
     
-    float glow = pow(1.0 - NdotV, 3.2) * (0.65 + 0.35 * uPulse) * uGlowIntensity;
+    // Soft wide atmospheric ambient light pool falloff (no hollow ring)
+    float pool = pow(clamp(1.0 - dist, 0.0, 1.0), 2.2);
+    float glow = pool * (0.80 + 0.20 * uPulse) * uGlowIntensity;
     gl_FragColor = vec4(uGlowColor, glow);
   }
 `;
 
-export default function QuantumEntanglementCanvas() {
+export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
   const mountRef = useRef(null);
+  const activePillarRef = useRef(activePillar);
+
+  useEffect(() => {
+    activePillarRef.current = activePillar;
+  }, [activePillar]);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -312,10 +293,10 @@ export default function QuantumEntanglementCanvas() {
     const rootGroup = new THREE.Group();
     scene.add(rootGroup);
 
-    // Single large 3D hero object geometry with high resolution
-    const heroGeometry = new THREE.SphereGeometry(3.6, 92, 92);
+    // Massive 3D hero object geometry (scale increased by 1.45x: radius 4.8, 128x128 subdivision)
+    const heroGeometry = new THREE.SphereGeometry(4.8, 128, 128);
 
-    // Initial Material State: Liquid Glass
+    // Initial Material State: Deep Violet Liquid Metal
     const heroMaterial = new THREE.ShaderMaterial({
       vertexShader: fluidVertexShader,
       fragmentShader: fluidFragmentShader,
@@ -327,10 +308,10 @@ export default function QuantumEntanglementCanvas() {
         uScroll: { value: 0 },
         uScrollVelocity: { value: 0 },
         uTurbulence: { value: 0 },
-        uInternalFlux: { value: 0 },
+        uInternalFlux: { value: 0.2 },
         uNoiseAmplitude: { value: prefersReducedMotion ? 0.2 : 1.0 },
-        uFresnelPower: { value: 2.6 },
-        uFresnelStrength: { value: 1.0 },
+        uFresnelPower: { value: 2.8 },
+        uFresnelStrength: { value: 1.1 },
         uOpacity: { value: 0.94 },
         uPointer: { value: new THREE.Vector2(0, 0) },
         uPointerActive: { value: 0 },
@@ -338,45 +319,47 @@ export default function QuantumEntanglementCanvas() {
         uFillDensity: { value: 1.0 },
         uSmokeMix: { value: 0 },
         uSplitMix: { value: 0 },
-        uColorDeepVoid: { value: new THREE.Color(0x0a0b14) },
-        uColorCore: { value: new THREE.Color(0x042f2e) },
-        uColorMid: { value: new THREE.Color(0x0d9488) },
-        uColorBright: { value: new THREE.Color(0x14b8a6) },
-        uColorMintPhoton: { value: new THREE.Color(0x2dd4bf) },
-        uColorIceWhite: { value: new THREE.Color(0xf0fdfa) },
+        uColorDeepVoid: { value: new THREE.Color(0x080711) },
+        uColorCore: { value: new THREE.Color(0x111027) },
+        uColorMid: { value: new THREE.Color(0x19163a) },
+        uColorBright: { value: new THREE.Color(0x34245f) },
+        uColorTorchGlint: { value: new THREE.Color(0x5a3fa8) },
+        uColorSpecGlint: { value: new THREE.Color(0xa78bfa) },
+        uColorRim: { value: new THREE.Color(0x6c5ce7) },
         uColorWireframe: { value: new THREE.Color(0x4c6fff) },
       },
     });
 
     const heroMesh = new THREE.Mesh(heroGeometry, heroMaterial);
-    heroMesh.position.set(0, -2.4, 0);
+    heroMesh.position.set(0, -2.8, 0);
     rootGroup.add(heroMesh);
 
-    // Additive corona halo glow shell
-    const haloGeometry = new THREE.SphereGeometry(3.82, 48, 48);
+    // Additive wide ambient light pool halo (1.65x blob radius, decoupled from blob spin)
+    const haloGeometry = new THREE.PlaneGeometry(16, 16);
     const haloMaterial = new THREE.ShaderMaterial({
       vertexShader: haloVertexShader,
       fragmentShader: haloFragmentShader,
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
-      side: THREE.BackSide,
+      side: THREE.DoubleSide,
       uniforms: {
-        uGlowColor: { value: new THREE.Color(0x14b8a6) },
-        uGlowIntensity: { value: 0.75 },
+        uGlowColor: { value: new THREE.Color(0x34245f) },
+        uGlowIntensity: { value: 0.72 },
         uPulse: { value: 0 },
       },
     });
 
     const haloMesh = new THREE.Mesh(haloGeometry, haloMaterial);
-    heroMesh.add(haloMesh);
+    haloMesh.position.set(0, -2.8, -0.8);
+    rootGroup.add(haloMesh);
 
     // Sparse background star/dust particles (35-45 count spec)
     const particleCount = 42;
     const particlePositions = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount; i++) {
-      particlePositions[i * 3] = (Math.random() - 0.5) * 30;
-      particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 22;
+      particlePositions[i * 3] = (Math.random() - 0.5) * 32;
+      particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 24;
       particlePositions[i * 3 + 2] = -4 - Math.random() * 14;
     }
 
@@ -384,10 +367,10 @@ export default function QuantumEntanglementCanvas() {
     particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
 
     const particleMaterial = new THREE.PointsMaterial({
-      size: 0.085,
-      color: 0x67e8f9,
+      size: 0.08,
+      color: 0x818cf8,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.32,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -441,338 +424,371 @@ export default function QuantumEntanglementCanvas() {
 
     // Target state objects for smooth lerping
     const targetColors = {
-      deepVoid: new THREE.Color(0x0a0b14),
-      core: new THREE.Color(0x042f2e),
-      mid: new THREE.Color(0x0d9488),
-      bright: new THREE.Color(0x14b8a6),
-      mint: new THREE.Color(0x2dd4bf),
-      ice: new THREE.Color(0xf0fdfa),
+      deepVoid: new THREE.Color(0x080711),
+      core: new THREE.Color(0x111027),
+      mid: new THREE.Color(0x19163a),
+      bright: new THREE.Color(0x34245f),
+      torchGlint: new THREE.Color(0x5a3fa8),
+      specGlint: new THREE.Color(0xa78bfa),
+      rim: new THREE.Color(0x6c5ce7),
       wireframe: new THREE.Color(0x4c6fff),
-      halo: new THREE.Color(0x14b8a6),
+      halo: new THREE.Color(0x34245f),
     };
 
-    // Color definitions for material state machine
+    // Color definitions for material state machine (Violet -> Magenta -> Burgundy progression)
     const stateColors = {
-      // Act 1: Liquid Glass (Teal / Cyan)
-      glassTeal: {
-        deepVoid: new THREE.Color(0x0a0b14),
-        core: new THREE.Color(0x042f2e),
-        mid: new THREE.Color(0x0d9488),
-        bright: new THREE.Color(0x14b8a6),
-        mint: new THREE.Color(0x2dd4bf),
-        ice: new THREE.Color(0xf0fdfa),
+      // Act 1: Hero · Deep Violet / Indigo
+      heroViolet: {
+        deepVoid: new THREE.Color(0x080711),
+        core: new THREE.Color(0x111027),
+        mid: new THREE.Color(0x19163a),
+        bright: new THREE.Color(0x34245f),
+        torchGlint: new THREE.Color(0x5a3fa8),
+        specGlint: new THREE.Color(0xa78bfa),
+        rim: new THREE.Color(0x6c5ce7),
         wireframe: new THREE.Color(0x4c6fff),
-        halo: new THREE.Color(0x14b8a6),
+        halo: new THREE.Color(0x34245f),
       },
-      // Act 2: Wireframe Structural (Electric Blue-White)
-      wireframeBlue: {
-        deepVoid: new THREE.Color(0x080914),
-        core: new THREE.Color(0x111c38),
-        mid: new THREE.Color(0x1d4ed8),
-        bright: new THREE.Color(0x3b82f6),
-        mint: new THREE.Color(0x60a5fa),
-        ice: new THREE.Color(0xffffff),
-        wireframe: new THREE.Color(0x6c8cff),
-        halo: new THREE.Color(0x4c6fff),
+      // Act 2: Problem · Wireframe Structural Blue-Violet
+      problemBlue: {
+        deepVoid: new THREE.Color(0x080711),
+        core: new THREE.Color(0x0d1326),
+        mid: new THREE.Color(0x182247),
+        bright: new THREE.Color(0x2e3e75),
+        torchGlint: new THREE.Color(0x4c6fff),
+        specGlint: new THREE.Color(0x93c5fd),
+        rim: new THREE.Color(0x60a5fa),
+        wireframe: new THREE.Color(0x60a5fa),
+        halo: new THREE.Color(0x253366),
       },
-      // Act 3 Pillar 02: Teal-Gold Blend
-      pillarGoldBlend: {
-        deepVoid: new THREE.Color(0x0a0b14),
-        core: new THREE.Color(0x133830),
-        mid: new THREE.Color(0x0d9488),
-        bright: new THREE.Color(0xf59e0b),
-        mint: new THREE.Color(0xfbbf24),
-        ice: new THREE.Color(0xfef3c7),
-        wireframe: new THREE.Color(0xf59e0b),
-        halo: new THREE.Color(0xf59e0b),
+      // Act 3: Pillars (Dynamic sync based on active pillar)
+      pillarP1: {
+        // Pillar 01: Cyan-Indigo Bell Invariant
+        deepVoid: new THREE.Color(0x080711),
+        core: new THREE.Color(0x0f172a),
+        mid: new THREE.Color(0x1e1b4b),
+        bright: new THREE.Color(0x312e81),
+        torchGlint: new THREE.Color(0x4f46e5),
+        specGlint: new THREE.Color(0x818cf8),
+        rim: new THREE.Color(0x2dd4bf),
+        wireframe: new THREE.Color(0x6366f1),
+        halo: new THREE.Color(0x3730a3),
       },
-      // Act 3 Pillar 03: Full Gold-White
-      pillarFullGold: {
-        deepVoid: new THREE.Color(0x0b0a12),
-        core: new THREE.Color(0x451a03),
-        mid: new THREE.Color(0xb45309),
-        bright: new THREE.Color(0xf59e0b),
-        mint: new THREE.Color(0xfde68a),
-        ice: new THREE.Color(0xffffff),
-        wireframe: new THREE.Color(0xfbbf24),
-        halo: new THREE.Color(0xf59e0b),
+      pillarP2: {
+        // Pillar 02: Violet / Muted Magenta Chi-Square
+        deepVoid: new THREE.Color(0x080711),
+        core: new THREE.Color(0x1b0f2e),
+        mid: new THREE.Color(0x2e1065),
+        bright: new THREE.Color(0x581c87),
+        torchGlint: new THREE.Color(0x713a67),
+        specGlint: new THREE.Color(0xc084fc),
+        rim: new THREE.Color(0xa855f7),
+        wireframe: new THREE.Color(0xd946ef),
+        halo: new THREE.Color(0x4c1d95),
       },
-      // Act 5: Smoke / Deep Violet-to-Teal
-      smokeViolet: {
-        deepVoid: new THREE.Color(0x080612),
-        core: new THREE.Color(0x2a2140),
-        mid: new THREE.Color(0x4a3b6b),
-        bright: new THREE.Color(0x14b8a6),
-        mint: new THREE.Color(0x8b5cf6),
-        ice: new THREE.Color(0xd8b4fe),
-        wireframe: new THREE.Color(0xa78bfa),
-        halo: new THREE.Color(0x7c3aed),
+      pillarP3: {
+        // Pillar 03: Dark Crimson / Burgundy Unitary Correction
+        deepVoid: new THREE.Color(0x080711),
+        core: new THREE.Color(0x220815),
+        mid: new THREE.Color(0x3b0716),
+        bright: new THREE.Color(0x4c0519),
+        torchGlint: new THREE.Color(0x6a293d),
+        specGlint: new THREE.Color(0xfb7185),
+        rim: new THREE.Color(0xf43f5e),
+        wireframe: new THREE.Color(0xe11d48),
+        halo: new THREE.Color(0x4a1f2d),
+      },
+      // Act 4: Comparison · Burgundy / Crimson vs Classical
+      comparisonCrimson: {
+        deepVoid: new THREE.Color(0x080711),
+        core: new THREE.Color(0x1e0713),
+        mid: new THREE.Color(0x3b0716),
+        bright: new THREE.Color(0x50071c),
+        torchGlint: new THREE.Color(0x6a293d),
+        specGlint: new THREE.Color(0xfda4af),
+        rim: new THREE.Color(0xe11d48),
+        wireframe: new THREE.Color(0xe11d48),
+        halo: new THREE.Color(0x4a1f2d),
+      },
+      // Act 5: Closing · Deep Ruby settling into dark void
+      closingRuby: {
+        deepVoid: new THREE.Color(0x05040a),
+        core: new THREE.Color(0x14050d),
+        mid: new THREE.Color(0x220715),
+        bright: new THREE.Color(0x35151f),
+        torchGlint: new THREE.Color(0x4a1f2d),
+        specGlint: new THREE.Color(0xbe185d),
+        rim: new THREE.Color(0x6a293d),
+        wireframe: new THREE.Color(0x9f1239),
+        halo: new THREE.Color(0x2b0c18),
       },
     };
 
-    // Animation Loop
+    // Animation Loop with Time-Aware Delta Damping
     let animId;
+    let lastTime = performance.now();
     const clock = new THREE.Clock();
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
 
-      const delta = clock.getDelta();
+      const now = performance.now();
+      const delta = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
       const elapsed = clock.getElapsedTime();
 
-      // Critically damped spring lerp on scroll (~0.085 per frame)
-      currentScroll += (targetScroll - currentScroll) * 0.085;
+      // Time-aware exponential damping for scroll follow (~0.085 at 60fps)
+      const scrollDampingFactor = 1.0 - Math.exp(-5.2 * delta);
+      currentScroll += (targetScroll - currentScroll) * scrollDampingFactor;
       
       // Calculate scroll impulse velocity
       const instantVelocity = Math.abs(currentScroll - prevScroll) / Math.max(0.001, delta);
-      scrollVelocity += (instantVelocity * 0.08 - scrollVelocity) * 0.12;
+      scrollVelocity += (instantVelocity * 0.08 - scrollVelocity) * (1.0 - Math.exp(-7.0 * delta));
       prevScroll = currentScroll;
 
       // Damped pointer lerp
-      mouseX += (mouseTargetX - mouseX) * 0.06;
-      mouseY += (mouseTargetY - mouseY) * 0.06;
+      const pointerFactor = 1.0 - Math.exp(-4.0 * delta);
+      mouseX += (mouseTargetX - mouseX) * pointerFactor;
+      mouseY += (mouseTargetY - mouseY) * pointerFactor;
 
       const p = currentScroll; // Continuous normalized progress [0, 1]
+      const currentPillar = activePillarRef.current;
 
       // State machine parameter targets
       let targetX = 0;
-      let targetY = -2.4;
+      let targetY = -2.8;
       let targetScale = 1.0;
       let targetCameraZ = 14;
       let turbulence = 0;
       let internalFlux = 0.2;
-      let fresnelPower = 2.6;
-      let fresnelStrength = 1.0;
-      let haloIntensity = 0.75;
+      let fresnelPower = 2.8;
+      let fresnelStrength = 1.1;
+      let haloIntensity = 0.72;
       let wireframeMix = 0;
       let fillDensity = 1.0;
       let smokeMix = 0;
       let splitMix = 0;
+      let noiseAmplitude = prefersReducedMotion ? 0.2 : 1.0;
 
       // ─────────────────────────────────────────────────────────────
-      // ACT 1: HERO (0.00 - 0.18) · Liquid Glass State (Teal Core, White Fresnel)
+      // ACT 1: HERO (0.00 - 0.18) · Deep Violet Liquid Metal
       // ─────────────────────────────────────────────────────────────
       if (p < 0.18) {
         const t = p / 0.18;
         targetX = 0;
-        targetY = -2.4 + t * 0.4;
+        targetY = -2.8 + t * 0.4;
         targetScale = 1.0;
         targetCameraZ = 14 - t * 0.6;
         turbulence = 0.0;
         internalFlux = 0.25;
-        fresnelPower = 2.6;
-        fresnelStrength = 1.0;
+        fresnelPower = 2.8;
+        fresnelStrength = 1.1;
+        haloIntensity = 0.72;
+        wireframeMix = 0.0;
+        fillDensity = 1.0;
+        smokeMix = 0.0;
+        splitMix = 0.0;
+
+        targetColors.deepVoid.copy(stateColors.heroViolet.deepVoid);
+        targetColors.core.copy(stateColors.heroViolet.core);
+        targetColors.mid.copy(stateColors.heroViolet.mid);
+        targetColors.bright.copy(stateColors.heroViolet.bright);
+        targetColors.torchGlint.copy(stateColors.heroViolet.torchGlint);
+        targetColors.specGlint.copy(stateColors.heroViolet.specGlint);
+        targetColors.rim.copy(stateColors.heroViolet.rim);
+        targetColors.wireframe.copy(stateColors.heroViolet.wireframe);
+        targetColors.halo.copy(stateColors.heroViolet.halo);
+      }
+      // ─────────────────────────────────────────────────────────────
+      // ACT 2: PROBLEM (0.18 - 0.38) · Wireframe / Structural State
+      // ─────────────────────────────────────────────────────────────
+      else if (p < 0.38) {
+        const t = (p - 0.18) / 0.20;
+        targetX = -1.2 * t;
+        targetY = -2.4 + t * 0.7;
+        targetScale = 0.95;
+        targetCameraZ = 13.6;
+        turbulence = t * 1.4;
+        internalFlux = 0.85 * t;
+        fresnelPower = 2.4;
+        fresnelStrength = 1.25;
+        haloIntensity = 0.65;
+        wireframeMix = t;
+        fillDensity = 1.0 - t * 0.72;
+        smokeMix = 0.0;
+        splitMix = 0.0;
+
+        targetColors.deepVoid.lerpColors(stateColors.heroViolet.deepVoid, stateColors.problemBlue.deepVoid, t);
+        targetColors.core.lerpColors(stateColors.heroViolet.core, stateColors.problemBlue.core, t);
+        targetColors.mid.lerpColors(stateColors.heroViolet.mid, stateColors.problemBlue.mid, t);
+        targetColors.bright.lerpColors(stateColors.heroViolet.bright, stateColors.problemBlue.bright, t);
+        targetColors.torchGlint.lerpColors(stateColors.heroViolet.torchGlint, stateColors.problemBlue.torchGlint, t);
+        targetColors.specGlint.lerpColors(stateColors.heroViolet.specGlint, stateColors.problemBlue.specGlint, t);
+        targetColors.rim.lerpColors(stateColors.heroViolet.rim, stateColors.problemBlue.rim, t);
+        targetColors.wireframe.lerpColors(stateColors.heroViolet.wireframe, stateColors.problemBlue.wireframe, t);
+        targetColors.halo.lerpColors(stateColors.heroViolet.halo, stateColors.problemBlue.halo, t);
+      }
+      // ─────────────────────────────────────────────────────────────
+      // ACT 3: PILLARS (0.38 - 0.72) · Liquid Metallic with Active Pillar Sync
+      // ─────────────────────────────────────────────────────────────
+      else if (p < 0.72) {
+        const t = (p - 0.38) / 0.34;
+        targetX = 1.8 - Math.sin(t * Math.PI) * 0.4;
+        targetY = -1.6 + Math.sin(t * Math.PI * 2.0) * 0.35;
+        targetScale = 0.92;
+        targetCameraZ = 13.8;
+        turbulence = 0.0;
+        internalFlux = 0.6;
+        fresnelPower = 3.0;
+        fresnelStrength = 1.2;
         haloIntensity = 0.75;
         wireframeMix = 0.0;
         fillDensity = 1.0;
         smokeMix = 0.0;
         splitMix = 0.0;
 
-        // Colors: Liquid Glass Teal
-        targetColors.deepVoid.copy(stateColors.glassTeal.deepVoid);
-        targetColors.core.copy(stateColors.glassTeal.core);
-        targetColors.mid.copy(stateColors.glassTeal.mid);
-        targetColors.bright.copy(stateColors.glassTeal.bright);
-        targetColors.mint.copy(stateColors.glassTeal.mint);
-        targetColors.ice.copy(stateColors.glassTeal.ice);
-        targetColors.wireframe.copy(stateColors.glassTeal.wireframe);
-        targetColors.halo.copy(stateColors.glassTeal.halo);
-      }
-      // ─────────────────────────────────────────────────────────────
-      // ACT 2: PROBLEM (0.18 - 0.38) · Wireframe / Structural State (Electric Blue-White)
-      // ─────────────────────────────────────────────────────────────
-      else if (p < 0.38) {
-        const t = (p - 0.18) / 0.20;
-        targetX = -1.0 * t;
-        targetY = -2.0 + t * 0.8;
-        targetScale = 0.94;
-        targetCameraZ = 13.4;
-        turbulence = t * 1.6;
-        internalFlux = 0.85 * t;
-        fresnelPower = 2.2;
-        fresnelStrength = 1.25;
-        haloIntensity = 0.68;
-        wireframeMix = t;
-        fillDensity = 1.0 - t * 0.72; // Sparse volume fill
-        smokeMix = 0.0;
-        splitMix = 0.0;
-
-        // Interpolate colors towards Wireframe Electric Blue
-        targetColors.deepVoid.lerpColors(stateColors.glassTeal.deepVoid, stateColors.wireframeBlue.deepVoid, t);
-        targetColors.core.lerpColors(stateColors.glassTeal.core, stateColors.wireframeBlue.core, t);
-        targetColors.mid.lerpColors(stateColors.glassTeal.mid, stateColors.wireframeBlue.mid, t);
-        targetColors.bright.lerpColors(stateColors.glassTeal.bright, stateColors.wireframeBlue.bright, t);
-        targetColors.mint.lerpColors(stateColors.glassTeal.mint, stateColors.wireframeBlue.mint, t);
-        targetColors.ice.lerpColors(stateColors.glassTeal.ice, stateColors.wireframeBlue.ice, t);
-        targetColors.wireframe.lerpColors(stateColors.glassTeal.wireframe, stateColors.wireframeBlue.wireframe, t);
-        targetColors.halo.lerpColors(stateColors.glassTeal.halo, stateColors.wireframeBlue.halo, t);
-      }
-      // ─────────────────────────────────────────────────────────────
-      // ACT 3: PILLARS (0.38 - 0.72) · Liquid Glass with Hue Rotation
-      // ─────────────────────────────────────────────────────────────
-      else if (p < 0.72) {
-        const t = (p - 0.38) / 0.34;
-        targetX = 1.8 - Math.sin(t * Math.PI) * 0.4;
-        targetY = -1.2 + Math.sin(t * Math.PI * 2.0) * 0.35;
-        targetScale = 0.90;
-        targetCameraZ = 13.6;
-        turbulence = Math.max(0, 0.4 - t * 0.4);
-        internalFlux = 1.0;
-        fresnelPower = 3.0;
-        fresnelStrength = 1.15;
-        haloIntensity = 0.82;
-        wireframeMix = Math.max(0, (1.0 - t * 3.0) * 0.3); // Quick recovery to glass
-        fillDensity = 1.0;
-        smokeMix = 0.0;
-        splitMix = 0.0;
-
-        // Sub-cycle internal hue per pillar
-        if (t < 0.33) {
-          // Pillar 01 (0.38 - 0.49): Cryogenic Teal-White
-          const subT = t / 0.33;
-          targetColors.deepVoid.lerpColors(stateColors.wireframeBlue.deepVoid, stateColors.glassTeal.deepVoid, subT);
-          targetColors.core.lerpColors(stateColors.wireframeBlue.core, stateColors.glassTeal.core, subT);
-          targetColors.mid.lerpColors(stateColors.wireframeBlue.mid, stateColors.glassTeal.mid, subT);
-          targetColors.bright.lerpColors(stateColors.wireframeBlue.bright, stateColors.glassTeal.bright, subT);
-          targetColors.mint.lerpColors(stateColors.wireframeBlue.mint, stateColors.glassTeal.mint, subT);
-          targetColors.ice.copy(stateColors.glassTeal.ice);
-          targetColors.wireframe.copy(stateColors.glassTeal.wireframe);
-          targetColors.halo.copy(stateColors.glassTeal.halo);
-        } else if (t < 0.66) {
-          // Pillar 02 (0.49 - 0.60): Teal-to-Warm Dilution Gold Blend
-          const subT = (t - 0.33) / 0.33;
-          targetColors.deepVoid.copy(stateColors.glassTeal.deepVoid);
-          targetColors.core.lerpColors(stateColors.glassTeal.core, stateColors.pillarGoldBlend.core, subT);
-          targetColors.mid.lerpColors(stateColors.glassTeal.mid, stateColors.pillarGoldBlend.mid, subT);
-          targetColors.bright.lerpColors(stateColors.glassTeal.bright, stateColors.pillarGoldBlend.bright, subT);
-          targetColors.mint.lerpColors(stateColors.glassTeal.mint, stateColors.pillarGoldBlend.mint, subT);
-          targetColors.ice.lerpColors(stateColors.glassTeal.ice, stateColors.pillarGoldBlend.ice, subT);
-          targetColors.wireframe.lerpColors(stateColors.glassTeal.wireframe, stateColors.pillarGoldBlend.wireframe, subT);
-          targetColors.halo.lerpColors(stateColors.glassTeal.halo, stateColors.pillarGoldBlend.halo, subT);
-        } else {
-          // Pillar 03 (0.60 - 0.72): Full Gold-White Photonic State
-          const subT = (t - 0.66) / 0.34;
-          targetColors.deepVoid.copy(stateColors.pillarGoldBlend.deepVoid);
-          targetColors.core.lerpColors(stateColors.pillarGoldBlend.core, stateColors.pillarFullGold.core, subT);
-          targetColors.mid.lerpColors(stateColors.pillarGoldBlend.mid, stateColors.pillarFullGold.mid, subT);
-          targetColors.bright.lerpColors(stateColors.pillarGoldBlend.bright, stateColors.pillarFullGold.bright, subT);
-          targetColors.mint.lerpColors(stateColors.pillarGoldBlend.mint, stateColors.pillarFullGold.mint, subT);
-          targetColors.ice.copy(stateColors.pillarFullGold.ice);
-          targetColors.wireframe.copy(stateColors.pillarFullGold.wireframe);
-          targetColors.halo.copy(stateColors.pillarFullGold.halo);
+        // Dynamic sync to active selected pillar (01 / 02 / 03)
+        let pillarState = stateColors.pillarP1;
+        if (currentPillar === '02') {
+          pillarState = stateColors.pillarP2;
+        } else if (currentPillar === '03') {
+          pillarState = stateColors.pillarP3;
         }
+
+        targetColors.deepVoid.copy(pillarState.deepVoid);
+        targetColors.core.copy(pillarState.core);
+        targetColors.mid.copy(pillarState.mid);
+        targetColors.bright.copy(pillarState.bright);
+        targetColors.torchGlint.copy(pillarState.torchGlint);
+        targetColors.specGlint.copy(pillarState.specGlint);
+        targetColors.rim.copy(pillarState.rim);
+        targetColors.wireframe.copy(pillarState.wireframe);
+        targetColors.halo.copy(pillarState.halo);
       }
       // ─────────────────────────────────────────────────────────────
-      // ACT 4: COMPARISON (0.72 - 0.88) · Split Treatment (Turbulent Wireframe vs Clean Glass)
+      // ACT 4: COMPARISON (0.72 - 0.88) · Split Treatment
       // ─────────────────────────────────────────────────────────────
       else if (p < 0.88) {
         const t = (p - 0.72) / 0.16;
         targetX = 1.4 - t * 1.4;
-        targetY = -1.4 - t * 0.3;
+        targetY = -1.8 - t * 0.3;
         targetScale = 0.96;
-        targetCameraZ = 13.8;
-        turbulence = (1.0 - t) * 0.4;
+        targetCameraZ = 14.0;
+        turbulence = (1.0 - t) * 0.3;
         internalFlux = 0.7;
-        fresnelPower = 3.2;
+        fresnelPower = 3.0;
         fresnelStrength = 1.2;
-        haloIntensity = 0.78;
+        haloIntensity = 0.72;
         wireframeMix = 0.0;
         fillDensity = 1.0;
         smokeMix = 0.0;
-        splitMix = Math.min(1.0, t * 2.2); // Activates split shader comparison
+        splitMix = Math.min(1.0, t * 2.2);
 
-        // Transition back towards Cryogenic Optical Teal for quantum half
-        targetColors.deepVoid.copy(stateColors.glassTeal.deepVoid);
-        targetColors.core.lerpColors(stateColors.pillarFullGold.core, stateColors.glassTeal.core, t);
-        targetColors.mid.lerpColors(stateColors.pillarFullGold.mid, stateColors.glassTeal.mid, t);
-        targetColors.bright.lerpColors(stateColors.pillarFullGold.bright, stateColors.glassTeal.bright, t);
-        targetColors.mint.lerpColors(stateColors.pillarFullGold.mint, stateColors.glassTeal.mint, t);
-        targetColors.ice.copy(stateColors.glassTeal.ice);
-        targetColors.wireframe.copy(stateColors.wireframeBlue.wireframe);
-        targetColors.halo.lerpColors(stateColors.pillarFullGold.halo, stateColors.glassTeal.halo, t);
+        targetColors.deepVoid.copy(stateColors.comparisonCrimson.deepVoid);
+        targetColors.core.copy(stateColors.comparisonCrimson.core);
+        targetColors.mid.copy(stateColors.comparisonCrimson.mid);
+        targetColors.bright.copy(stateColors.comparisonCrimson.bright);
+        targetColors.torchGlint.copy(stateColors.comparisonCrimson.torchGlint);
+        targetColors.specGlint.copy(stateColors.comparisonCrimson.specGlint);
+        targetColors.rim.copy(stateColors.comparisonCrimson.rim);
+        targetColors.wireframe.copy(stateColors.problemBlue.wireframe);
+        targetColors.halo.copy(stateColors.comparisonCrimson.halo);
       }
       // ─────────────────────────────────────────────────────────────
-      // ACT 5: CLOSING CTA (0.88 - 1.00) · Smoke / Deep Violet-to-Teal Blend State
+      // ACT 5: CLOSING & FOOTER (0.88 - 1.00) · Smooth Recession
       // ─────────────────────────────────────────────────────────────
       else {
         const t = (p - 0.88) / 0.12;
         targetX = 0;
-        targetY = -1.7 + t * 0.4; // Sits directly behind the CTA portal
-        targetScale = 1.05 + t * 0.18;
-        targetCameraZ = 13.8 - t * 1.2;
+        // As scroll approaches 1.0, globe recedes and sinks into the deep void behind footer
+        targetY = -2.2 - t * 0.8;
+        targetScale = 0.96 - t * 0.24; // recedes to ~0.72
+        targetCameraZ = 14.0 + t * 1.2; // steps back in z
         turbulence = 0.0;
-        internalFlux = 1.1;
+        internalFlux = 0.5 - t * 0.3;
         fresnelPower = 2.4;
-        fresnelStrength = 0.9;
-        haloIntensity = 0.72 - t * 0.12; // Dimmer, more mysterious aura
+        fresnelStrength = 0.8 - t * 0.3;
+        haloIntensity = 0.65 - t * 0.38; // dims gracefully to 0.27
         wireframeMix = 0.0;
-        fillDensity = 0.90;
-        smokeMix = Math.min(1.0, t * 1.5);
+        fillDensity = 0.88;
+        smokeMix = Math.min(1.0, t * 1.4);
         splitMix = Math.max(0.0, 1.0 - t * 3.0);
+        noiseAmplitude = (prefersReducedMotion ? 0.2 : 1.0) * (1.0 - t * 0.38); // ripples calm down
 
-        // Interpolate into Smoke Violet
-        targetColors.deepVoid.lerpColors(stateColors.glassTeal.deepVoid, stateColors.smokeViolet.deepVoid, t);
-        targetColors.core.lerpColors(stateColors.glassTeal.core, stateColors.smokeViolet.core, t);
-        targetColors.mid.lerpColors(stateColors.glassTeal.mid, stateColors.smokeViolet.mid, t);
-        targetColors.bright.lerpColors(stateColors.glassTeal.bright, stateColors.smokeViolet.bright, t);
-        targetColors.mint.lerpColors(stateColors.glassTeal.mint, stateColors.smokeViolet.mint, t);
-        targetColors.ice.lerpColors(stateColors.glassTeal.ice, stateColors.smokeViolet.ice, t);
-        targetColors.wireframe.copy(stateColors.smokeViolet.wireframe);
-        targetColors.halo.lerpColors(stateColors.glassTeal.halo, stateColors.smokeViolet.halo, t);
+        targetColors.deepVoid.lerpColors(stateColors.comparisonCrimson.deepVoid, stateColors.closingRuby.deepVoid, t);
+        targetColors.core.lerpColors(stateColors.comparisonCrimson.core, stateColors.closingRuby.core, t);
+        targetColors.mid.lerpColors(stateColors.comparisonCrimson.mid, stateColors.closingRuby.mid, t);
+        targetColors.bright.lerpColors(stateColors.comparisonCrimson.bright, stateColors.closingRuby.bright, t);
+        targetColors.torchGlint.lerpColors(stateColors.comparisonCrimson.torchGlint, stateColors.closingRuby.torchGlint, t);
+        targetColors.specGlint.lerpColors(stateColors.comparisonCrimson.specGlint, stateColors.closingRuby.specGlint, t);
+        targetColors.rim.lerpColors(stateColors.comparisonCrimson.rim, stateColors.closingRuby.rim, t);
+        targetColors.wireframe.copy(stateColors.closingRuby.wireframe);
+        targetColors.halo.lerpColors(stateColors.comparisonCrimson.halo, stateColors.closingRuby.halo, t);
       }
 
-      // Spring-damped lerp for mesh transforms (~0.085)
-      heroMesh.position.x += (targetX - heroMesh.position.x) * 0.085;
-      heroMesh.position.y += (targetY - heroMesh.position.y) * 0.085;
+      // Time-aware exponential damping for mesh transforms
+      const transformFactor = 1.0 - Math.exp(-5.2 * delta);
+      heroMesh.position.x += (targetX - heroMesh.position.x) * transformFactor;
+      heroMesh.position.y += (targetY - heroMesh.position.y) * transformFactor;
       
       const currentScale = heroMesh.scale.x;
-      const newScale = currentScale + (targetScale - currentScale) * 0.085;
+      const newScale = currentScale + (targetScale - currentScale) * transformFactor;
       heroMesh.scale.set(newScale, newScale, newScale);
 
-      camera.position.z += (targetCameraZ - camera.position.z) * 0.085;
+      // Decoupled Ambient Halo Pool: positions behind blob, breathes smoothly
+      haloMesh.position.set(heroMesh.position.x, heroMesh.position.y, heroMesh.position.z - 0.8);
+      const breathe = Math.sin(elapsed * 1.2) * 0.035;
+      const haloScale = newScale * (1.62 + breathe);
+      haloMesh.scale.set(haloScale, haloScale, haloScale);
 
-      // Spring-damped lerp for float uniforms
+      camera.position.z += (targetCameraZ - camera.position.z) * transformFactor;
+
+      // Uniform updates with exponential damping
+      const uniformFactor = 1.0 - Math.exp(-6.5 * delta);
       heroMaterial.uniforms.uTime.value = elapsed;
       heroMaterial.uniforms.uScroll.value = p;
       heroMaterial.uniforms.uScrollVelocity.value = Math.min(scrollVelocity, 1.5);
+      heroMaterial.uniforms.uNoiseAmplitude.value += (noiseAmplitude - heroMaterial.uniforms.uNoiseAmplitude.value) * uniformFactor;
       heroMaterial.uniforms.uPointer.value.set(mouseX, mouseY);
-      heroMaterial.uniforms.uPointerActive.value += (pointerActive - heroMaterial.uniforms.uPointerActive.value) * 0.06;
+      heroMaterial.uniforms.uPointerActive.value += (pointerActive - heroMaterial.uniforms.uPointerActive.value) * pointerFactor;
 
-      heroMaterial.uniforms.uTurbulence.value += (turbulence - heroMaterial.uniforms.uTurbulence.value) * 0.085;
-      heroMaterial.uniforms.uInternalFlux.value += (internalFlux - heroMaterial.uniforms.uInternalFlux.value) * 0.085;
-      heroMaterial.uniforms.uFresnelPower.value += (fresnelPower - heroMaterial.uniforms.uFresnelPower.value) * 0.085;
-      heroMaterial.uniforms.uFresnelStrength.value += (fresnelStrength - heroMaterial.uniforms.uFresnelStrength.value) * 0.085;
-      heroMaterial.uniforms.uWireframeMix.value += (wireframeMix - heroMaterial.uniforms.uWireframeMix.value) * 0.085;
-      heroMaterial.uniforms.uFillDensity.value += (fillDensity - heroMaterial.uniforms.uFillDensity.value) * 0.085;
-      heroMaterial.uniforms.uSmokeMix.value += (smokeMix - heroMaterial.uniforms.uSmokeMix.value) * 0.085;
-      heroMaterial.uniforms.uSplitMix.value += (splitMix - heroMaterial.uniforms.uSplitMix.value) * 0.085;
+      heroMaterial.uniforms.uTurbulence.value += (turbulence - heroMaterial.uniforms.uTurbulence.value) * uniformFactor;
+      heroMaterial.uniforms.uInternalFlux.value += (internalFlux - heroMaterial.uniforms.uInternalFlux.value) * uniformFactor;
+      heroMaterial.uniforms.uFresnelPower.value += (fresnelPower - heroMaterial.uniforms.uFresnelPower.value) * uniformFactor;
+      heroMaterial.uniforms.uFresnelStrength.value += (fresnelStrength - heroMaterial.uniforms.uFresnelStrength.value) * uniformFactor;
+      heroMaterial.uniforms.uWireframeMix.value += (wireframeMix - heroMaterial.uniforms.uWireframeMix.value) * uniformFactor;
+      heroMaterial.uniforms.uFillDensity.value += (fillDensity - heroMaterial.uniforms.uFillDensity.value) * uniformFactor;
+      heroMaterial.uniforms.uSmokeMix.value += (smokeMix - heroMaterial.uniforms.uSmokeMix.value) * uniformFactor;
+      heroMaterial.uniforms.uSplitMix.value += (splitMix - heroMaterial.uniforms.uSplitMix.value) * uniformFactor;
 
-      haloMaterial.uniforms.uPulse.value = Math.sin(elapsed * 2.2) * 0.5 + 0.5;
-      haloMaterial.uniforms.uGlowIntensity.value += (haloIntensity - haloMaterial.uniforms.uGlowIntensity.value) * 0.085;
+      haloMaterial.uniforms.uPulse.value = Math.sin(elapsed * 1.8) * 0.5 + 0.5;
+      haloMaterial.uniforms.uGlowIntensity.value += (haloIntensity - haloMaterial.uniforms.uGlowIntensity.value) * uniformFactor;
 
-      // Spring-damped lerp for Color uniforms
-      heroMaterial.uniforms.uColorDeepVoid.value.lerp(targetColors.deepVoid, 0.085);
-      heroMaterial.uniforms.uColorCore.value.lerp(targetColors.core, 0.085);
-      heroMaterial.uniforms.uColorMid.value.lerp(targetColors.mid, 0.085);
-      heroMaterial.uniforms.uColorBright.value.lerp(targetColors.bright, 0.085);
-      heroMaterial.uniforms.uColorMintPhoton.value.lerp(targetColors.mint, 0.085);
-      heroMaterial.uniforms.uColorIceWhite.value.lerp(targetColors.ice, 0.085);
-      heroMaterial.uniforms.uColorWireframe.value.lerp(targetColors.wireframe, 0.085);
-      haloMaterial.uniforms.uGlowColor.value.lerp(targetColors.halo, 0.085);
+      // Time-aware lerp for Color uniforms
+      const colorFactor = 1.0 - Math.exp(-6.5 * delta);
+      heroMaterial.uniforms.uColorDeepVoid.value.lerp(targetColors.deepVoid, colorFactor);
+      heroMaterial.uniforms.uColorCore.value.lerp(targetColors.core, colorFactor);
+      heroMaterial.uniforms.uColorMid.value.lerp(targetColors.mid, colorFactor);
+      heroMaterial.uniforms.uColorBright.value.lerp(targetColors.bright, colorFactor);
+      heroMaterial.uniforms.uColorTorchGlint.value.lerp(targetColors.torchGlint, colorFactor);
+      heroMaterial.uniforms.uColorSpecGlint.value.lerp(targetColors.specGlint, colorFactor);
+      heroMaterial.uniforms.uColorRim.value.lerp(targetColors.rim, colorFactor);
+      heroMaterial.uniforms.uColorWireframe.value.lerp(targetColors.wireframe, colorFactor);
+      haloMaterial.uniforms.uGlowColor.value.lerp(targetColors.halo, colorFactor);
 
-      // Restrained continuous rotation
-      const rotSpeed = prefersReducedMotion ? 0.03 : 0.12;
-      heroMesh.rotation.y = elapsed * rotSpeed + p * 2.2;
-      heroMesh.rotation.x = Math.sin(elapsed * 0.3) * 0.08;
+      // Slow, majestic continuous rotation
+      const rotSpeed = prefersReducedMotion ? 0.02 : 0.07;
+      heroMesh.rotation.y = elapsed * rotSpeed + p * 1.6;
+      heroMesh.rotation.x = Math.sin(elapsed * 0.22) * 0.06;
 
       // Dust drift
-      starParticles.rotation.y = elapsed * 0.012;
-      starParticles.position.y = Math.sin(elapsed * 0.25) * 0.25;
+      starParticles.rotation.y = elapsed * 0.008;
+      starParticles.position.y = Math.sin(elapsed * 0.2) * 0.2;
 
       // Mouse parallax
       if (!prefersReducedMotion) {
-        rootGroup.rotation.y = mouseX * 0.12;
-        rootGroup.rotation.x = -mouseY * 0.08;
+        rootGroup.rotation.y = mouseX * 0.08;
+        rootGroup.rotation.x = -mouseY * 0.05;
       }
 
       renderer.render(scene, camera);
@@ -808,7 +824,7 @@ export default function QuantumEntanglementCanvas() {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 0,
+        zIndex: 1,
         pointerEvents: 'none',
         overflow: 'hidden',
       }}
