@@ -25,9 +25,16 @@ COPY detection_engine/ ./detection_engine/
 # Copy the FastAPI application
 COPY backend/        ./backend/
 
+# Create non-root user and set permissions for safe persistent SQLite writes
+RUN useradd -m -u 10001 -s /bin/bash appuser \
+ && chown -R appuser:appuser /app
+
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
+
+USER appuser
 
 EXPOSE 8000
 
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+

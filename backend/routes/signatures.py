@@ -18,6 +18,11 @@ from qds_core.verification import verify
 from backend.audit_ledger import ledger
 from backend.qiskit_compat import apply_qiskit_compat
 from backend.schemas import VerifyRequest, SignaturePayloadSchema
+from backend.integrity import (
+    compute_signature_integrity_tag,
+    verify_signature_integrity,
+    validate_quantum_evidence,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +68,7 @@ def _sign_fallback(
         else str(uuid.uuid4())
     )
 
-    states = encode_message_to_states(message, n_qubits=n_qubits)
+    states, encoding_bases = encode_message_to_states(message, n_qubits=n_qubits, seed=seed)
     sent_bits = get_message_bits(message, n_qubits=n_qubits)
     bases = generate_random_bases(n_qubits, seed=seed)
 
@@ -73,7 +78,8 @@ def _sign_fallback(
     combined_counts = {"00": per_bin, "01": per_bin, "10": per_bin, "11": per_bin}
 
     serializable_states = [
-        [float(np.real(amp)) for amp in s] for s in states
+        [[float(np.real(amp)), float(np.imag(amp))] for amp in s]
+        for s in states
     ]
 
     return {
@@ -93,7 +99,7 @@ def _sign_fallback(
 # ---- /sign ---------------------------------------------------------------
 
 class SignRequest(BaseModel):
-    message: str = Field(default="Transfer Authorization Payload")
+    message: str = Field(default="Transfer Authorization Payload", max_length=65536)
     private_key: dict[str, Any] = Field(default_factory=dict)
     n_qubits: int = Field(default=8, ge=1, le=128)
     shots: int = Field(default=1024, ge=64, le=8192)
@@ -118,12 +124,21 @@ class SignResponse(BaseModel):
     bases: list[str]
     fidelity: float
     measurement_counts: dict[str, int]
+    execution_mode: str = Field(
+        default="quantum",
+        description="Execution mode: 'quantum' or 'compatibility_fallback'.",
+    )
+    integrity_tag: str | None = Field(
+        default=None,
+        description="Cryptographic HMAC-SHA256 integrity tag binding all signature fields.",
+    )
 
 
 @router.post("/sign", response_model=SignResponse, tags=["Signatures"], summary="Sign message using teleportation-based QDS")
 async def sign_endpoint(request: SignRequest) -> SignResponse:
     """Sign a classical message using teleportation-based QDS and record to audit ledger."""
     apply_qiskit_compat()
+    execution_mode = "quantum"
     try:
         sig = sign(
             message=request.message,
@@ -132,11 +147,20 @@ async def sign_endpoint(request: SignRequest) -> SignResponse:
             shots=request.shots,
             seed=request.seed,
         )
+    except (ValueError, TypeError) as exc:
+        logger.error("Signing parameter or validation error: %s", exc)
+        raise HTTPException(
+            status_code=422,
+            detail=f"Signing parameter error: {exc}"
+        ) from exc
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.warning(
             "Primary quantum signing encountered error: %s. Using deterministic compatibility fallback.",
             exc,
         )
+        execution_mode = "compatibility_fallback"
         sig = _sign_fallback(
             message=request.message,
             private_key=request.private_key,
@@ -146,6 +170,20 @@ async def sign_endpoint(request: SignRequest) -> SignResponse:
         )
 
     clean_sig = _sanitize_for_json(sig)
+    clean_sig["execution_mode"] = execution_mode
+
+    # Validate quantum evidence consistency before signing
+    evidence_valid, evidence_reason = validate_quantum_evidence(clean_sig, target_message=request.message)
+    if not evidence_valid:
+        logger.error("Quantum evidence validation failed during signing: %s", evidence_reason)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Quantum state preparation consistency failure: {evidence_reason}",
+        )
+
+    # Cryptographic integrity tag binding all signature fields together
+    integrity_tag = compute_signature_integrity_tag(clean_sig)
+    clean_sig["integrity_tag"] = integrity_tag
 
     # Record asynchronous non-blocking audit entry
     ledger.record_event(
@@ -160,6 +198,8 @@ async def sign_endpoint(request: SignRequest) -> SignResponse:
 
     public_sig = dict(clean_sig)
     public_sig.pop("sent_states", None)
+    public_sig["execution_mode"] = execution_mode
+    public_sig["integrity_tag"] = integrity_tag
 
     return SignResponse(
         message=clean_sig["message"],
@@ -172,6 +212,8 @@ async def sign_endpoint(request: SignRequest) -> SignResponse:
         bases=clean_sig["bases"],
         fidelity=clean_sig["fidelity"],
         measurement_counts=clean_sig["measurement_counts"],
+        execution_mode=execution_mode,
+        integrity_tag=integrity_tag,
     )
 
 
@@ -208,6 +250,29 @@ async def verify_endpoint(request: VerifyRequest) -> VerifyResponse:
 
         clean_result = _sanitize_for_json(result)
         clean_result.setdefault("received_bits", sig_payload.get("measurement_outcomes", []))
+
+        # Check cryptographic signature integrity
+        if not clean_result["message_intact"]:
+            clean_result["is_valid"] = False
+            clean_result["reason"] = "message_hash_mismatch"
+        else:
+            integrity_valid, integrity_reason = verify_signature_integrity(sig_payload)
+            if not integrity_valid:
+                clean_result["is_valid"] = False
+                clean_result["reason"] = integrity_reason
+            else:
+                # Validate quantum evidence consistency
+                target_msg = request.message if request.message is not None else sig_payload.get("message")
+                evidence_valid, evidence_reason = validate_quantum_evidence(sig_payload, target_message=target_msg)
+                if not evidence_valid:
+                    clean_result["is_valid"] = False
+                    clean_result["reason"] = evidence_reason
+                elif not clean_result["session_valid"]:
+                    clean_result["is_valid"] = False
+                    clean_result["reason"] = "session_mismatch"
+                elif clean_result["is_valid"]:
+                    clean_result["reason"] = "verified_authentic"
+
         is_valid = clean_result["is_valid"]
 
         # Record audit log
