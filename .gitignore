@@ -77,7 +77,8 @@ dashboard/build/
 # --- Environment & Secrets ---
 .env
 .env.*
-!.env.example        # keep the example file
+# keep the example file
+!.env.example
 
 # --- OS ---
 .DS_Store
