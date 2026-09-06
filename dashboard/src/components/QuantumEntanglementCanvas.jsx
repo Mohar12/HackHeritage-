@@ -40,28 +40,27 @@ const fluidVertexShader = `
     vec3 p = position;
     vec3 n = normalize(position);
     
-    // Slow cinematic wave time (calm, majestic deep water)
-    float t = uTime * 0.26;
+    // Dynamic traveling wave time (calm, distinct traveling water ripples)
+    float t = uTime * 0.85;
     
-    // 1. Primary macro wave (broad wavelength traversing diagonally across sphere)
-    float phase1 = (p.x * 0.36 + p.y * 0.44 + p.z * 0.28) - t * 0.92;
-    float wave1 = sin(phase1) * 0.36 * uNoiseAmplitude;
+    // 1. Primary traveling wavefront traversing across the sphere
+    float wPhase1 = (p.x * 0.95 + p.y * 1.15 + p.z * 0.85) - t * 1.35;
+    float wave1 = sin(wPhase1) * 0.22 * uNoiseAmplitude;
     
-    // 2. Broad secondary wave (wrapping around the sphere in opposing direction)
-    float phase2 = (p.z * 0.42 - p.x * 0.38 + p.y * 0.22) + t * 0.72;
-    float wave2 = sin(phase2) * 0.25 * uNoiseAmplitude;
+    // 2. Counter-propagating wave ripple (cross-wave interference like real water)
+    float wPhase2 = (p.z * 1.12 - p.x * 0.98 + p.y * 0.76) + t * 1.15;
+    float wave2 = sin(wPhase2) * 0.16 * uNoiseAmplitude;
     
-    // 3. Equatorial deep water surge (slow breathing deformation)
-    float phase3 = sin(p.x * 0.22 + t * 0.52) * cos(p.z * 0.26 - t * 0.42);
-    float wave3 = phase3 * 0.22 * uNoiseAmplitude;
+    // 3. Spherical harmonic concentric ripples
+    float wPhase3 = length(p) * 1.85 - t * 1.55;
+    float wave3 = cos(wPhase3 + p.y * 0.65) * 0.12 * uNoiseAmplitude;
     
-    // 4. Smooth continuous crest wave
-    float phase4 = length(p.xy) * 0.72 - t * 0.62;
-    float wave4 = cos(phase4 + p.z * 0.28) * 0.14 * uNoiseAmplitude;
+    // 4. Trochoidal wave steepness (peaked wave crests and broader troughs)
+    float waveSteepness = pow(sin(wPhase1) * 0.5 + 0.5, 2.2) * 0.16 * uNoiseAmplitude;
     
-    // 5. Very subtle micro detail (organic liquid tension)
-    float phase5 = (p.x * 1.15 + p.y * 0.95 - p.z * 0.85) - t * 1.15;
-    float wave5 = sin(phase5) * 0.035 * uNoiseAmplitude;
+    // 5. Subtle micro-surface tension capillary ripple
+    float wPhase5 = (p.x * 2.2 - p.z * 2.1 + p.y * 1.9) - t * 2.1;
+    float wave5 = sin(wPhase5) * 0.04 * uNoiseAmplitude;
     
     // 6. Interactive pointer wake (expanding liquid ripple)
     vec3 pointerDir = normalize(vec3(uPointer.x * 2.5, uPointer.y * 2.5, 3.5));
@@ -71,18 +70,18 @@ const fluidVertexShader = `
     // 7. Viscous scroll mass inertia
     float scrollSurge = sin(p.y * 0.75 + t * 0.85) * (uScrollVelocity * 0.22);
     
-    // Total displacement along normal
-    float totalElevation = wave1 + wave2 + wave3 + wave4 + wave5 + pointerWave + scrollSurge;
+    // Total physical surface displacement along normal
+    float totalElevation = (wave1 + wave2 + wave3 + waveSteepness + wave5) + pointerWave + scrollSurge;
     vRippleElevation = totalElevation;
     vWaveRidge = totalElevation;
     
     vec3 displaced = p + n * totalElevation;
     
-    // Accurate normal perturbation for metallic reflections across waves
+    // Accurate normal perturbation so metallic reflections track real surface ripples
     vec3 tangentX = vec3(-p.y, p.x, 0.0);
     vec3 tangentY = cross(n, tangentX);
-    float dTx = cos(phase1) * 0.28 + cos(phase2) * (-0.20) + cos(distToPointer * 5.2 - uTime * 1.5) * 0.15 * uPointerActive;
-    float dTy = cos(phase1) * 0.24 + cos(phase2) * 0.18;
+    float dTx = cos(wPhase1) * 0.32 + cos(wPhase2) * (-0.24) + cos(distToPointer * 5.2 - uTime * 1.5) * 0.15 * uPointerActive;
+    float dTy = cos(wPhase1) * 0.28 + cos(wPhase2) * 0.22;
     vec3 perturbedNormal = normalize(n - (tangentX * dTx + tangentY * dTy) * 0.42);
     
     vNormal = normalize(normalMatrix * perturbedNormal);
@@ -135,40 +134,42 @@ const fluidFragmentShader = `
     vec3 viewDir = normalize(vViewPosition);
     float NdotV = max(0.0, dot(normal, viewDir));
     
-    // 1. Primary Colored Torch Light Source (Sweeping angled light across dark water)
-    vec3 lightDir1 = normalize(vec3(0.95, 1.25, 1.65));
-    vec3 halfDir1 = normalize(lightDir1 + viewDir);
-    float NdotH1 = max(0.0, dot(normal, halfDir1));
-    
-    // Sharp specular wave-ridge glint
-    float sharpSpec1 = pow(NdotH1, 140.0) * 2.8;
-    // Mid-tier curved wave reflection (stretched across wave ridges)
-    float midSpec1 = pow(NdotH1, 38.0) * 1.15;
-    
-    // 2. Secondary Opposing Torch (Catch light from opposite quadrant)
-    vec3 lightDir2 = normalize(vec3(-1.3, -0.65, 1.15));
-    vec3 halfDir2 = normalize(lightDir2 + viewDir);
-    float NdotH2 = max(0.0, dot(normal, halfDir2));
-    float secondarySpec = pow(NdotH2, 64.0) * 0.95;
-    
-    // 3. Fresnel Reflectance (Water-like grazing reflection)
-    float fresnel = pow(1.0 - NdotV, uFresnelPower);
-    
-    // 4. Wave Ridge vs Trough Lighting:
+    // 1. Wave Ridge vs Trough Lighting:
     // Wave ridges catch bright torch reflection; troughs remain deep, dark liquid
     float ridgeFactor = smoothstep(-0.15, 0.32, vWaveRidge);
     float troughShadow = smoothstep(0.12, -0.22, vWaveRidge);
+
+    // 2. Primary Traveling Wave Reflection Highlight
+    // Replaces the single moving bright torch/flashlight point with soft traveling wave ripples
+    float waveTravelingPhase1 = (vPosition.x * 0.42 + vPosition.y * 0.48 + vPosition.z * 0.32) - uTime * 0.38;
+    float waveBand1 = sin(waveTravelingPhase1) * 0.5 + 0.5;
+    float travelingWaveGlint1 = pow(waveBand1, 3.2) * smoothstep(-0.12, 0.28, vWaveRidge);
     
-    // 5. Dark Liquid-Metal Base
+    // 3. Secondary Counter-Propagating Wave Reflection Ripple
+    float waveTravelingPhase2 = (vPosition.z * 0.45 - vPosition.x * 0.38 + vPosition.y * 0.28) + uTime * 0.32;
+    float waveBand2 = sin(waveTravelingPhase2) * 0.5 + 0.5;
+    float travelingWaveGlint2 = pow(waveBand2, 3.6) * smoothstep(-0.08, 0.30, vWaveRidge);
+    
+    // 4. Stretched curved wave-ridge illumination (anisotropic reflection across normal curvature)
+    vec3 lightDirBroad = normalize(vec3(0.85, 1.1, 1.45));
+    vec3 halfDirBroad = normalize(lightDirBroad + viewDir);
+    float NdotHBroad = max(0.0, dot(normal, halfDirBroad));
+    float ridgeReflection = pow(NdotHBroad, 16.0) * 0.75 * smoothstep(-0.10, 0.26, vWaveRidge);
+    
+    // Compound traveling wave reflection highlight
+    float totalWaveHighlight = (travelingWaveGlint1 * 1.15 + travelingWaveGlint2 * 0.8 + ridgeReflection * 0.5) * (0.35 + 0.65 * ridgeFactor);
+    
+    // 5. Fresnel Reflectance (Water-like grazing reflection)
+    float fresnel = pow(1.0 - NdotV, uFresnelPower);
+    
+    // 6. Dark Liquid-Metal Base
     // Center facing camera is deep near-black liquid
     vec3 liquidBase = mix(uColorDeepVoid, uColorCore, 0.85);
     liquidBase = mix(liquidBase, uColorMid, (1.0 - troughShadow * 0.6) * 0.35);
     
-    // 6. Colored Torch Reflection Synthesis
-    // Torch reflection bends around wave curvature
-    vec3 torchReflection = uColorTorchGlint * (midSpec1 * (0.6 + 0.6 * ridgeFactor));
-    // Bright specular highlight at the wave apex
-    torchReflection += uColorSpecGlint * (sharpSpec1 + secondarySpec * 0.7);
+    // 6. Colored Wave Reflection Synthesis (Continuous wave sheen instead of flashlight dot)
+    vec3 torchReflection = uColorTorchGlint * totalWaveHighlight;
+    torchReflection += uColorSpecGlint * (travelingWaveGlint1 * 0.85 + travelingWaveGlint2 * 0.55);
     
     // Secondary rim reflection along silhouette
     vec3 rimLight = mix(uColorRim, uColorTorchGlint, 0.45) * (fresnel * 1.35 * uFresnelStrength);
@@ -193,7 +194,7 @@ const fluidFragmentShader = `
     
     vec3 wireframeGlow = uColorWireframe * (wireframeRays * 2.2 + fresnel * 1.1);
     vec3 structuralColor = mix(uColorDeepVoid * 0.4, uColorCore * 0.7, wireframeRays * 0.3) + wireframeGlow;
-    structuralColor += uColorSpecGlint * (sharpSpec1 * 0.8);
+    structuralColor += uColorSpecGlint * (travelingWaveGlint1 * 0.7);
     
     vec3 finalColor = mix(metallicSurface, structuralColor, uWireframeMix);
     
@@ -553,6 +554,12 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
 
       const p = currentScroll; // Continuous normalized progress [0, 1]
       const currentPillar = activePillarRef.current;
+      let pillarState = stateColors.pillarP1;
+      if (currentPillar === '02') {
+        pillarState = stateColors.pillarP2;
+      } else if (currentPillar === '03') {
+        pillarState = stateColors.pillarP3;
+      }
 
       // State machine parameter targets
       let targetX = 0;
@@ -648,13 +655,6 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
         splitMix = 0.0;
 
         // Dynamic sync to active selected pillar (01 / 02 / 03)
-        let pillarState = stateColors.pillarP1;
-        if (currentPillar === '02') {
-          pillarState = stateColors.pillarP2;
-        } else if (currentPillar === '03') {
-          pillarState = stateColors.pillarP3;
-        }
-
         targetColors.deepVoid.copy(pillarState.deepVoid);
         targetColors.core.copy(pillarState.core);
         targetColors.mid.copy(pillarState.mid);
@@ -670,11 +670,12 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
       // ─────────────────────────────────────────────────────────────
       else if (p < 0.88) {
         const t = (p - 0.72) / 0.16;
-        targetX = 1.4 - t * 1.4;
-        targetY = -1.8 - t * 0.3;
+        const smoothT = t * t * (3.0 - 2.0 * t);
+        targetX = 1.4 - smoothT * 1.4;
+        targetY = -1.8 - smoothT * 0.3;
         targetScale = 0.96;
         targetCameraZ = 14.0;
-        turbulence = (1.0 - t) * 0.3;
+        turbulence = (1.0 - smoothT) * 0.25;
         internalFlux = 0.7;
         fresnelPower = 3.0;
         fresnelStrength = 1.2;
@@ -682,48 +683,65 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
         wireframeMix = 0.0;
         fillDensity = 1.0;
         smokeMix = 0.0;
-        splitMix = Math.min(1.0, t * 2.2);
 
-        targetColors.deepVoid.copy(stateColors.comparisonCrimson.deepVoid);
-        targetColors.core.copy(stateColors.comparisonCrimson.core);
-        targetColors.mid.copy(stateColors.comparisonCrimson.mid);
-        targetColors.bright.copy(stateColors.comparisonCrimson.bright);
-        targetColors.torchGlint.copy(stateColors.comparisonCrimson.torchGlint);
-        targetColors.specGlint.copy(stateColors.comparisonCrimson.specGlint);
-        targetColors.rim.copy(stateColors.comparisonCrimson.rim);
-        targetColors.wireframe.copy(stateColors.problemBlue.wireframe);
-        targetColors.halo.copy(stateColors.comparisonCrimson.halo);
+        // Smooth continuous bell curve: peaks in middle of Act 4 and dissolves gracefully
+        if (p < 0.81) {
+          const sIn = (p - 0.72) / 0.09;
+          splitMix = sIn * sIn * (3.0 - 2.0 * sIn);
+        } else {
+          const sOut = Math.max(0.0, 1.0 - (p - 0.81) / 0.09);
+          splitMix = sOut * sOut * (3.0 - 2.0 * sOut);
+        }
+
+        targetColors.deepVoid.lerpColors(pillarState.deepVoid, stateColors.comparisonCrimson.deepVoid, smoothT);
+        targetColors.core.lerpColors(pillarState.core, stateColors.comparisonCrimson.core, smoothT);
+        targetColors.mid.lerpColors(pillarState.mid, stateColors.comparisonCrimson.mid, smoothT);
+        targetColors.bright.lerpColors(pillarState.bright, stateColors.comparisonCrimson.bright, smoothT);
+        targetColors.torchGlint.lerpColors(pillarState.torchGlint, stateColors.comparisonCrimson.torchGlint, smoothT);
+        targetColors.specGlint.lerpColors(pillarState.specGlint, stateColors.comparisonCrimson.specGlint, smoothT);
+        targetColors.rim.lerpColors(pillarState.rim, stateColors.comparisonCrimson.rim, smoothT);
+        targetColors.wireframe.lerpColors(pillarState.wireframe, stateColors.problemBlue.wireframe, smoothT);
+        targetColors.halo.lerpColors(pillarState.halo, stateColors.comparisonCrimson.halo, smoothT);
       }
       // ─────────────────────────────────────────────────────────────
       // ACT 5: CLOSING & FOOTER (0.88 - 1.00) · Smooth Recession
       // ─────────────────────────────────────────────────────────────
       else {
         const t = (p - 0.88) / 0.12;
+        const smoothT = t * t * (3.0 - 2.0 * t);
         targetX = 0;
         // As scroll approaches 1.0, globe recedes and sinks into the deep void behind footer
-        targetY = -2.2 - t * 0.8;
-        targetScale = 0.96 - t * 0.24; // recedes to ~0.72
-        targetCameraZ = 14.0 + t * 1.2; // steps back in z
+        targetY = -2.1 - smoothT * 0.9;
+        targetScale = 0.96 - smoothT * 0.24; // recedes to ~0.72
+        targetCameraZ = 14.0 + smoothT * 1.2; // steps back in z
         turbulence = 0.0;
-        internalFlux = 0.5 - t * 0.3;
+        internalFlux = 0.5 - smoothT * 0.3;
         fresnelPower = 2.4;
-        fresnelStrength = 0.8 - t * 0.3;
-        haloIntensity = 0.65 - t * 0.38; // dims gracefully to 0.27
+        fresnelStrength = 0.8 - smoothT * 0.3;
+        haloIntensity = 0.65 - smoothT * 0.38; // dims gracefully to 0.27
         wireframeMix = 0.0;
         fillDensity = 0.88;
-        smokeMix = Math.min(1.0, t * 1.4);
-        splitMix = Math.max(0.0, 1.0 - t * 3.0);
-        noiseAmplitude = (prefersReducedMotion ? 0.2 : 1.0) * (1.0 - t * 0.38); // ripples calm down
+        smokeMix = Math.min(1.0, smoothT * 1.4);
 
-        targetColors.deepVoid.lerpColors(stateColors.comparisonCrimson.deepVoid, stateColors.closingRuby.deepVoid, t);
-        targetColors.core.lerpColors(stateColors.comparisonCrimson.core, stateColors.closingRuby.core, t);
-        targetColors.mid.lerpColors(stateColors.comparisonCrimson.mid, stateColors.closingRuby.mid, t);
-        targetColors.bright.lerpColors(stateColors.comparisonCrimson.bright, stateColors.closingRuby.bright, t);
-        targetColors.torchGlint.lerpColors(stateColors.comparisonCrimson.torchGlint, stateColors.closingRuby.torchGlint, t);
-        targetColors.specGlint.lerpColors(stateColors.comparisonCrimson.specGlint, stateColors.closingRuby.specGlint, t);
-        targetColors.rim.lerpColors(stateColors.comparisonCrimson.rim, stateColors.closingRuby.rim, t);
-        targetColors.wireframe.copy(stateColors.closingRuby.wireframe);
-        targetColors.halo.lerpColors(stateColors.comparisonCrimson.halo, stateColors.closingRuby.halo, t);
+        // Seamless continuation: finish dissolving any residual grid into solid ruby sphere by p = 0.90
+        if (p < 0.90) {
+          const sOut = Math.max(0.0, 1.0 - (p - 0.81) / 0.09);
+          splitMix = sOut * sOut * (3.0 - 2.0 * sOut);
+        } else {
+          splitMix = 0.0;
+        }
+
+        noiseAmplitude = (prefersReducedMotion ? 0.2 : 1.0) * (1.0 - smoothT * 0.38); // ripples calm down
+
+        targetColors.deepVoid.lerpColors(stateColors.comparisonCrimson.deepVoid, stateColors.closingRuby.deepVoid, smoothT);
+        targetColors.core.lerpColors(stateColors.comparisonCrimson.core, stateColors.closingRuby.core, smoothT);
+        targetColors.mid.lerpColors(stateColors.comparisonCrimson.mid, stateColors.closingRuby.mid, smoothT);
+        targetColors.bright.lerpColors(stateColors.comparisonCrimson.bright, stateColors.closingRuby.bright, smoothT);
+        targetColors.torchGlint.lerpColors(stateColors.comparisonCrimson.torchGlint, stateColors.closingRuby.torchGlint, smoothT);
+        targetColors.specGlint.lerpColors(stateColors.comparisonCrimson.specGlint, stateColors.closingRuby.specGlint, smoothT);
+        targetColors.rim.lerpColors(stateColors.comparisonCrimson.rim, stateColors.closingRuby.rim, smoothT);
+        targetColors.wireframe.lerpColors(stateColors.problemBlue.wireframe, stateColors.closingRuby.wireframe, smoothT);
+        targetColors.halo.lerpColors(stateColors.comparisonCrimson.halo, stateColors.closingRuby.halo, smoothT);
       }
 
       // Time-aware exponential damping for mesh transforms

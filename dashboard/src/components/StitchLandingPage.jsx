@@ -25,12 +25,10 @@ import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
   const [activeAct, setActiveAct] = useState('hero');
   const [activePillar, setActivePillar] = useState('01');
+  const [activeDimension, setActiveDimension] = useState(0);
   const [initialCalibrationDone, setInitialCalibrationDone] = useState(false);
 
   // Direct DOM refs for 60-120fps performance without React re-render overhead
-  const primaryBtnRef = useRef(null);
-  const ctaBtnRef = useRef(null);
-  const navPillRef = useRef(null);
   const heroCardsRef = useRef(null);
   const railIndicatorRef = useRef(null);
 
@@ -90,49 +88,27 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
 
   // Performance: IntersectionObserver updates activeAct ONLY when crossing sections
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    const revealObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.target.id) {
-            setActiveAct(entry.target.id);
+          if (entry.isIntersecting) {
+            if (entry.target.id && entry.target.classList.contains('hqds-act')) {
+              setActiveAct(entry.target.id);
+            }
+            entry.target.classList.add('is-revealed');
           }
         });
       },
       {
-        rootMargin: '-20% 0px -40% 0px',
-        threshold: 0.1,
+        rootMargin: '0px 0px -8% 0px',
+        threshold: 0.06,
       }
     );
 
-    const sections = document.querySelectorAll('.hqds-act');
-    sections.forEach((sec) => observer.observe(sec));
-    return () => observer.disconnect();
+    const revealElements = document.querySelectorAll('.hqds-act, .hqds-reveal');
+    revealElements.forEach((el) => revealObserver.observe(el));
+    return () => revealObserver.disconnect();
   }, []);
-
-  // Specular mouse tracking
-  const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
-    e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
-  };
-
-  // Magnetic button physics with spring ease
-  const handleMagneticMove = (e, buttonRef) => {
-    if (!buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    const x = e.clientX - (rect.left + rect.width / 2);
-    const y = e.clientY - (rect.top + rect.height / 2);
-    buttonRef.current.style.transition = 'transform 0.1s ease-out';
-    buttonRef.current.style.transform = `translate(${x * 0.18}px, ${y * 0.18}px)`;
-  };
-
-  const handleMagneticLeave = (buttonRef) => {
-    if (!buttonRef.current) return;
-    buttonRef.current.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
-    buttonRef.current.style.transform = 'translate(0px, 0px)';
-  };
 
   // Smooth scroll to section
   const scrollToAct = (id) => {
@@ -318,10 +294,10 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
 
       {/* Minimal Top Navigation (Liquid Brokers Reference Architecture) */}
       <nav className="hqds-top-nav" aria-label="Main Navigation">
+        <div className="hqds-nav-ambient-light" aria-hidden="true" />
         <div className="hqds-nav-inner">
           <div className="hqds-brand-wrap" onClick={() => scrollToAct('hero')}>
             <span className="hqds-brand-title">HYPERQDS</span>
-            <span className="hqds-brand-sub">[PHYSICAL LAYER]</span>
           </div>
 
           <div className="hqds-nav-center">
@@ -345,22 +321,15 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               className="hqds-nav-ghost-btn"
               onClick={() => handleNavigateTab('operations')}
             >
-              Console
+              <span>Console</span>
             </button>
-            <div
-              ref={navPillRef}
-              onMouseMove={(e) => handleMagneticMove(e, navPillRef)}
-              onMouseLeave={() => handleMagneticLeave(navPillRef)}
-              style={{ display: 'inline-flex' }}
+            <button
+              type="button"
+              className="hqds-nav-pill-btn"
+              onClick={handleLaunchHonest}
             >
-              <button
-                type="button"
-                className="hqds-nav-pill-btn"
-                onClick={handleLaunchHonest}
-              >
-                Launch Protocol
-              </button>
-            </div>
+              <span>Launch Protocol</span>
+            </button>
           </div>
         </div>
       </nav>
@@ -379,42 +348,38 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               Physical-layer quantum key distribution and real-time Bell-state verification eliminating adversarial interception.
             </p>
 
-            <div
-              ref={primaryBtnRef}
-              onMouseMove={(e) => handleMagneticMove(e, primaryBtnRef)}
-              onMouseLeave={() => handleMagneticLeave(primaryBtnRef)}
-              style={{ display: 'inline-flex' }}
-            >
+            <div style={{ display: 'inline-flex' }}>
               <button
                 type="button"
                 className="hqds-hero-primary-cta"
                 onClick={handleLaunchHonest}
               >
-                Deploy Quantum Protection
+                <span>Deploy Quantum Protection</span>
               </button>
             </div>
           </div>
 
-          {/* Two Floating Glass Stat Cards Overlapping the 3D Hero Object */}
-          <div ref={heroCardsRef} className="hqds-hero-stage-overlap">
-            {/* Lower-Left Stat Card */}
-            <div className="hqds-floating-stat-card" onMouseMove={handleMouseMove}>
+          {/* Symmetrical Bilateral Floating Glass Stat Cards Framed Over the 3D Hero Object */}
+          <div ref={heroCardsRef} className="hqds-hero-stage-overlap" aria-hidden="false">
+            {/* Left Stat Card: Physical Collapse Latency */}
+            <div className="hqds-floating-stat-card hqds-fstat-left">
               <div className="hqds-fstat-top-row">
                 <span className="hqds-fstat-label">Physical Collapse Latency</span>
                 <button
                   type="button"
                   className="hqds-fstat-arrow-btn"
-                  onClick={() => scrollToAct('pillars')}
+                  onClick={() => scrollToAct('problem')}
                   aria-label="View Latency Details"
                 >
                   ↗
                 </button>
               </div>
               <div className="hqds-fstat-value">&lt; 0.24 ms</div>
+              <div className="hqds-fstat-sub">Deterministic Pauli Bound</div>
             </div>
 
-            {/* Lower-Right Stat Card */}
-            <div className="hqds-floating-stat-card cyan-accent" onMouseMove={handleMouseMove}>
+            {/* Right Stat Card: Hypothesis Rejection Confidence */}
+            <div className="hqds-floating-stat-card cyan-accent hqds-fstat-right">
               <div className="hqds-fstat-top-row">
                 <span className="hqds-fstat-label">Hypothesis Rejection Confidence</span>
                 <button
@@ -427,9 +392,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                 </button>
               </div>
               <div className="hqds-fstat-value">p &lt; 0.001</div>
-              <div className="hqds-fstat-progress-bar">
-                <div className="hqds-fstat-progress-fill" />
-              </div>
+              <div className="hqds-fstat-sub">Born-Rule Statistical Proof</div>
             </div>
           </div>
         </section>
@@ -447,7 +410,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
 
             <div className="hqds-problem-asymmetric">
               {/* Left Column: Muted Classical Limitation */}
-              <div className="hqds-problem-card is-classical" onMouseMove={handleMouseMove}>
+              <div className="hqds-problem-card is-classical hqds-reveal">
                 <div>
                   <div className="hqds-pcard-tag classical-tag">CLASSICAL HEURISTIC LIMITATION</div>
                   <h3 className="hqds-pcard-headline">Neural Classification and Heuristics</h3>
@@ -477,7 +440,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               </div>
 
               {/* Right Column: Prominent Quantum Physical Invariant */}
-              <div className="hqds-problem-card is-quantum" onMouseMove={handleMouseMove}>
+              <div className="hqds-problem-card is-quantum hqds-reveal">
                 <div>
                   <div className="hqds-pcard-tag quantum-tag">PHYSICAL-LAYER DETERMINISM</div>
                   <h3 className="hqds-pcard-headline">Enforced Quantum Mechanical Invariants</h3>
@@ -523,7 +486,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
             {/* Single Unified Pillars Container */}
             <div className="hqds-pillars-unified-container">
               {/* Localized Internal Horizontal Selector Menu */}
-              <div className="hqds-pillar-internal-menu" role="tablist" aria-label="Core Cryptographic Pillars">
+              <div className="hqds-pillar-internal-menu hqds-reveal" role="tablist" aria-label="Core Cryptographic Pillars">
                 {pillars.map((p) => {
                   const isActive = p.digit === activePillar;
                   return (
@@ -548,8 +511,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                 return (
                   <div
                     key={currentPillar.digit}
-                    className={`hqds-glass-sharp hqds-pillar-single-card pillar-card-${currentPillar.digit}`}
-                    onMouseMove={handleMouseMove}
+                    className={`hqds-glass-sharp hqds-pillar-single-card pillar-card-${currentPillar.digit} hqds-reveal`}
                   >
                     <div className="hqds-pillar-header-row">
                       <div>
@@ -589,7 +551,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
           </div>
         </section>
 
-        {/* ACT 4: VERIFICATION COMPARISON (Scroll-Revealed Overtaking Sequence) */}
+        {/* ACT 4: VERIFICATION COMPARISON (Structured Interactive Dimension Tabs & Deck) */}
         <section id="comparison" className="hqds-act">
           <div className="hqds-act-container">
             <header className="hqds-act-header">
@@ -600,44 +562,112 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               </p>
             </header>
 
-            <div className="hqds-comparison-stream-sequential">
-              {comparisonData.map((row) => (
-                <div
-                  key={row.dimension}
-                  className="hqds-glass-deep hqds-comparison-scroll-card"
-                  onMouseMove={handleMouseMove}
-                >
-                  <div className="hqds-ccard-header">
-                    <span className="hqds-ccard-dimension">{row.dimension}</span>
-                    <h3 className="hqds-ccard-title">{row.title}</h3>
-                  </div>
+            {/* Structured Dimension Menu / Tab Bar */}
+            <div className="hqds-dimension-deck-wrapper hqds-reveal">
+              <div className="hqds-dimension-nav-deck" role="tablist" aria-label="Verification Dimensions">
+                {comparisonData.map((row, idx) => {
+                  const isActive = idx === activeDimension;
+                  const shortTitle = row.dimension.split('·')[1]?.trim() || `Dimension 0${idx + 1}`;
+                  return (
+                    <button
+                      key={row.dimension}
+                      type="button"
+                      role="tab"
+                      id={`dim-tab-${idx}`}
+                      aria-selected={isActive}
+                      aria-controls={`dim-panel-${idx}`}
+                      className={`hqds-dimension-tab-btn ${isActive ? 'is-active' : ''}`}
+                      onClick={() => setActiveDimension(idx)}
+                    >
+                      <span className="dim-tab-num">[ 0{idx + 1} ]</span>
+                      <span className="dim-tab-label">{shortTitle}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-                  {/* Classical Approach: Shown muted and desaturated first */}
-                  <div className="hqds-approach-box classical-muted">
-                    <div className="hqds-approach-badge danger">TRADITIONAL HEURISTIC DEFENSE</div>
-                    <p className="hqds-approach-text">{row.traditional}</p>
-                    <div className="hqds-approach-foot danger">
-                      <span>Failure Mode: Vulnerable to gradient search and noise bypass</span>
-                      <strong>Probabilistic / Insecure</strong>
+            {/* Active Dimension Display Card */}
+            <div className="hqds-dimension-stage-container hqds-reveal">
+              <div className="hqds-dimension-ambient-glow" aria-hidden="true" />
+              {(() => {
+                const row = comparisonData[activeDimension] || comparisonData[0];
+                return (
+                  <div
+                    key={row.dimension}
+                    id={`dim-panel-${activeDimension}`}
+                    role="tabpanel"
+                    aria-labelledby={`dim-tab-${activeDimension}`}
+                    className="hqds-glass-deep hqds-dimension-active-card"
+                  >
+                    <div className="hqds-dimcard-header">
+                      <div className="hqds-dimcard-title-group">
+                        <span className="hqds-dimcard-dimension">{row.dimension}</span>
+                        <h3 className="hqds-dimcard-title">{row.title}</h3>
+                      </div>
+                      <div className="hqds-dimcard-metric-badge">
+                        <span className="dimcard-metric-pulse" />
+                        <span className="dimcard-metric-text">{row.metric}</span>
+                      </div>
+                    </div>
+
+                    <div className="hqds-dimcard-columns">
+                      {/* Classical Approach: Shown muted and desaturated */}
+                      <div className="hqds-dim-box classical-muted">
+                        <div className="hqds-dim-badge danger">TRADITIONAL HEURISTIC DEFENSE</div>
+                        <p className="hqds-dim-text">{row.traditional}</p>
+                        <div className="hqds-dim-foot danger">
+                          <span>Failure Mode: Vulnerable to gradient search and noise bypass</span>
+                          <strong>Probabilistic / Insecure</strong>
+                        </div>
+                      </div>
+
+                      {/* Overtake Transition Marker */}
+                      <div className="hqds-dim-overtake-divider">
+                        <div className="dim-overtake-pill">
+                          <span className="dim-overtake-icon">↓</span>
+                          <span>SUPERSEDED BY PHYSICAL LAW</span>
+                        </div>
+                      </div>
+
+                      {/* HyperQDS Answer: Illuminated with vibrant cyan/teal */}
+                      <div className="hqds-dim-box quantum-overtake">
+                        <div className="hqds-dim-badge teal">HYPERQDS PHYSICAL GUARANTEE · {row.metric}</div>
+                        <p className="hqds-dim-text">{row.quantum}</p>
+                        <div className="hqds-dim-foot teal">
+                          <span>Hardware Enforcement: Immediate optical wavefunction collapse</span>
+                          <strong>Deterministic Bound</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pagination & Arrow Controls for Rapid Dimension Flipping */}
+                    <div className="hqds-dimcard-footer-controls">
+                      <button
+                        type="button"
+                        className="hqds-dim-nav-btn"
+                        onClick={() => setActiveDimension((prev) => (prev > 0 ? prev - 1 : comparisonData.length - 1))}
+                        aria-label="Previous Dimension"
+                      >
+                        ← Previous Dimension
+                      </button>
+                      <div className="hqds-dim-counter">
+                        <span>0{activeDimension + 1}</span>
+                        <span className="dim-sep">/</span>
+                        <span>0{comparisonData.length}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="hqds-dim-nav-btn"
+                        onClick={() => setActiveDimension((prev) => (prev < comparisonData.length - 1 ? prev + 1 : 0))}
+                        aria-label="Next Dimension"
+                      >
+                        Next Dimension →
+                      </button>
                     </div>
                   </div>
-
-                  {/* Overtake Transition Marker */}
-                  <div className="hqds-overtake-indicator">
-                    <span>↓ SUPERSEDED BY PHYSICAL LAW</span>
-                  </div>
-
-                  {/* HyperQDS Answer: Animates in, illuminated with vibrant cyan, overtaking it */}
-                  <div className="hqds-approach-box quantum-overtake">
-                    <div className="hqds-approach-badge teal">HYPERQDS PHYSICAL GUARANTEE · {row.metric}</div>
-                    <p className="hqds-approach-text">{row.quantum}</p>
-                    <div className="hqds-approach-foot teal">
-                      <span>Hardware Enforcement: Immediate optical wavefunction collapse</span>
-                      <strong>Deterministic Bound</strong>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })()}
             </div>
           </div>
         </section>
@@ -645,7 +675,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         {/* ACT 5: CLOSING RESTING STATE & FINAL CTA */}
         <section id="conduit" className="hqds-act">
           <div className="hqds-act-container">
-            <div className="hqds-glass-sharp hqds-conduit-portal-resting" onMouseMove={handleMouseMove}>
+            <div className="hqds-glass-sharp hqds-conduit-portal-resting hqds-reveal">
               <span className="hqds-portal-eyebrow">THE OPERATIONAL HORIZON</span>
               <h2 className="hqds-portal-headline">
                 Transition to Deterministic Quantum Infrastructure
@@ -669,18 +699,13 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                 </div>
               </div>
 
-              <div
-                ref={ctaBtnRef}
-                onMouseMove={(e) => handleMagneticMove(e, ctaBtnRef)}
-                onMouseLeave={() => handleMagneticLeave(ctaBtnRef)}
-                style={{ display: 'inline-flex' }}
-              >
+              <div style={{ display: 'inline-flex' }}>
                 <button
                   type="button"
                   className="hqds-hero-primary-cta hqds-btn-xl"
                   onClick={handleLaunchHonest}
                 >
-                  Launch Protocol SOC
+                  <span>Launch Protocol SOC</span>
                 </button>
               </div>
 
@@ -702,9 +727,11 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                 </button>
               </div>
             </div>
+          </div>
 
-            {/* Minimalist Colophon */}
-            <footer className="hqds-colophon">
+          {/* Minimalist Colophon — Positioned flush at true bottom */}
+          <footer className="hqds-colophon">
+            <div className="hqds-colophon-inner">
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <span className="hqds-colophon-brand">HYPERQDS</span>
                 <span className="hqds-colophon-copy">
@@ -718,8 +745,8 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                 <span className="dot-sep">·</span>
                 <span>POST-QUANTUM PROOF</span>
               </div>
-            </footer>
-          </div>
+            </div>
+          </footer>
         </section>
       </main>
     </div>
