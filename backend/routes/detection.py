@@ -7,7 +7,7 @@ Purpose: API routes for /detect threat evaluation with audit ledger integration.
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Any
 
 from detection_engine.detector import full_threat_assessment
@@ -70,6 +70,10 @@ class DetectResponse(BaseModel):
     recommended_action: str
     thresholds: dict[str, float]
     statistics_summary: dict[str, Any]
+    quantum_security_bounds: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Information-theoretic quantum security bounds (Hoeffding, Helstrom, Dunjko, Gottesman-Chuang).",
+    )
 
 
 @router.post("", response_model=DetectResponse, tags=["Detection"], include_in_schema=False)
@@ -100,6 +104,10 @@ async def detect_threat_endpoint(request: DetectRequest) -> DetectResponse:
 
     session_id = request.measurement_data.session_id or "detection-session"
 
+    threat_level = "COMPROMISED" if assessment["is_malicious"] or assessment["recommended_action"] == "ABORT" else (
+        "WARNING" if assessment["recommended_action"] == "ALERT" else assessment["qber_classification"]
+    )
+
     ledger.record_event(
         session_id=session_id,
         event_type="THREAT_DETECTION",
@@ -108,7 +116,7 @@ async def detect_threat_endpoint(request: DetectRequest) -> DetectResponse:
         chi2_p_value=assessment["chi2_p_value"],
         fidelity=assessment["fidelity"],
         confidence_score=assessment["confidence_score"],
-        threat_classification=assessment["qber_classification"],
+        threat_classification=threat_level,
         recommended_action=assessment["recommended_action"],
     )
 
@@ -125,5 +133,7 @@ async def detect_threat_endpoint(request: DetectRequest) -> DetectResponse:
         recommended_action=assessment["recommended_action"],
         thresholds=assessment["thresholds"],
         statistics_summary=assessment.get("statistics_summary", {}),
+        quantum_security_bounds=assessment.get("quantum_security_bounds", {}),
     )
+
 

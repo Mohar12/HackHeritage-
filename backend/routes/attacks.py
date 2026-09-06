@@ -30,8 +30,8 @@ class AttackSimRequest(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
     shots: int = Field(default=1024, ge=64, le=8192)
     seed: int = Field(default=42, ge=0)
-    target_identity: str | None = None
-    target_payload: str | None = None
+    target_identity: str | None = Field(default=None, max_length=4096)
+    target_payload: str | None = Field(default=None, max_length=4096)
 
     @field_validator("params")
     @classmethod
@@ -42,8 +42,8 @@ class AttackSimRequest(BaseModel):
             nq = v["n_qubits"]
             if isinstance(nq, bool) or not isinstance(nq, (int, np.integer)):
                 raise ValueError(f"n_qubits must be an integer, got {type(nq).__name__}.")
-            if int(nq) < 1:
-                raise ValueError(f"n_qubits must be >= 1, got {nq}.")
+            if int(nq) < 1 or int(nq) > 128:
+                raise ValueError(f"n_qubits must be an integer between 1 and 128, got {nq}.")
         if "error_rate" in v:
             er = v["error_rate"]
             if isinstance(er, bool) or not isinstance(er, (int, float, np.floating, np.integer, str)):
@@ -106,8 +106,8 @@ async def simulate_attack_endpoint(attack_type: str, request: AttackSimRequest) 
     shots = request.shots
     seed = request.seed
     n_qubits = int(params.get("n_qubits", 8))
-    if n_qubits < 1:
-        raise HTTPException(status_code=422, detail="n_qubits must be an integer >= 1.")
+    if n_qubits < 1 or n_qubits > 128:
+        raise HTTPException(status_code=422, detail="n_qubits must be an integer between 1 and 128.")
 
     try:
         if atype == "intercept_resend":

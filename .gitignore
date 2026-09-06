@@ -79,6 +79,12 @@ dashboard/build/
 .env.*
 !.env.example        # keep the example file
 
+# --- Databases ---
+*.db
+*.sqlite
+*.sqlite3
+
+
 # --- OS ---
 .DS_Store
 .DS_Store?
