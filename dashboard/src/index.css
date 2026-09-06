@@ -4545,3 +4545,149 @@ input[type=range]::-webkit-slider-runnable-track {
   }
 }
 
+/* ══════════════════════════════════════════════════════════
+   ROUND 4 — SCROLL REVEAL ANIMATIONS
+   Elements start hidden (opacity:0, translateY:28px).
+   IntersectionObserver adds .is-revealed to trigger entry.
+   ══════════════════════════════════════════════════════════ */
+
+.hqds-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.hqds-reveal.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered children — each direct child gets a delay via nth-child */
+.hqds-reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.hqds-reveal-stagger.is-revealed > *:nth-child(1) { opacity: 1; transform: translateY(0); transition-delay: 0ms; }
+.hqds-reveal-stagger.is-revealed > *:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 80ms; }
+.hqds-reveal-stagger.is-revealed > *:nth-child(3) { opacity: 1; transform: translateY(0); transition-delay: 160ms; }
+.hqds-reveal-stagger.is-revealed > *:nth-child(4) { opacity: 1; transform: translateY(0); transition-delay: 240ms; }
+.hqds-reveal-stagger.is-revealed > *:nth-child(5) { opacity: 1; transform: translateY(0); transition-delay: 320ms; }
+
+/* ══════════════════════════════════════════════════════════
+   ROUND 4 — WAVE BUTTON SWEEP
+   Violet-gradient wave sweeps rightward on hover.
+   The wave shape is created with a skew + overflow clip.
+   ══════════════════════════════════════════════════════════ */
+
+.hqds-hero-primary-cta,
+.hqds-nav-pill-btn {
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.hqds-hero-primary-cta::before,
+.hqds-nav-pill-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Wave-shaped leading edge: skewX gives the angled wave front */
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(139, 92, 246, 0.55) 30%,
+    rgba(109, 40, 217, 0.72) 52%,
+    rgba(76, 111, 255, 0.6) 68%,
+    transparent 100%
+  );
+  transform: translateX(-110%) skewX(-18deg);
+  transition: transform 0.52s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.hqds-hero-primary-cta:hover::before,
+.hqds-nav-pill-btn:hover::before {
+  transform: translateX(110%) skewX(-18deg);
+}
+
+/* Ensure button text stays above the wave */
+.hqds-hero-primary-cta > *,
+.hqds-nav-pill-btn > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ROUND 4 — CURSOR-FOLLOWING 3D TILT ON CARDS
+   JS sets --tilt-x / --tilt-y via inline style.
+   CSS applies perspective transform.
+   ══════════════════════════════════════════════════════════ */
+
+.hqds-tilt {
+  transform:
+    perspective(900px)
+    rotateX(calc(var(--tilt-x, 0) * 1deg))
+    rotateY(calc(var(--tilt-y, 0) * 1deg));
+  transition: transform 0.12s linear;
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+/* On mouse-leave the tilt resets with a spring */
+.hqds-tilt.is-resting {
+  transform: perspective(900px) rotateX(0deg) rotateY(0deg);
+  transition: transform 0.55s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* ══════════════════════════════════════════════════════════
+   ROUND 4 — PILLAR SCROLL-ADVANCE SENTINEL SECTIONS
+   Three invisible sentinel divs inside the pillars section
+   let the IO advance the active pillar automatically.
+   ══════════════════════════════════════════════════════════ */
+.hqds-pillar-sentinel {
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
+  margin: -1px 0;
+  visibility: hidden;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ROUND 4 — COMPARISON CARD SCROLL-IN OVERTAKE SEQUENCE
+   Cards enter from the right with stagger, then quantum
+   box animates up from behind the classical box.
+   ══════════════════════════════════════════════════════════ */
+
+.hqds-comparison-scroll-card {
+  opacity: 0;
+  transform: translateX(36px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.hqds-comparison-scroll-card.is-revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.hqds-approach-box.quantum-overtake {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.22s,
+              transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.22s;
+}
+
+.hqds-comparison-scroll-card.is-revealed .hqds-approach-box.quantum-overtake {
+  opacity: 1;
+  transform: translateY(0);
+}
+
