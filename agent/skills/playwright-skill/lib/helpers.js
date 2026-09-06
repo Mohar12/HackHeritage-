@@ -420,10 +420,47 @@ async function detectDevServers(customPorts = []) {
   return detectedServers;
 }
 
+/**
+ * Safe navigation helper that explicitly catches and reports 404 Not Found errors
+ * and connection failures.
+ * @param {Object} page - Playwright page
+ * @param {string} url - Target URL to navigate to
+ * @param {Object} options - Navigation options (waitUntil, timeout, etc.)
+ * @returns {Promise<Object>} Response object
+ */
+async function safeGoto(page, url, options = {}) {
+  const timeout = options.timeout || 30000;
+  const waitUntil = options.waitUntil || 'domcontentloaded';
+
+  try {
+    const response = await page.goto(url, { timeout, waitUntil, ...options });
+    if (!response) {
+      console.warn(`⚠️ Warning: Navigation to ${url} produced null response`);
+      return response;
+    }
+    const status = response.status();
+    if (status === 404) {
+      const msg = `❌ Navigation failed: HTTP 404 Not Found at ${url}. Verify that the target server is running and the route exists.`;
+      console.error(msg);
+      throw new Error(msg);
+    }
+    if (status >= 400) {
+      console.warn(`⚠️ Warning: Received HTTP ${status} from ${url}`);
+    }
+    return response;
+  } catch (error) {
+    if (error.message.includes('404') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+      console.error(`❌ Navigation error for ${url}: ${error.message}`);
+    }
+    throw error;
+  }
+}
+
 module.exports = {
   launchBrowser,
   createPage,
   waitForPageReady,
+  safeGoto,
   safeClick,
   safeType,
   extractTexts,

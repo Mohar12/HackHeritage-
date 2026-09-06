@@ -122,4 +122,7 @@ logs/
 !/postman/**
 !skills-lock.json
 **/__pycache__/**
+**/node_modules/
+**/.temp-execution-*.js
+
 

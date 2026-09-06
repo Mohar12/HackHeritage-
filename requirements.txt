@@ -24,6 +24,7 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 pydantic==2.9.2
 
-# --- Testing ---
+# --- Testing & E2E ---
 pytest==8.3.3
 httpx==0.27.2
+playwright==1.57.0

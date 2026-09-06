@@ -13,7 +13,13 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const sanitizeFilename = require('sanitize-filename');
+
+let sanitizeFilename;
+try {
+  sanitizeFilename = require('sanitize-filename');
+} catch {
+  sanitizeFilename = (name) => String(name || '').replace(/[/\\?%*:|"<>]/g, '_').replace(/[\x00-\x1f\x80-\x9f]/g, '').trim();
+}
 
 // Change to skill directory for proper module resolution
 process.chdir(__dirname);
@@ -48,19 +54,32 @@ function checkPlaywrightInstalled() {
 }
 
 /**
- * Install Playwright if missing
+ * Install Playwright 1.57.0 if missing, with CDN 404 fallback mitigation
  */
 function installPlaywright() {
-  console.log('📦 Playwright not found. Installing...');
+  console.log('📦 Playwright 1.57.0 not found. Installing with Chromium support...');
+  const env = { ...process.env };
+  if (!env.PLAYWRIGHT_DOWNLOAD_HOST) {
+    env.PLAYWRIGHT_DOWNLOAD_HOST = 'https://cdn.playwright.dev/dbazure/download/playwright';
+  }
+
   try {
-    execSync('npm install', { stdio: 'inherit', cwd: __dirname });
-    execSync('npx playwright install chromium', { stdio: 'inherit', cwd: __dirname });
-    console.log('✅ Playwright installed successfully');
+    execSync('npm install', { stdio: 'inherit', cwd: __dirname, env });
+    execSync('npx playwright@1.57.0 install chromium', { stdio: 'inherit', cwd: __dirname, env });
+    console.log('✅ Playwright 1.57.0 with Chromium installed successfully');
     return true;
   } catch (e) {
-    console.error('❌ Failed to install Playwright:', e.message);
-    console.error('Please run manually: cd', __dirname, '&& npm run setup');
-    return false;
+    console.warn('⚠️ Primary CDN download failed or timed out. Retrying with Azure CDN mirror...');
+    try {
+      const fallbackEnv = { ...process.env, PLAYWRIGHT_DOWNLOAD_HOST: 'https://playwright.azureedge.net' };
+      execSync('npx playwright@1.57.0 install chromium', { stdio: 'inherit', cwd: __dirname, env: fallbackEnv });
+      console.log('✅ Playwright 1.57.0 with Chromium installed successfully via fallback mirror');
+      return true;
+    } catch (fallbackErr) {
+      console.error('❌ Failed to install Playwright 1.57.0:', fallbackErr.message);
+      console.error('Please run manually: cd', __dirname, '&& npm run setup');
+      return false;
+    }
   }
 }
 
