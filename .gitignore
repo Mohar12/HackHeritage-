@@ -82,6 +82,8 @@ dashboard/build/
 
 # --- Databases ---
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 
