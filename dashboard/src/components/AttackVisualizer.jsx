@@ -188,7 +188,8 @@ export default function AttackVisualizer({
   onStageSelect,
   attackData,
   detectData,
-  stepData,
+  lastUpdated,
+  isUpdating = false,
 }) {
   const isHonest = mode === 'honest' || attackType === 'honest';
   const stages = stepData || HONEST_PROTOCOL_STAGES;
@@ -211,7 +212,8 @@ export default function AttackVisualizer({
     setSelectedStep(step);
     const targetStage = stages.find((b) => b.step === step);
     if (onStageSelect && targetStage) {
-      onStageSelect(targetStage.stageId);
+      // Pass both stageId (for 3D teleportation) and step number (for node/link mapping)
+      onStageSelect(targetStage.stageId, step);
     }
   }
 
@@ -229,9 +231,39 @@ export default function AttackVisualizer({
         {/* Header */}
         <div className="attack-viz-header">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-            <span className="viz-badge" style={{ background: 'rgba(0, 242, 254, 0.15)', color: 'var(--accent-cyan)', border: '1px solid rgba(0, 242, 254, 0.3)' }}>
-              VECTOR MECHANISM INSPECTOR
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="viz-badge" style={{ background: 'rgba(0, 242, 254, 0.15)', color: 'var(--accent-cyan)', border: '1px solid rgba(0, 242, 254, 0.3)' }}>
+                VECTOR MECHANISM INSPECTOR
+              </span>
+              {lastUpdated && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    fontSize: '0.68rem',
+                    color: isUpdating ? 'var(--accent-cyan)' : '#00e676',
+                    background: 'rgba(0, 0, 0, 0.35)',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                  }}
+                  title="Wired to live simulation recomputation"
+                >
+                  <span
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: isUpdating ? 'var(--accent-cyan)' : '#00e676',
+                      boxShadow: isUpdating ? '0 0 6px #00f2fe' : '0 0 6px #00e676',
+                      animation: isUpdating ? 'pulse 0.8s infinite alternate' : 'none',
+                    }}
+                  />
+                  {isUpdating ? 'Recomputing...' : `Live: ${lastUpdated}`}
+                </span>
+              )}
+            </div>
             <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
               Deterministic Quantum Teleportation Signature Lifecycle
             </span>
