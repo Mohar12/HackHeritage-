@@ -151,6 +151,72 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
     };
   }, [activePillar, activeDimension]);
 
+  // Pillar sentinel scroll-advance — as user scrolls through pillar sentinels, activePillar advances
+  useEffect(() => {
+    const sentinelObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const digit = entry.target.getAttribute('data-pillar');
+            if (digit) setActivePillar(digit);
+          }
+        });
+      },
+      { rootMargin: '-30% 0px -50% 0px', threshold: 0 }
+    );
+
+    const sentinels = document.querySelectorAll('.hqds-pillar-sentinel');
+    sentinels.forEach((el) => sentinelObserver.observe(el));
+
+    return () => sentinelObserver.disconnect();
+  }, []);
+
+  // Specular mouse tracking
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+  };
+
+  // Cursor-tilt handler — sets --tilt-x / --tilt-y on target
+  const handleTiltMove = (e) => {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / (rect.width / 2);  // -1 to 1
+    const dy = (e.clientY - cy) / (rect.height / 2); // -1 to 1
+    el.style.setProperty('--tilt-x', `${-dy * 5}`);  // max ±5deg
+    el.style.setProperty('--tilt-y', `${dx * 5}`);
+    el.classList.remove('is-resting');
+  };
+
+  const handleTiltLeave = (e) => {
+    const el = e.currentTarget;
+    el.style.setProperty('--tilt-x', '0');
+    el.style.setProperty('--tilt-y', '0');
+    el.classList.add('is-resting');
+    setTimeout(() => el.classList.remove('is-resting'), 600);
+  };
+
+  // Magnetic button physics with spring ease
+  const handleMagneticMove = (e, buttonRef) => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const x = e.clientX - (rect.left + rect.width / 2);
+    const y = e.clientY - (rect.top + rect.height / 2);
+    buttonRef.current.style.transition = 'transform 0.1s ease-out';
+    buttonRef.current.style.transform = `translate(${x * 0.18}px, ${y * 0.18}px)`;
+  };
+
+  const handleMagneticLeave = (buttonRef) => {
+    if (!buttonRef.current) return;
+    buttonRef.current.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
+    buttonRef.current.style.transform = 'translate(0px, 0px)';
+  };
+
   // Smooth scroll to section
   const scrollToAct = (id) => {
     const target = document.getElementById(id);
@@ -441,7 +507,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         {/* ACT 2: PROBLEM SECTION (Asymmetric Composition, No Bordered Chips) */}
         <section id="problem" className="hqds-act">
           <div className="hqds-act-container">
-            <header className="hqds-act-header">
+            <header className="hqds-act-header hqds-reveal">
               <span className="hqds-act-index">ACT I · THE PHYSICAL LAYER REALITY</span>
               <h2 className="hqds-act-title">Why Classical Cyber Defense Fails</h2>
               <p className="hqds-act-summary">
@@ -449,9 +515,9 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               </p>
             </header>
 
-            <div className="hqds-problem-asymmetric">
+            <div className="hqds-problem-asymmetric hqds-reveal-stagger">
               {/* Left Column: Muted Classical Limitation */}
-              <div className="hqds-problem-card is-classical hqds-reveal">
+              <div className="hqds-problem-card is-classical hqds-reveal hqds-tilt" onMouseMove={(e) => { handleMouseMove(e); handleTiltMove(e); }} onMouseLeave={handleTiltLeave}>
                 <div>
                   <div className="hqds-pcard-tag classical-tag">CLASSICAL HEURISTIC LIMITATION</div>
                   <h3 className="hqds-pcard-headline">Neural Classification and Heuristics</h3>
@@ -481,7 +547,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               </div>
 
               {/* Right Column: Prominent Quantum Physical Invariant */}
-              <div className="hqds-problem-card is-quantum hqds-reveal">
+              <div className="hqds-problem-card is-quantum hqds-reveal hqds-tilt" onMouseMove={(e) => { handleMouseMove(e); handleTiltMove(e); }} onMouseLeave={handleTiltLeave}>
                 <div>
                   <div className="hqds-pcard-tag quantum-tag">PHYSICAL-LAYER DETERMINISM</div>
                   <h3 className="hqds-pcard-headline">Enforced Quantum Mechanical Invariants</h3>
@@ -516,7 +582,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         {/* ACT 3: THREE TECHNOLOGICAL PILLARS (Single Unified Pillars Container with Synchronized Internal Selector) */}
         <section id="pillars" className="hqds-act">
           <div className="hqds-act-container">
-            <header className="hqds-act-header">
+            <header className="hqds-act-header hqds-reveal">
               <span className="hqds-act-index">ACT II · THREE TECHNOLOGICAL PILLARS</span>
               <h2 className="hqds-act-title">Core Cryptographic Mechanics</h2>
               <p className="hqds-act-summary">
@@ -526,6 +592,9 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
 
             {/* Single Unified Pillars Container */}
             <div className="hqds-pillars-unified-container">
+              {/* Scroll-advance sentinels: each is observed by IO; as it hits viewport, activePillar advances */}
+              <div className="hqds-pillar-sentinel" data-pillar="01" aria-hidden="true" />
+
               {/* Localized Internal Horizontal Selector Menu */}
               <div className="hqds-pillar-internal-menu hqds-reveal" role="tablist" aria-label="Core Cryptographic Pillars">
                 {pillars.map((p) => {
@@ -546,13 +615,18 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                 })}
               </div>
 
+              {/* Second sentinel — advances to pillar 02 */}
+              <div className="hqds-pillar-sentinel" data-pillar="02" aria-hidden="true" style={{ marginTop: '160px' }} />
+
               {/* Single Active Pillar Display Card */}
               {(() => {
                 const currentPillar = pillars.find((p) => p.digit === activePillar) || pillars[0];
                 return (
                   <div
                     key={currentPillar.digit}
-                    className={`hqds-glass-sharp hqds-pillar-single-card pillar-card-${currentPillar.digit} hqds-reveal`}
+                    className={`hqds-glass-sharp hqds-pillar-single-card pillar-card-${currentPillar.digit} hqds-reveal hqds-tilt`}
+                    onMouseMove={(e) => { handleMouseMove(e); handleTiltMove(e); }}
+                    onMouseLeave={handleTiltLeave}
                   >
                     <div className="hqds-pillar-header-row">
                       <div>
@@ -588,6 +662,9 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                   </div>
                 );
               })()}
+
+              {/* Third sentinel — advances to pillar 03 */}
+              <div className="hqds-pillar-sentinel" data-pillar="03" aria-hidden="true" style={{ marginTop: '80px' }} />
             </div>
           </div>
         </section>
@@ -595,7 +672,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         {/* ACT 4: VERIFICATION COMPARISON (Structured Interactive Dimension Tabs & Deck) */}
         <section id="comparison" className="hqds-act">
           <div className="hqds-act-container">
-            <header className="hqds-act-header">
+            <header className="hqds-act-header hqds-reveal">
               <span className="hqds-act-index">ACT III · DETERMINISTIC VERIFICATION</span>
               <h2 className="hqds-act-title">Quantum Laws vs Heuristic Approximations</h2>
               <p className="hqds-act-summary">
@@ -716,7 +793,10 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         {/* ACT 5: CLOSING RESTING STATE & FINAL CTA */}
         <section id="conduit" className="hqds-act">
           <div className="hqds-act-container">
-            <div className="hqds-glass-sharp hqds-conduit-portal-resting hqds-reveal">
+            <div className="hqds-glass-sharp hqds-conduit-portal-resting hqds-reveal hqds-tilt"
+              onMouseMove={(e) => { handleMouseMove(e); handleTiltMove(e); }}
+              onMouseLeave={handleTiltLeave}
+            >
               <span className="hqds-portal-eyebrow">THE OPERATIONAL HORIZON</span>
               <h2 className="hqds-portal-headline">
                 Transition to Deterministic Quantum Infrastructure
