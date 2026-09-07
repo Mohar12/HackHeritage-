@@ -21,6 +21,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
+import TabCrossFade from './TabCrossFade.jsx';
 
 export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
   const [activeAct, setActiveAct] = useState('hero');
@@ -31,6 +32,11 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
   // Direct DOM refs for 60-120fps performance without React re-render overhead
   const heroCardsRef = useRef(null);
   const railIndicatorRef = useRef(null);
+  const problemCardsRef = useRef(null);
+  const pillarMenuRef = useRef(null);
+  const dimensionDeckRef = useRef(null);
+  const pillarContentRef = useRef(null);
+  const dimensionContentRef = useRef(null);
 
   // Navigation handlers
   const handleLaunchHonest = useCallback(() => {
@@ -57,165 +63,269 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Performance: Direct rAF-driven scroll progress bar and hero cards drift
+  // Stage 7B: High-Performance Positional Tab Pills & Content Panel Engine
+  // Consolidated, zero-lag single rAF loop driving tabs, content panels, and hero drift
   useEffect(() => {
-    let ticking = false;
-    const updateRail = () => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Cache scroll position once per frame with passive listener
+    let targetScrollY = window.scrollY;
+    let lerpedScrollY = window.scrollY;
+
+    const handleScroll = () => {
+      targetScrollY = window.scrollY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    let animId;
+
+    // Cached element document positions to eliminate getBoundingClientRect layout thrashing during scroll
+    let problemTopInDoc = 0;
+    let problemTotalHeight = 450;
+    let pillarTopInDoc = 0;
+    let pillarTotalHeight = 620;
+    let dimensionTopInDoc = 0;
+    let dimensionTotalHeight = 690;
+
+    const measureMetrics = () => {
+      if (problemCardsRef.current) {
+        const problemRect = problemCardsRef.current.getBoundingClientRect();
+        problemTopInDoc = problemRect.top + window.scrollY;
+        problemTotalHeight = problemRect.height || 450;
+      }
+      if (pillarMenuRef.current) {
+        const menuRect = pillarMenuRef.current.getBoundingClientRect();
+        pillarTopInDoc = menuRect.top + window.scrollY;
+        if (pillarContentRef.current) {
+          const contentRect = pillarContentRef.current.getBoundingClientRect();
+          pillarTotalHeight = Math.max(200, (contentRect.bottom + window.scrollY) - pillarTopInDoc);
+        } else {
+          pillarTotalHeight = 620;
+        }
+      }
+      if (dimensionDeckRef.current) {
+        const deckRect = dimensionDeckRef.current.getBoundingClientRect();
+        dimensionTopInDoc = deckRect.top + window.scrollY;
+        if (dimensionContentRef.current) {
+          const contentRect = dimensionContentRef.current.getBoundingClientRect();
+          dimensionTotalHeight = Math.max(200, (contentRect.bottom + window.scrollY) - dimensionTopInDoc);
+        } else {
+          dimensionTotalHeight = 690;
+        }
+      }
+    };
+
+    // Initial measurement & re-measurement after layout calibration
+    measureMetrics();
+    const measureTimer = setTimeout(measureMetrics, 350);
+    window.addEventListener('resize', measureMetrics, { passive: true });
+
+    // Helper: direction-agnostic continuous 0 -> 1 -> 0 scroll-progress curve (Stage 9 Part E)
+    // Calculates visibility based on actual element viewport intersection bounds
+    const getSectionProgress = (topInDoc, totalHeight, currentScrollY, vh) => {
+      if (!topInDoc) return 0;
+
+      const topInView = topInDoc - currentScrollY;
+      const bottomInView = (topInDoc + totalHeight) - currentScrollY;
+
+      // Symmetrical viewport intersection bounds:
+      // Bottom edge: element enters/exits bottom of viewport
+      const bottomStart = vh * 1.12;
+      const bottomEnd = vh * 0.70;
+      const pBottom = Math.max(0, Math.min(1, (bottomStart - topInView) / (bottomStart - bottomEnd)));
+
+      // Top edge: element enters/exits top of viewport
+      const topStart = -vh * 0.12;
+      const topEnd = vh * 0.35;
+      const pTop = Math.max(0, Math.min(1, (bottomInView - topStart) / (topEnd - topStart)));
+
+      // Overall progress is the intersection of both edge visibilities
+      const p = Math.min(pBottom, pTop);
+      return p * p * (3 - 2 * p);
+    };
+
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      // Tight, responsive damped lerp of scroll position (0.18 per frame: eliminates sitewide lag)
+      lerpedScrollY += (targetScrollY - lerpedScrollY) * 0.18;
+
+      // Update lateral progress rail
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = docHeight > 0 ? Math.min(1, Math.max(0, window.scrollY / docHeight)) : 0;
+      const progress = docHeight > 0 ? Math.min(1, Math.max(0, lerpedScrollY / docHeight)) : 0;
       if (railIndicatorRef.current) {
         railIndicatorRef.current.style.height = `${Math.min(100, Math.max(10, progress * 100))}%`;
       }
+
+      const vh = window.innerHeight;
+
+      // Part B: Hero Floating Stat Cards scroll-linked drift and subtle fade
       if (heroCardsRef.current) {
-        // Drift cards upward as blob rises into frame during hero scroll (prevents clipping)
-        const heroDrift = Math.min(64, progress * 320);
+        const heroRange = vh * 0.85;
+        const heroRatio = Math.min(1.0, Math.max(0, lerpedScrollY / heroRange));
+        const heroDrift = (heroRatio * 52).toFixed(2);
+        const heroFade = Math.max(0, Math.min(1, 1.0 - Math.max(0, (lerpedScrollY - vh * 0.18) / (vh * 0.60)))).toFixed(3);
         heroCardsRef.current.style.transform = `translate3d(0, -${heroDrift}px, 0)`;
+        heroCardsRef.current.style.opacity = heroFade;
       }
-      ticking = false;
+
+      if (prefersReducedMotion) return;
+
+      // Fallback measurement if elements were not ready during initial mount
+      if (!problemTopInDoc || !pillarTopInDoc || !dimensionTopInDoc) {
+        measureMetrics();
+      }
+
+      // 0. Problem Section Comparison Cards (Stage 9 Part A: fade + gentle 12px vertical rise)
+      if (problemTopInDoc) {
+        const p = Math.max(0, Math.min(1, getSectionProgress(problemTopInDoc, problemTotalHeight, lerpedScrollY, vh)));
+        const k = 1.0 - p;
+        const smoothK = k * k * (3 - 2 * k);
+        const contentY = (smoothK * 12).toFixed(2);
+        const contentOp = Math.max(0, Math.min(1, Math.pow(p, 0.85))).toFixed(3);
+        if (problemCardsRef.current) {
+          const cards = problemCardsRef.current.querySelectorAll('.hqds-problem-card');
+          cards.forEach((card) => {
+            card.style.transform = `translate3d(0, ${contentY}px, 0)`;
+            card.style.opacity = contentOp;
+          });
+        }
+      }
+
+      // 1. Pillar Section (Tab Pills AND Content Panel, synchronized off the SAME progress signal p)
+      if (pillarTopInDoc) {
+        const p = Math.max(0, Math.min(1, getSectionProgress(pillarTopInDoc, pillarTotalHeight, lerpedScrollY, vh)));
+
+        // Soft settling ease with subtle spring settle / slight overshoot
+        const k = 1.0 - p;
+        const smoothK = k * k * (3 - 2 * k);
+        const settleOvershoot = (p > 0.60 && p < 1.0)
+          ? -0.035 * Math.sin(((p - 0.60) / 0.40) * Math.PI)
+          : 0;
+        const easeK = smoothK + settleOvershoot;
+
+        // 1a. Tab Pills: Positional Slide In/Out (from respective sides)
+        if (pillarMenuRef.current) {
+          const pills = pillarMenuRef.current.querySelectorAll('.hqds-pillar-tab-btn');
+          const count = pills.length;
+          pills.forEach((pill, idx) => {
+            // Positional weight: left is -1, center is 0, right is +1
+            const w = count > 1 ? (idx - (count - 1) / 2) / ((count - 1) / 2) : 0;
+            const tx = (w * 40 * easeK).toFixed(2);
+            const ty = ((1.0 - Math.abs(w)) * 6 * easeK).toFixed(2);
+            const op = Math.max(0, Math.min(1, Math.pow(p, 0.75))).toFixed(3);
+
+            pill.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+            pill.style.opacity = op;
+          });
+        }
+
+        // 1b. Part A: Content Panel below tab bar (Fade + gentle 12px vertical rise, ZERO horizontal translate)
+        if (pillarContentRef.current) {
+          const contentY = (smoothK * 12).toFixed(2);
+          const contentOp = Math.max(0, Math.min(1, Math.pow(p, 0.85))).toFixed(3);
+          pillarContentRef.current.style.transform = `translate3d(0, ${contentY}px, 0)`;
+          pillarContentRef.current.style.opacity = contentOp;
+        }
+      }
+
+      // 2. Dimension Section (Tab Pills AND Content Panel, synchronized off the SAME progress signal p)
+      if (dimensionTopInDoc) {
+        const p = Math.max(0, Math.min(1, getSectionProgress(dimensionTopInDoc, dimensionTotalHeight, lerpedScrollY, vh)));
+
+        const k = 1.0 - p;
+        const smoothK = k * k * (3 - 2 * k);
+        const settleOvershoot = (p > 0.60 && p < 1.0)
+          ? -0.035 * Math.sin(((p - 0.60) / 0.40) * Math.PI)
+          : 0;
+        const easeK = smoothK + settleOvershoot;
+
+        // 2a. Dimension Tab Pills: Positional Slide In/Out
+        if (dimensionDeckRef.current) {
+          const pills = dimensionDeckRef.current.querySelectorAll('.hqds-dimension-tab-btn');
+          const count = pills.length;
+          pills.forEach((pill, idx) => {
+            const w = count > 1 ? (idx - (count - 1) / 2) / ((count - 1) / 2) : 0;
+            const tx = (w * 44 * easeK).toFixed(2);
+            const ty = ((1.0 - Math.abs(w)) * 6 * easeK).toFixed(2);
+            const op = Math.max(0, Math.min(1, Math.pow(p, 0.75))).toFixed(3);
+
+            pill.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+            pill.style.opacity = op;
+          });
+        }
+
+        // 2b. Part A: Dimension Content Panel below tab bar (Fade + gentle 12px vertical rise, ZERO horizontal translate)
+        if (dimensionContentRef.current) {
+          const contentY = (smoothK * 12).toFixed(2);
+          const contentOp = Math.max(0, Math.min(1, Math.pow(p, 0.85))).toFixed(3);
+          dimensionContentRef.current.style.transform = `translate3d(0, ${contentY}px, 0)`;
+          dimensionContentRef.current.style.opacity = contentOp;
+        }
+      }
     };
 
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(updateRail);
-        ticking = true;
-      }
-    };
+    animId = requestAnimationFrame(animate);
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    updateRail();
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', measureMetrics);
+      clearTimeout(measureTimer);
+    };
   }, []);
 
-  // Performance: IntersectionObserver updates activeAct ONLY when crossing sections
-  // Performance-optimized scroll-reveal IntersectionObserver (Round 4 Architecture)
+  // Performance: IntersectionObserver updates activeAct for section tracking
+  // and reveals individual elements with smooth upward rise upon entering viewport (Section 0.1)
   useEffect(() => {
-    // 1. Act tracker for active navigation dot / header
-    const actObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && entry.target.id) {
-          setActiveAct(entry.target.id);
-        }
-      });
-    }, {
-      rootMargin: '-20% 0px -40% 0px',
-      threshold: 0.1,
-    });
+    // 1. Section Act Tracker
+    const actObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.target.id) {
+            setActiveAct(entry.target.id);
+          }
+        });
+      },
+      {
+        rootMargin: '-20% 0px -20% 0px',
+        threshold: 0.05,
+      }
+    );
+    const acts = document.querySelectorAll('.hqds-act');
+    acts.forEach((el) => actObserver.observe(el));
 
-    document.querySelectorAll('.hqds-act').forEach((act) => actObserver.observe(act));
+    // 2. Element-level Scroll-Triggered Reveal (0.1 Fix)
+    const revealObserver = new IntersectionObserver(
+      (entries, observer) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        rootMargin: '0px 0px -40px 0px',
+        threshold: 0.1,
+      }
+    );
 
-    // 2. Individual content blocks scroll-reveal observer
-    const contentObserver = new IntersectionObserver((entries, obs) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-revealed');
-          // Unobserve once revealed so minor scroll jitter never retriggers
-          obs.unobserve(entry.target);
-        }
-      });
-    }, {
-      rootMargin: '0px 0px -50px 0px',
-      threshold: 0.08,
-    });
-
-    const selector = [
-      '.hqds-reveal',
-      '.hqds-floating-stat-card',
-      '.hqds-act-header',
-      '.hqds-problem-card',
-      '.hqds-pillar-internal-menu',
-      '.hqds-pillar-single-card',
-      '.hqds-dimension-deck-wrapper',
-      '.hqds-dimension-stage-container',
-      '.hqds-conduit-portal-resting',
-    ].join(', ');
-
-    const revealElements = document.querySelectorAll(selector);
+    const revealElements = document.querySelectorAll('.hqds-reveal');
     revealElements.forEach((el) => {
       const rect = el.getBoundingClientRect();
-      // On mount, only elements in the immediate top hero fold receive is-revealed
-      if (rect.top >= 0 && rect.top < window.innerHeight * 0.75) {
-        el.classList.add('is-revealed');
-      } else if (rect.bottom < 0) {
-        // If already scrolled past (e.g. reload while scrolled)
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
         el.classList.add('is-revealed');
       } else {
-        // Elements below viewport start unrevealed and are observed for scroll entrance
-        el.classList.remove('is-revealed');
-        contentObserver.observe(el);
+        revealObserver.observe(el);
       }
     });
 
     return () => {
       actObserver.disconnect();
-      contentObserver.disconnect();
+      revealObserver.disconnect();
     };
-  }, [activePillar, activeDimension]);
-
-  // Pillar sentinel scroll-advance — as user scrolls through pillar sentinels, activePillar advances
-  useEffect(() => {
-    const sentinelObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const digit = entry.target.getAttribute('data-pillar');
-            if (digit) setActivePillar(digit);
-          }
-        });
-      },
-      { rootMargin: '-30% 0px -50% 0px', threshold: 0 }
-    );
-
-    const sentinels = document.querySelectorAll('.hqds-pillar-sentinel');
-    sentinels.forEach((el) => sentinelObserver.observe(el));
-
-    return () => sentinelObserver.disconnect();
   }, []);
-
-  // Specular mouse tracking
-  const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
-    e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
-  };
-
-  // Cursor-tilt handler — sets --tilt-x / --tilt-y on target
-  const handleTiltMove = (e) => {
-    const el = e.currentTarget;
-    const rect = el.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dx = (e.clientX - cx) / (rect.width / 2);  // -1 to 1
-    const dy = (e.clientY - cy) / (rect.height / 2); // -1 to 1
-    el.style.setProperty('--tilt-x', `${-dy * 5}`);  // max ±5deg
-    el.style.setProperty('--tilt-y', `${dx * 5}`);
-    el.classList.remove('is-resting');
-  };
-
-  const handleTiltLeave = (e) => {
-    const el = e.currentTarget;
-    el.style.setProperty('--tilt-x', '0');
-    el.style.setProperty('--tilt-y', '0');
-    el.classList.add('is-resting');
-    setTimeout(() => el.classList.remove('is-resting'), 600);
-  };
-
-  // Magnetic button physics with spring ease
-  const handleMagneticMove = (e, buttonRef) => {
-    if (!buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    const x = e.clientX - (rect.left + rect.width / 2);
-    const y = e.clientY - (rect.top + rect.height / 2);
-    buttonRef.current.style.transition = 'transform 0.1s ease-out';
-    buttonRef.current.style.transform = `translate(${x * 0.18}px, ${y * 0.18}px)`;
-  };
-
-  const handleMagneticLeave = (buttonRef) => {
-    if (!buttonRef.current) return;
-    buttonRef.current.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
-    buttonRef.current.style.transform = 'translate(0px, 0px)';
-  };
 
   // Smooth scroll to section
   const scrollToAct = (id) => {
@@ -389,7 +499,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
   return (
     <div className={`hqds-root ${initialCalibrationDone ? 'is-calibrated' : ''}`}>
       {/* 3D WebGL Canvas: Genuinely Scroll-Driven Single 3D Hero Object */}
-      <QuantumEntanglementCanvas activePillar={activePillar} />
+      <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} />
 
       {/* Atmospheric Cryogenic Ambient Scrim */}
       <div className="hqds-ambient-scrim" aria-hidden="true" />
@@ -446,19 +556,19 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         {/* ACT 1: HERO SECTION (Liquid Brokers Reference Structure) */}
         <section id="hero" className="hqds-act hqds-act-hero-unified">
           <div className="hqds-hero-center-content">
-            <h1 className="hqds-hero-two-line-title">
+            <h1 className="hqds-hero-two-line-title hqds-hero-enter-title">
               <span>DETERMINISTIC QUANTUM SECURITY.</span>
               <span>ENFORCED BY THE LAWS OF PHYSICS.</span>
             </h1>
 
-            <p className="hqds-hero-one-line-sub">
+            <p className="hqds-hero-one-line-sub hqds-hero-enter-sub">
               Physical-layer quantum key distribution and real-time Bell-state verification eliminating adversarial interception.
             </p>
 
             <div style={{ display: 'inline-flex' }}>
               <button
                 type="button"
-                className="hqds-hero-primary-cta"
+                className="hqds-hero-primary-cta hqds-hero-enter-cta"
                 onClick={handleLaunchHonest}
               >
                 <span>Deploy Quantum Protection</span>
@@ -469,7 +579,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
           {/* Symmetrical Bilateral Floating Glass Stat Cards Framed Over the 3D Hero Object */}
           <div ref={heroCardsRef} className="hqds-hero-stage-overlap" aria-hidden="false">
             {/* Left Stat Card: Physical Collapse Latency */}
-            <div className="hqds-floating-stat-card hqds-fstat-left hqds-reveal">
+            <div className="hqds-floating-stat-card hqds-fstat-left hqds-hero-enter-card-left">
               <div className="hqds-fstat-top-row">
                 <span className="hqds-fstat-label">Physical Collapse Latency</span>
                 <button
@@ -486,7 +596,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
             </div>
 
             {/* Right Stat Card: Hypothesis Rejection Confidence */}
-            <div className="hqds-floating-stat-card cyan-accent hqds-fstat-right hqds-reveal">
+            <div className="hqds-floating-stat-card cyan-accent hqds-fstat-right hqds-hero-enter-card-right">
               <div className="hqds-fstat-top-row">
                 <span className="hqds-fstat-label">Hypothesis Rejection Confidence</span>
                 <button
@@ -515,9 +625,9 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               </p>
             </header>
 
-            <div className="hqds-problem-asymmetric hqds-reveal-stagger">
+            <div ref={problemCardsRef} className="hqds-problem-asymmetric">
               {/* Left Column: Muted Classical Limitation */}
-              <div className="hqds-problem-card is-classical hqds-reveal hqds-tilt" onMouseMove={(e) => { handleMouseMove(e); handleTiltMove(e); }} onMouseLeave={handleTiltLeave}>
+              <div className="hqds-problem-card is-classical hqds-scroll-content-wrap">
                 <div>
                   <div className="hqds-pcard-tag classical-tag">CLASSICAL HEURISTIC LIMITATION</div>
                   <h3 className="hqds-pcard-headline">Neural Classification and Heuristics</h3>
@@ -547,7 +657,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               </div>
 
               {/* Right Column: Prominent Quantum Physical Invariant */}
-              <div className="hqds-problem-card is-quantum hqds-reveal hqds-tilt" onMouseMove={(e) => { handleMouseMove(e); handleTiltMove(e); }} onMouseLeave={handleTiltLeave}>
+              <div className="hqds-problem-card is-quantum hqds-scroll-content-wrap">
                 <div>
                   <div className="hqds-pcard-tag quantum-tag">PHYSICAL-LAYER DETERMINISM</div>
                   <h3 className="hqds-pcard-headline">Enforced Quantum Mechanical Invariants</h3>
@@ -582,7 +692,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         {/* ACT 3: THREE TECHNOLOGICAL PILLARS (Single Unified Pillars Container with Synchronized Internal Selector) */}
         <section id="pillars" className="hqds-act">
           <div className="hqds-act-container">
-            <header className="hqds-act-header hqds-reveal">
+            <header className="hqds-act-header">
               <span className="hqds-act-index">ACT II · THREE TECHNOLOGICAL PILLARS</span>
               <h2 className="hqds-act-title">Core Cryptographic Mechanics</h2>
               <p className="hqds-act-summary">
@@ -592,11 +702,8 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
 
             {/* Single Unified Pillars Container */}
             <div className="hqds-pillars-unified-container">
-              {/* Scroll-advance sentinels: each is observed by IO; as it hits viewport, activePillar advances */}
-              <div className="hqds-pillar-sentinel" data-pillar="01" aria-hidden="true" />
-
-              {/* Localized Internal Horizontal Selector Menu */}
-              <div className="hqds-pillar-internal-menu hqds-reveal" role="tablist" aria-label="Core Cryptographic Pillars">
+              {/* Localized Internal Horizontal Selector Menu (Scroll-Position Driven Positional Tab Convergence) */}
+              <div ref={pillarMenuRef} className="hqds-pillar-internal-menu" role="tablist" aria-label="Core Cryptographic Pillars">
                 {pillars.map((p) => {
                   const isActive = p.digit === activePillar;
                   return (
@@ -608,63 +715,59 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                       className={`hqds-pillar-tab-btn pillar-tab-${p.digit} ${isActive ? 'is-active' : ''}`}
                       onClick={() => setActivePillar(p.digit)}
                     >
-                      <span className="pillar-tab-num">[ {p.digit} ]</span>
+                      <span className="pillar-tab-num">{p.digit}</span>
                       <span className="pillar-tab-label">{p.title}</span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Second sentinel — advances to pillar 02 */}
-              <div className="hqds-pillar-sentinel" data-pillar="02" aria-hidden="true" style={{ marginTop: '160px' }} />
+              {/* Single Active Pillar Display Card with Smooth Cross-Fade & Stage 7B Content Fade/Rise */}
+              <div ref={pillarContentRef} className="hqds-scroll-content-wrap">
+                <TabCrossFade activeKey={activePillar} duration={320}>
+                  {(() => {
+                    const currentPillar = pillars.find((p) => p.digit === activePillar) || pillars[0];
+                    return (
+                      <div
+                        key={currentPillar.digit}
+                        className={`hqds-glass-sharp hqds-pillar-single-card pillar-card-${currentPillar.digit}`}
+                      >
+                        <div className="hqds-pillar-header-row">
+                          <div>
+                            <span className="hqds-pillar-eyebrow">
+                              PILLAR {currentPillar.digit} · PHYSICAL PROTOCOL
+                            </span>
+                            <h3 className="hqds-pillar-display">{currentPillar.title}</h3>
+                            <p className="hqds-pillar-subtext">{currentPillar.subtitle}</p>
+                          </div>
+                          <div className="hqds-pillar-equation-box">
+                            <span className="hqds-equation-label">{currentPillar.equationLabel}</span>
+                            <code className="hqds-equation-code">{currentPillar.equation}</code>
+                          </div>
+                        </div>
 
-              {/* Single Active Pillar Display Card */}
-              {(() => {
-                const currentPillar = pillars.find((p) => p.digit === activePillar) || pillars[0];
-                return (
-                  <div
-                    key={currentPillar.digit}
-                    className={`hqds-glass-sharp hqds-pillar-single-card pillar-card-${currentPillar.digit} hqds-reveal hqds-tilt`}
-                    onMouseMove={(e) => { handleMouseMove(e); handleTiltMove(e); }}
-                    onMouseLeave={handleTiltLeave}
-                  >
-                    <div className="hqds-pillar-header-row">
-                      <div>
-                        <span className="hqds-pillar-eyebrow">
-                          PILLAR {currentPillar.digit} · PHYSICAL PROTOCOL
-                        </span>
-                        <h3 className="hqds-pillar-display">{currentPillar.title}</h3>
-                        <p className="hqds-pillar-subtext">{currentPillar.subtitle}</p>
-                      </div>
-                      <div className="hqds-pillar-equation-box">
-                        <span className="hqds-equation-label">{currentPillar.equationLabel}</span>
-                        <code className="hqds-equation-code">{currentPillar.equation}</code>
-                      </div>
-                    </div>
-
-                    <div className="hqds-pillar-content-split">
-                      <div>
-                        <p className="hqds-pillar-body">{currentPillar.body}</p>
-                        <div className="hqds-specs-grid">
-                          {currentPillar.specs.map((spec) => (
-                            <div key={spec.label} className="hqds-spec-box">
-                              <span className="hqds-spec-lbl">{spec.label}</span>
-                              <span className="hqds-spec-val">{spec.val}</span>
+                        <div className="hqds-pillar-content-split">
+                          <div>
+                            <p className="hqds-pillar-body">{currentPillar.body}</p>
+                            <div className="hqds-specs-grid">
+                              {currentPillar.specs.map((spec) => (
+                                <div key={spec.label} className="hqds-spec-box">
+                                  <span className="hqds-spec-lbl">{spec.label}</span>
+                                  <span className="hqds-spec-val">{spec.val}</span>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          </div>
+
+                          <div>
+                            {currentPillar.schematic}
+                          </div>
                         </div>
                       </div>
-
-                      <div>
-                        {currentPillar.schematic}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Third sentinel — advances to pillar 03 */}
-              <div className="hqds-pillar-sentinel" data-pillar="03" aria-hidden="true" style={{ marginTop: '80px' }} />
+                    );
+                  })()}
+                </TabCrossFade>
+              </div>
             </div>
           </div>
         </section>
@@ -672,7 +775,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         {/* ACT 4: VERIFICATION COMPARISON (Structured Interactive Dimension Tabs & Deck) */}
         <section id="comparison" className="hqds-act">
           <div className="hqds-act-container">
-            <header className="hqds-act-header hqds-reveal">
+            <header className="hqds-act-header">
               <span className="hqds-act-index">ACT III · DETERMINISTIC VERIFICATION</span>
               <h2 className="hqds-act-title">Quantum Laws vs Heuristic Approximations</h2>
               <p className="hqds-act-summary">
@@ -680,9 +783,9 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               </p>
             </header>
 
-            {/* Structured Dimension Menu / Tab Bar */}
-            <div className="hqds-dimension-deck-wrapper hqds-reveal">
-              <div className="hqds-dimension-nav-deck" role="tablist" aria-label="Verification Dimensions">
+            {/* Structured Dimension Menu / Tab Bar (Scroll-Position Driven Positional Tab Convergence) */}
+            <div className="hqds-dimension-deck-wrapper">
+              <div ref={dimensionDeckRef} className="hqds-dimension-nav-deck" role="tablist" aria-label="Verification Dimensions">
                 {comparisonData.map((row, idx) => {
                   const isActive = idx === activeDimension;
                   const shortTitle = row.dimension.split('·')[1]?.trim() || `Dimension 0${idx + 1}`;
@@ -694,10 +797,10 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                       id={`dim-tab-${idx}`}
                       aria-selected={isActive}
                       aria-controls={`dim-panel-${idx}`}
-                      className={`hqds-dimension-tab-btn ${isActive ? 'is-active' : ''}`}
+                      className={`hqds-dimension-tab-btn dim-tab-${idx} ${isActive ? 'is-active' : ''}`}
                       onClick={() => setActiveDimension(idx)}
                     >
-                      <span className="dim-tab-num">[ 0{idx + 1} ]</span>
+                      <span className="dim-tab-num">0{idx + 1}</span>
                       <span className="dim-tab-label">{shortTitle}</span>
                     </button>
                   );
@@ -705,87 +808,92 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               </div>
             </div>
 
-            {/* Active Dimension Display Card */}
-            <div className="hqds-dimension-stage-container hqds-reveal">
+            {/* Active Dimension Display Card (Content panel stays completely static on scroll) */}
+            <div className="hqds-dimension-stage-container">
               <div className="hqds-dimension-ambient-glow" aria-hidden="true" />
-              {(() => {
-                const row = comparisonData[activeDimension] || comparisonData[0];
-                return (
-                  <div
-                    key={row.dimension}
-                    id={`dim-panel-${activeDimension}`}
-                    role="tabpanel"
-                    aria-labelledby={`dim-tab-${activeDimension}`}
-                    className="hqds-glass-deep hqds-dimension-active-card"
-                  >
-                    <div className="hqds-dimcard-header">
-                      <div className="hqds-dimcard-title-group">
-                        <span className="hqds-dimcard-dimension">{row.dimension}</span>
-                        <h3 className="hqds-dimcard-title">{row.title}</h3>
-                      </div>
-                      <div className="hqds-dimcard-metric-badge">
-                        <span className="dimcard-metric-pulse" />
-                        <span className="dimcard-metric-text">{row.metric}</span>
-                      </div>
-                    </div>
-
-                    <div className="hqds-dimcard-columns">
-                      {/* Classical Approach: Shown muted and desaturated */}
-                      <div className="hqds-dim-box classical-muted">
-                        <div className="hqds-dim-badge danger">TRADITIONAL HEURISTIC DEFENSE</div>
-                        <p className="hqds-dim-text">{row.traditional}</p>
-                        <div className="hqds-dim-foot danger">
-                          <span>Failure Mode: Vulnerable to gradient search and noise bypass</span>
-                          <strong>Probabilistic / Insecure</strong>
-                        </div>
-                      </div>
-
-                      {/* Overtake Transition Marker */}
-                      <div className="hqds-dim-overtake-divider">
-                        <div className="dim-overtake-pill">
-                          <span className="dim-overtake-icon">↓</span>
-                          <span>SUPERSEDED BY PHYSICAL LAW</span>
-                        </div>
-                      </div>
-
-                      {/* HyperQDS Answer: Illuminated with vibrant cyan/teal */}
-                      <div className="hqds-dim-box quantum-overtake">
-                        <div className="hqds-dim-badge teal">HYPERQDS PHYSICAL GUARANTEE · {row.metric}</div>
-                        <p className="hqds-dim-text">{row.quantum}</p>
-                        <div className="hqds-dim-foot teal">
-                          <span>Hardware Enforcement: Immediate optical wavefunction collapse</span>
-                          <strong>Deterministic Bound</strong>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Pagination & Arrow Controls for Rapid Dimension Flipping */}
-                    <div className="hqds-dimcard-footer-controls">
-                      <button
-                        type="button"
-                        className="hqds-dim-nav-btn"
-                        onClick={() => setActiveDimension((prev) => (prev > 0 ? prev - 1 : comparisonData.length - 1))}
-                        aria-label="Previous Dimension"
+              {/* Active Dimension Display Card with Smooth Cross-Fade & Stage 7B Content Fade/Rise */}
+              <div ref={dimensionContentRef} className="hqds-scroll-content-wrap">
+                <TabCrossFade activeKey={activeDimension} duration={320}>
+                  {(() => {
+                    const row = comparisonData[activeDimension] || comparisonData[0];
+                    return (
+                      <div
+                        key={row.dimension}
+                        id={`dim-panel-${activeDimension}`}
+                        role="tabpanel"
+                        aria-labelledby={`dim-tab-${activeDimension}`}
+                        className="hqds-glass-deep hqds-dimension-active-card"
                       >
-                        ← Previous Dimension
-                      </button>
-                      <div className="hqds-dim-counter">
-                        <span>0{activeDimension + 1}</span>
-                        <span className="dim-sep">/</span>
-                        <span>0{comparisonData.length}</span>
+                        <div className="hqds-dimcard-header">
+                          <div className="hqds-dimcard-title-group">
+                            <span className="hqds-dimcard-dimension">{row.dimension}</span>
+                            <h3 className="hqds-dimcard-title">{row.title}</h3>
+                          </div>
+                          <div className="hqds-dimcard-metric-badge">
+                            <span className="dimcard-metric-pulse" />
+                            <span className="dimcard-metric-text">{row.metric}</span>
+                          </div>
+                        </div>
+
+                        <div className="hqds-dimcard-columns">
+                          {/* Classical Approach: Shown muted and desaturated */}
+                          <div className="hqds-dim-box classical-muted">
+                            <div className="hqds-dim-badge danger">TRADITIONAL HEURISTIC DEFENSE</div>
+                            <p className="hqds-dim-text">{row.traditional}</p>
+                            <div className="hqds-dim-foot danger">
+                              <span>Failure Mode: Vulnerable to gradient search and noise bypass</span>
+                              <strong>Probabilistic / Insecure</strong>
+                            </div>
+                          </div>
+
+                          {/* Overtake Transition Marker */}
+                          <div className="hqds-dim-overtake-divider">
+                            <div className="dim-overtake-pill">
+                              <span className="dim-overtake-icon">↓</span>
+                              <span>SUPERSEDED BY PHYSICAL LAW</span>
+                            </div>
+                          </div>
+
+                          {/* HyperQDS Answer: Illuminated with vibrant cyan/teal */}
+                          <div className="hqds-dim-box quantum-overtake">
+                            <div className="hqds-dim-badge teal">HYPERQDS PHYSICAL GUARANTEE · {row.metric}</div>
+                            <p className="hqds-dim-text">{row.quantum}</p>
+                            <div className="hqds-dim-foot teal">
+                              <span>Hardware Enforcement: Immediate optical wavefunction collapse</span>
+                              <strong>Deterministic Bound</strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Pagination & Arrow Controls for Rapid Dimension Flipping */}
+                        <div className="hqds-dimcard-footer-controls">
+                          <button
+                            type="button"
+                            className="hqds-dim-nav-btn"
+                            onClick={() => setActiveDimension((prev) => (prev > 0 ? prev - 1 : comparisonData.length - 1))}
+                            aria-label="Previous Dimension"
+                          >
+                            <span>← Previous Dimension</span>
+                          </button>
+                          <div className="hqds-dim-counter">
+                            <span>0{activeDimension + 1}</span>
+                            <span className="dim-sep">/</span>
+                            <span>0{comparisonData.length}</span>
+                          </div>
+                          <button
+                            type="button"
+                            className="hqds-dim-nav-btn"
+                            onClick={() => setActiveDimension((prev) => (prev < comparisonData.length - 1 ? prev + 1 : 0))}
+                            aria-label="Next Dimension"
+                          >
+                            <span>Next Dimension →</span>
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        className="hqds-dim-nav-btn"
-                        onClick={() => setActiveDimension((prev) => (prev < comparisonData.length - 1 ? prev + 1 : 0))}
-                        aria-label="Next Dimension"
-                      >
-                        Next Dimension →
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()}
+                    );
+                  })()}
+                </TabCrossFade>
+              </div>
             </div>
           </div>
         </section>
@@ -793,10 +901,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         {/* ACT 5: CLOSING RESTING STATE & FINAL CTA */}
         <section id="conduit" className="hqds-act">
           <div className="hqds-act-container">
-            <div className="hqds-glass-sharp hqds-conduit-portal-resting hqds-reveal hqds-tilt"
-              onMouseMove={(e) => { handleMouseMove(e); handleTiltMove(e); }}
-              onMouseLeave={handleTiltLeave}
-            >
+            <div className="hqds-glass-sharp hqds-conduit-portal-resting hqds-reveal">
               <span className="hqds-portal-eyebrow">THE OPERATIONAL HORIZON</span>
               <h2 className="hqds-portal-headline">
                 Transition to Deterministic Quantum Infrastructure
@@ -850,7 +955,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
             </div>
           </div>
 
-          {/* Minimalist Colophon — Positioned flush at true bottom */}
+          {/* Minimalist Colophon: Positioned flush at true bottom */}
           <footer className="hqds-colophon">
             <div className="hqds-colophon-inner">
               <div style={{ display: 'flex', alignItems: 'center' }}>
