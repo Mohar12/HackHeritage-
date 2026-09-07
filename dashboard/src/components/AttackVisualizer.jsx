@@ -2,7 +2,7 @@
  * AttackVisualizer.jsx
  * =====================
  * Custom, mathematically faithful visualizer tailored for quantum protocols & attack vectors:
- *  - Mode 'honest': Explanatory bubbles (7-Stage Legitimate Teleportation Lifecycle)
+ *  - Mode 'honest': 7-Stage Legitimate Teleportation Lifecycle
  *  - Mode 'attack' / Vector Mechanisms:
  *      * Intercept-Resend (EPR Bell-State Measurement & Collapse)
  *      * Depolarizing Noise (Environmental Fiber Decoherence)
@@ -13,14 +13,14 @@
 
 import React, { useState, useEffect } from 'react';
 
-export const HONEST_PROTOCOL_BUBBLES = [
+export const HONEST_PROTOCOL_STAGES = [
   {
     step: 1,
     id: 'encoding',
     title: 'Message Encoding',
     actor: 'Alice (Signer)',
-    icon: '🅰️',
-    text: 'Alice encodes each message bit into a Pauli eigenstate in the Z-basis — no secret key guessing involved, the state is prepared honestly from the real message.',
+    iconType: 'pulse',
+    text: 'Alice encodes each message bit into a Pauli eigenstate in the Z-basis. The quantum state |ψ⟩ is prepared from verified message payload without secret-key dependence.',
     formula: '|ψ⟩ = α|0⟩ + β|1⟩ (Z-Basis)',
     stageId: 2,
     subsystem: 'Alice Quantum State Preparation (QSP)',
@@ -32,8 +32,8 @@ export const HONEST_PROTOCOL_BUBBLES = [
     id: 'bsm',
     title: 'Bell-State Measurement',
     actor: 'Alice QPU',
-    icon: '⚛️',
-    text: "A genuine Bell-State Measurement (BSM) is performed between the message qubit and Alice's half of the entangled EPR pair, using real Qiskit Aer simulation — not a spoofed or precomputed outcome.",
+    iconType: 'atom',
+    text: "A joint Bell-State Measurement (BSM) projects the message qubit and Alice's EPR half into one of four orthogonal Bell states on Qiskit Aer.",
     formula: 'BSM(|ψ⟩ ⊗ |Φ⁺⟩_A) → (c₀, c₁)',
     stageId: 3,
     subsystem: 'Joint Entangled Qubit Measurement',
@@ -45,8 +45,8 @@ export const HONEST_PROTOCOL_BUBBLES = [
     id: 'correction_bits',
     title: 'Correction Bits Extracted',
     actor: 'Classical Feedforward',
-    icon: '🔢',
-    text: 'The BSM outcome yields two classical correction bits (c₀, c₁). These are the legitimate teleportation correction bits — Eve never sees or influences them.',
+    iconType: 'bits',
+    text: 'BSM projection resolves two classical feedforward correction bits (c₀, c₁). These parity coordinates are transmitted via an authenticated classical channel.',
     formula: '(c₀, c₁) ∈ {0, 1}² [Protected]',
     stageId: 4,
     subsystem: 'Authenticated Feedforward Channel',
@@ -58,9 +58,9 @@ export const HONEST_PROTOCOL_BUBBLES = [
     id: 'packet_assembly',
     title: 'Signature Packet Assembled',
     actor: 'Network Gateway',
-    icon: '📦',
-    text: 'The signature packet {hash, outcomes, correction_bits, session_id} is built and sent over an authenticated channel. The session_id is cryptographically bound to this exact transaction.',
-    formula: 'Packet = {SHA256(m), outcomes, (c₀,c₁), sid}',
+    iconType: 'packet',
+    text: 'The signature payload {hash, outcomes, correction_bits, session_id} is cryptographically assembled and bound to an ephemeral single-use session token.',
+    formula: 'Packet = {SHA256(m), outcomes, (c₀, c₁), sid}',
     stageId: 4,
     subsystem: 'Cryptographic Packet Assembly Gate',
     physicalLaw: 'Cryptographic Nonce Binding: Single-use session token prevents stale replay vectors.',
@@ -71,8 +71,8 @@ export const HONEST_PROTOCOL_BUBBLES = [
     id: 'identity_verify',
     title: 'Bob Verifies Identity & Session',
     actor: 'Bob Ingestion Port',
-    icon: '🛡️',
-    text: 'Bob checks the SHA-256 hash and confirms the session_id matches — this is the cryptographic layer that blocks replay, independent of the physics below.',
+    iconType: 'shield',
+    text: 'Bob validates SHA-256 payload integrity and confirms the session token matches current epoch, preventing replay before quantum measurement.',
     formula: 'Check: SHA256(m) == H ∧ sid == sid_curr',
     stageId: 5,
     subsystem: 'Classical Authenticity & Session Gate',
@@ -84,8 +84,8 @@ export const HONEST_PROTOCOL_BUBBLES = [
     id: 'pauli_correction',
     title: 'Pauli Correction Applied',
     actor: 'Bob Unitary Engine',
-    icon: '🅱️',
-    text: 'Bob applies σz^(c₀)·σx^(c₁) to his half of the entangled pair, exactly as the protocol specifies — recovering the teleported state with no eavesdropper interference.',
+    iconType: 'unitary',
+    text: "Bob applies deterministic unitary transformation σ_z^(c₀)·σ_x^(c₁) to his EPR qubit, reconstructing the original state |ψ⟩ with unit fidelity.",
     formula: 'U_corr = σ_z^(c₀) · σ_x^(c₁)',
     stageId: 5,
     subsystem: 'Bob Quantum State Recovery Unit',
@@ -97,15 +97,89 @@ export const HONEST_PROTOCOL_BUBBLES = [
     id: 'qber_verdict',
     title: 'QBER Computed → Verdict',
     actor: 'Deterministic Detector',
-    icon: '✅',
-    text: "With no attacker present, QBER comes out at ~0.0000 and confidence score ~0.13 — well under the 0.30 'safe' ceiling. Verdict: ACCEPT.",
-    formula: 'QBER ~ 0.0000 < 0.11 · Score ~ 0.13 < 0.30',
+    iconType: 'verdict',
+    text: 'Observed QBER remains at 0.00% and Born χ² distribution matches theoretical prediction. Zero wiretap anomaly produces a conclusive ACCEPT verdict.',
+    formula: 'QBER = 0.00% < 0.11 · Score = 0.08 < 0.30',
     stageId: 7,
     subsystem: 'Zero-ML Physics Threat Engine',
     physicalLaw: 'BB84 Bound & Pearson χ²: Zero anomalous phase skew yields definitive ACCEPT verdict.',
     statusBadge: 'VERDICT: ACCEPT',
   },
 ];
+
+// Backward compatibility export alias
+export const HONEST_PROTOCOL_BUBBLES = HONEST_PROTOCOL_STAGES;
+
+function StageIcon({ type }) {
+  const props = {
+    width: 14,
+    height: 14,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+  };
+
+  switch (type) {
+    case 'pulse':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v10M7 12h10" />
+        </svg>
+      );
+    case 'atom':
+      return (
+        <svg {...props}>
+          <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(45 12 12)" />
+          <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-45 12 12)" />
+          <circle cx="12" cy="12" r="2" fill="currentColor" />
+        </svg>
+      );
+    case 'bits':
+      return (
+        <svg {...props}>
+          <rect x="3" y="5" width="8" height="14" rx="2" />
+          <rect x="13" y="5" width="8" height="14" rx="2" />
+          <path d="M7 10v4M17 10v4" />
+        </svg>
+      );
+    case 'packet':
+      return (
+        <svg {...props}>
+          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+          <path d="m3.3 7 8.7 5 8.7-5M12 22V12" />
+        </svg>
+      );
+    case 'shield':
+      return (
+        <svg {...props}>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      );
+    case 'unitary':
+      return (
+        <svg {...props}>
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+        </svg>
+      );
+    case 'verdict':
+      return (
+        <svg {...props}>
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+      );
+  }
+}
 
 export default function AttackVisualizer({
   attackType = 'intercept_resend',
@@ -117,7 +191,7 @@ export default function AttackVisualizer({
   stepData,
 }) {
   const isHonest = mode === 'honest' || attackType === 'honest';
-  const bubbles = stepData || HONEST_PROTOCOL_BUBBLES;
+  const stages = stepData || HONEST_PROTOCOL_STAGES;
 
   const [selectedStep, setSelectedStep] = useState(1);
   const [hudExpanded, setHudExpanded] = useState(true);
@@ -135,17 +209,17 @@ export default function AttackVisualizer({
 
   function handleStepClick(step) {
     setSelectedStep(step);
-    const targetBubble = bubbles.find((b) => b.step === step);
-    if (onStageSelect && targetBubble) {
-      onStageSelect(targetBubble.stageId);
+    const targetStage = stages.find((b) => b.step === step);
+    if (onStageSelect && targetStage) {
+      onStageSelect(targetStage.stageId);
     }
   }
 
   // ─────────────────────────────────────────────────────────────
-  // MODE 1: HONEST PROTOCOL EXPLANATORY BUBBLES & ACTOR FLOW
+  // MODE 1: HONEST PROTOCOL SEQUENCE & ACTOR FLOW
   // ─────────────────────────────────────────────────────────────
   if (isHonest) {
-    const activeBubble = bubbles.find((b) => b.step === selectedStep) || bubbles[0];
+    const activeStageItem = stages.find((b) => b.step === selectedStep) || stages[0];
     const honestQber = typeof detectData?.qber === 'number' ? detectData.qber : 0.00;
     const honestPval = typeof detectData?.chi2_p_value === 'number' ? detectData.chi2_p_value : 0.9800;
     const honestFidelity = typeof detectData?.fidelity === 'number' ? detectData.fidelity : 0.998;
@@ -170,7 +244,7 @@ export default function AttackVisualizer({
         {/* 1. Horizontal 3-box actor flow */}
         <div className="viz-diagram intercept-diagram" style={{ marginBottom: '0.8rem' }}>
           <div className="node-box alice">
-            <span className="node-icon">🅰️</span>
+            <span className="node-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe', fontWeight: 800, fontSize: '0.75rem' }}>A</span>
             <strong>Alice</strong>
             <small>Sends |Φ⁺⟩ flying qubit</small>
           </div>
@@ -188,7 +262,9 @@ export default function AttackVisualizer({
                 textAlign: 'center'
               }}
             >
-              <span className="eve-icon" style={{ color: 'var(--accent-cyan)' }}>⚛️ Bell-State Measurement</span>
+              <span className="eve-icon" style={{ color: 'var(--accent-cyan)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <StageIcon type="atom" /> Bell-State Measurement
+              </span>
               <span className="eve-action" style={{ color: '#cbd5e1' }}>
                 Genuine BSM on message qubit + EPR half — correction bits (c₀, c₁) extracted honestly
               </span>
@@ -200,7 +276,7 @@ export default function AttackVisualizer({
           </div>
 
           <div className="node-box bob">
-            <span className="node-icon">🅱️</span>
+            <span className="node-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '4px', background: 'rgba(0, 230, 118, 0.15)', color: '#00e676', fontWeight: 800, fontSize: '0.75rem' }}>B</span>
             <strong>Bob</strong>
             <small>Applies Pauli correction, measures intact qubit</small>
           </div>
@@ -222,19 +298,19 @@ export default function AttackVisualizer({
           </div>
         </div>
 
-        {/* 7 Explanatory Bubbles Sub-header */}
+        {/* 7-Stage Protocol Sequence Sub-header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', paddingTop: '0.6rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-cyan)', letterSpacing: '0.06em' }}>
-            7-STAGE SEQUENTIAL FLOW BUBBLES
+            7-STAGE PROTOCOL SEQUENCE
           </span>
           <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-            Click any bubble to inspect circuit specification
+            Select a stage to inspect physical parameters &amp; circuit verification
           </span>
         </div>
 
-        {/* Phase Steps Strip (Reusing Attack Lab .phase-steps-strip & .phase-pill) */}
+        {/* Phase Steps Strip */}
         <div className="phase-steps-strip" style={{ marginBottom: '1rem', flexWrap: 'wrap', gap: '6px' }}>
-          {bubbles.map((b) => (
+          {stages.map((b) => (
             <span
               key={b.step}
               className={`phase-pill ${selectedStep === b.step ? 'active' : ''}`}
@@ -245,14 +321,14 @@ export default function AttackVisualizer({
                 boxShadow: selectedStep === b.step ? '0 0 12px rgba(192, 132, 252, 0.6)' : undefined,
                 color: selectedStep === b.step ? '#ffffff' : undefined,
               }}
-              title={`Inspect Bubble ${b.step}: ${b.title}`}
+              title={`View Stage ${b.step}: ${b.title}`}
             >
               {b.step}. {b.title}
             </span>
           ))}
         </div>
 
-        {/* All 7 Explanatory Bubbles in Strict Sequence Order */}
+        {/* All 7 Protocol Stages in Strict Sequence Order */}
         <div
           className="viz-diagram honest-diagram"
           style={{
@@ -262,9 +338,10 @@ export default function AttackVisualizer({
             alignItems: 'stretch',
             padding: '1rem',
             background: 'rgba(15, 23, 42, 0.65)',
+            borderRadius: '8px',
           }}
         >
-          {bubbles.map((b) => {
+          {stages.map((b) => {
             const isSelected = selectedStep === b.step;
             return (
               <div
@@ -274,10 +351,10 @@ export default function AttackVisualizer({
                 style={{
                   cursor: 'pointer',
                   padding: '0.85rem',
-                  borderRadius: '6px',
-                  background: isSelected ? 'rgba(192, 132, 252, 0.14)' : 'rgba(15, 23, 42, 0.85)',
+                  borderRadius: '8px',
+                  background: isSelected ? 'rgba(192, 132, 252, 0.12)' : 'rgba(15, 23, 42, 0.85)',
                   border: `1px solid ${isSelected ? '#c084fc' : 'rgba(255, 255, 255, 0.08)'}`,
-                  boxShadow: isSelected ? '0 0 16px rgba(192, 132, 252, 0.35)' : 'none',
+                  boxShadow: isSelected ? '0 0 16px rgba(192, 132, 252, 0.25)' : 'none',
                   transition: 'all 0.2s ease',
                   display: 'flex',
                   flexDirection: 'column',
@@ -285,22 +362,38 @@ export default function AttackVisualizer({
                 }}
               >
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#c084fc' }}>
-                      Bubble {b.step} — "{b.title}"
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isSelected ? '#ffffff' : '#c084fc', letterSpacing: '-0.01em' }}>
+                      Stage {b.step} — {b.title}
                     </span>
-                    <span className="node-icon" style={{ fontSize: '0.95rem' }}>{b.icon}</span>
+                    <span
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        minWidth: '24px',
+                        borderRadius: '6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: isSelected ? 'rgba(192, 132, 252, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                        border: `1px solid ${isSelected ? 'rgba(192, 132, 252, 0.5)' : 'rgba(255, 255, 255, 0.1)'}`,
+                        color: isSelected ? '#e9d5ff' : '#94a3b8',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <StageIcon type={b.iconType} />
+                    </span>
                   </div>
-                  <p style={{ fontSize: '0.76rem', color: '#e2e8f0', lineHeight: '1.5', margin: '4px 0 10px 0' }}>
-                    "{b.text}"
+                  <p style={{ fontSize: '0.75rem', color: '#cbd5e1', lineHeight: '1.5', margin: '4px 0 10px 0' }}>
+                    {b.text}
                   </p>
                 </div>
 
                 <div>
-                  <code style={{ display: 'block', fontSize: '0.68rem', color: '#38bdf8', marginBottom: '6px' }}>
+                  <code style={{ display: 'block', fontSize: '0.68rem', color: '#38bdf8', marginBottom: '6px', fontFamily: 'var(--font-mono)' }}>
                     {b.formula}
                   </code>
-                  <div className="outcome-pill success" style={{ margin: 0, fontSize: '0.66rem', padding: '0.22rem 0.45rem' }}>
+                  <div className="outcome-pill success" style={{ margin: 0, fontSize: '0.66rem', padding: '0.22rem 0.45rem', letterSpacing: '0.04em' }}>
                     {b.statusBadge}
                   </div>
                 </div>
@@ -309,13 +402,13 @@ export default function AttackVisualizer({
           })}
         </div>
 
-        {/* Active Step Detailed HUD (Reusing Attack Lab .target-hud-box) */}
-        {activeBubble && (
+        {/* Active Stage Detailed Technical Specification */}
+        {activeStageItem && (
           <div className="target-hud-box" style={{ marginTop: '1rem' }}>
             <div className="hud-title-bar" onClick={() => setHudExpanded(!hudExpanded)}>
-              <span className="hud-icon">🛡️</span>
+              <span className="hud-icon"><StageIcon type="shield" /></span>
               <span className="hud-heading">
-                Step {activeBubble.step} Specification: <strong>{activeBubble.title}</strong>
+                Stage {activeStageItem.step} Technical Specification: <strong>{activeStageItem.title}</strong>
               </span>
               <span className="hud-toggle">{hudExpanded ? '▲' : '▼'}</span>
             </div>
@@ -324,15 +417,11 @@ export default function AttackVisualizer({
               <div className="hud-content-grid">
                 <div className="hud-field">
                   <span className="hud-label">Subsystem &amp; Channel Node:</span>
-                  <span className="hud-val">{activeBubble.subsystem} ({activeBubble.actor})</span>
-                </div>
-                <div className="hud-field">
-                  <span className="hud-label">Honest Protocol Operation:</span>
-                  <span className="hud-val safe-text">{activeBubble.text}</span>
+                  <span className="hud-val">{activeStageItem.subsystem} ({activeStageItem.actor})</span>
                 </div>
                 <div className="hud-field">
                   <span className="hud-label">Governing Physical Law:</span>
-                  <span className="hud-val code-font">{activeBubble.physicalLaw}</span>
+                  <span className="hud-val code-font">{activeStageItem.physicalLaw}</span>
                 </div>
                 <div className="hud-field">
                   <span className="hud-label">Deterministic Verification:</span>
@@ -342,30 +431,6 @@ export default function AttackVisualizer({
             )}
           </div>
         )}
-
-        {/* Telemetry Footer (Reusing Attack Lab .viz-footer & .viz-stat) */}
-        <div className="viz-footer" style={{ marginTop: '1rem' }}>
-          <div className="viz-stat">
-            <span>Expected QBER:</span>
-            <strong style={{ color: '#00e676' }}>~0.0000</strong>
-          </div>
-          <div className="viz-stat">
-            <span>Born χ² p-value:</span>
-            <strong style={{ color: '#00e676' }}>1.0000</strong>
-          </div>
-          <div className="viz-stat">
-            <span>State Fidelity:</span>
-            <strong style={{ color: '#00e676' }}>~99.8%</strong>
-          </div>
-          <div className="viz-stat">
-            <span>Threat Confidence:</span>
-            <strong style={{ color: '#00e676' }}>~0.13 (&lt; 0.30 Safe)</strong>
-          </div>
-          <div className="viz-stat">
-            <span>Verdict:</span>
-            <strong style={{ color: '#00e676' }}>ACCEPT</strong>
-          </div>
-        </div>
       </div>
     );
   }

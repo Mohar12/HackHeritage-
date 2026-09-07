@@ -150,6 +150,7 @@ body {
   display: grid;
   grid-template-columns: 560px 1fr;
   gap: 1.25rem;
+  align-items: start;
 }
 
 @media (max-width: 1200px) {

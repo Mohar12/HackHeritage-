@@ -515,25 +515,6 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
               />
             </section>
           </ErrorBoundary>
-
-          {/* Supporting 3D Visualizer Row (Mirrors Attack Lab .visualizations-row) */}
-          <div className="visualizations-row">
-            <ErrorBoundary title="3D Bloch Sphere Unavailable">
-              <BlochSphere3D
-                fidelity={resultData?.sig?.fidelity ?? 0.998}
-                isAttacked={isCompromised}
-                badgeText={isCompromised ? 'State Vector Perturbed' : 'State Vector Preserved'}
-                pillClass={isCompromised ? 'pill-danger' : 'pill-green'}
-              />
-            </ErrorBoundary>
-            <ErrorBoundary title="Network Topology Unavailable">
-              <NetworkTopology3D
-                isAttacked={isCompromised}
-                badgeText={isCompromised ? '🚨 High Channel Loss / Noise' : 'No Interceptor Detected'}
-                pillClass={isCompromised ? 'pill-danger' : 'pill-green'}
-              />
-            </ErrorBoundary>
-          </div>
         </div>
 
         {/* Right Column: 3D Teleportation Flow & Telemetry Desk */}
@@ -557,6 +538,25 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
               mode="honest"
             />
           </ErrorBoundary>
+
+          {/* Supporting 3D Visualizer Row (Relocated beneath Bell Distribution Chart) */}
+          <div className="visualizations-row">
+            <ErrorBoundary title="3D Bloch Sphere Unavailable">
+              <BlochSphere3D
+                fidelity={resultData?.sig?.fidelity ?? 0.998}
+                isAttacked={isCompromised}
+                badgeText={isCompromised ? 'State Vector Perturbed' : 'State Vector Preserved'}
+                pillClass={isCompromised ? 'pill-danger' : 'pill-green'}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary title="Network Topology Unavailable">
+              <NetworkTopology3D
+                isAttacked={isCompromised}
+                badgeText={isCompromised ? '🚨 High Channel Loss / Noise' : 'No Interceptor Detected'}
+                pillClass={isCompromised ? 'pill-danger' : 'pill-green'}
+              />
+            </ErrorBoundary>
+          </div>
         </div>
       </main>
     </div>
