@@ -182,21 +182,27 @@ const fluidFragmentShader = `
     // Combine Metallic / Water Surface
     vec3 metallicSurface = liquidBase + torchReflection + rimLight + internalGlow;
     
-    // 7. Procedural Structural Line-Arcs (Act 2 Problem & Comparison Left)
-    float lat = sin(vPosition.y * 12.0 + uTime * 0.25);
-    float latLine = smoothstep(0.92, 0.985, abs(lat));
-    float lonAngle = atan(vPosition.z, vPosition.x);
-    float lon = sin(lonAngle * 16.0 + uTime * 0.2);
-    float lonLine = smoothstep(0.90, 0.985, abs(lon));
-    float diag = sin((vPosition.x * 0.6 + vPosition.y * 0.6 + vPosition.z * 0.6) * 8.0 - uTime * 0.35);
-    float diagLine = smoothstep(0.93, 0.985, abs(diag));
-    float wireframeRays = max(max(latLine, lonLine), diagLine * 0.75);
+    // 7. Flowing Metallic Liquid State (Act 2 Problem & Detection Mechanism: Zero Grid Lines)
+    // Smooth reflective liquid-metal surface with moving highlights in the cool blue-white tone family
+    float flowTraveling1 = sin((vPosition.x * 0.72 + vPosition.y * 1.08 - vPosition.z * 0.82) * 1.6 - uTime * 1.35) * 0.5 + 0.5;
+    float flowTraveling2 = cos((vPosition.z * 0.88 - vPosition.x * 0.65 + vPosition.y * 0.72) * 1.9 + uTime * 1.15) * 0.5 + 0.5;
+    float fluidMetallicSheen = pow(flowTraveling1 * flowTraveling2, 2.2);
     
-    vec3 wireframeGlow = uColorWireframe * (wireframeRays * 2.2 + fresnel * 1.1);
-    vec3 structuralColor = mix(uColorDeepVoid * 0.4, uColorCore * 0.7, wireframeRays * 0.3) + wireframeGlow;
-    structuralColor += uColorSpecGlint * (travelingWaveGlint1 * 0.7);
+    // High-gloss specular highlight bands catching moving illumination
+    vec3 lightDirCool = normalize(vec3(0.65, 0.95, 1.25));
+    vec3 halfDirCool = normalize(lightDirCool + viewDir);
+    float NdotHCool = max(0.0, dot(normal, halfDirCool));
+    float fluidSpecular = pow(NdotHCool, 22.0) * 1.35;
     
-    vec3 finalColor = mix(metallicSurface, structuralColor, uWireframeMix);
+    // Cool photonic ice / metallic liquid surface synthesis (Zero grid lines)
+    vec3 fluidLiquidBase = mix(uColorDeepVoid, uColorCore, 0.75);
+    fluidLiquidBase = mix(fluidLiquidBase, uColorMid, 0.45);
+    vec3 fluidReflection = uColorTorchGlint * (fluidMetallicSheen * 1.5 + totalWaveHighlight * 0.85);
+    fluidReflection += uColorSpecGlint * (fluidSpecular + travelingWaveGlint1 * 1.1);
+    vec3 fluidRim = uColorRim * (pow(1.0 - NdotV, 2.0) * 1.65 * uFresnelStrength);
+    vec3 flowingMetallicLiquid = fluidLiquidBase + fluidReflection + fluidRim + internalGlow * 0.8;
+    
+    vec3 finalColor = mix(metallicSurface, flowingMetallicLiquid, uWireframeMix);
     
     // 8. Volumetric Smoke State (Closing Act)
     if (uSmokeMix > 0.001) {
@@ -205,20 +211,20 @@ const fluidFragmentShader = `
       finalColor = mix(finalColor, smokeGlow, uSmokeMix);
     }
     
-    // 9. Comparison Split Treatment (Act 4)
+    // 9. Comparison Split Treatment (Act 4): Smooth liquid split, no grid lines
     if (uSplitMix > 0.001) {
       float splitEdge = smoothstep(-0.25, 0.25, vWorldPosition.x);
-      vec3 classicalSide = structuralColor;
+      vec3 classicalSide = flowingMetallicLiquid;
       float stressFlicker = sin(uTime * 14.0 + vPosition.y * 6.0) * 0.5 + 0.5;
       vec3 stressColor = vec3(0.85, 0.22, 0.22);
-      classicalSide = mix(classicalSide, stressColor * 0.75, wireframeRays * 0.45);
+      classicalSide = mix(classicalSide, stressColor * 0.65, (1.0 - NdotV) * 0.4 + stressFlicker * 0.15);
       vec3 splitComposite = mix(classicalSide, metallicSurface, splitEdge);
       finalColor = mix(finalColor, splitComposite, uSplitMix);
     }
     
     // 10. Opacity: 75–85% Solid Visual Presence with subtle translucent rim
     float baseAlpha = mix(0.82 * uFillDensity, 0.94, fresnel * 0.8);
-    float alpha = uOpacity * clamp(baseAlpha + wireframeRays * uWireframeMix * 0.3, 0.0, 1.0);
+    float alpha = uOpacity * clamp(baseAlpha, 0.0, 1.0);
     
     gl_FragColor = vec4(finalColor, alpha);
   }
@@ -254,13 +260,18 @@ const haloFragmentShader = `
   }
 `;
 
-export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
+export default function QuantumEntanglementCanvas({ activePillar = '01', activeDimension = 0 }) {
   const mountRef = useRef(null);
   const activePillarRef = useRef(activePillar);
+  const activeDimensionRef = useRef(activeDimension);
 
   useEffect(() => {
     activePillarRef.current = activePillar;
   }, [activePillar]);
+
+  useEffect(() => {
+    activeDimensionRef.current = activeDimension;
+  }, [activeDimension]);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -325,8 +336,8 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
         uColorMid: { value: new THREE.Color(0x19163a) },
         uColorBright: { value: new THREE.Color(0x34245f) },
         uColorTorchGlint: { value: new THREE.Color(0x5a3fa8) },
-        uColorSpecGlint: { value: new THREE.Color(0xa78bfa) },
-        uColorRim: { value: new THREE.Color(0x6c5ce7) },
+        uColorSpecGlint: { value: new THREE.Color(0xa7f3d0) },
+        uColorRim: { value: new THREE.Color(0x2dd4bf) },
         uColorWireframe: { value: new THREE.Color(0x4c6fff) },
       },
     });
@@ -385,11 +396,17 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
     let prevScroll = 0;
     let scrollVelocity = 0;
 
+    let cachedDocHeight = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    const updateDocHeight = () => {
+      cachedDocHeight = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    };
+    window.addEventListener('resize', updateDocHeight, { passive: true });
+
     const handleScroll = () => {
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      targetScroll = docHeight > 0 ? Math.min(1, Math.max(0, window.scrollY / docHeight)) : 0;
+      targetScroll = Math.min(1, Math.max(0, window.scrollY / cachedDocHeight));
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
+    updateDocHeight();
     handleScroll();
 
     // Mouse pointer interaction & parallax
@@ -445,22 +462,22 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
         mid: new THREE.Color(0x19163a),
         bright: new THREE.Color(0x34245f),
         torchGlint: new THREE.Color(0x5a3fa8),
-        specGlint: new THREE.Color(0xa78bfa),
-        rim: new THREE.Color(0x6c5ce7),
+        specGlint: new THREE.Color(0xa7f3d0),
+        rim: new THREE.Color(0x2dd4bf),
         wireframe: new THREE.Color(0x4c6fff),
         halo: new THREE.Color(0x34245f),
       },
-      // Act 2: Problem · Wireframe Structural Blue-Violet
+      // Act 2: Problem · Flowing Metallic Liquid (Cool Blue-White Photonic Ice : Zero Grid Lines)
       problemBlue: {
-        deepVoid: new THREE.Color(0x080711),
-        core: new THREE.Color(0x0d1326),
-        mid: new THREE.Color(0x182247),
-        bright: new THREE.Color(0x2e3e75),
-        torchGlint: new THREE.Color(0x4c6fff),
-        specGlint: new THREE.Color(0x93c5fd),
-        rim: new THREE.Color(0x60a5fa),
-        wireframe: new THREE.Color(0x60a5fa),
-        halo: new THREE.Color(0x253366),
+        deepVoid: new THREE.Color(0x060b18),
+        core: new THREE.Color(0x0a1428),
+        mid: new THREE.Color(0x132247),
+        bright: new THREE.Color(0x1e3a6e),
+        torchGlint: new THREE.Color(0x60a5fa),
+        specGlint: new THREE.Color(0xe0f2fe),
+        rim: new THREE.Color(0x93c5fd),
+        wireframe: new THREE.Color(0x38bdf8),
+        halo: new THREE.Color(0x1a2b58),
       },
       // Act 3: Pillars (Dynamic sync based on active pillar)
       pillarP1: {
@@ -499,7 +516,70 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
         wireframe: new THREE.Color(0xe11d48),
         halo: new THREE.Color(0x4a1f2d),
       },
-      // Act 4: Comparison · Burgundy / Crimson vs Classical
+      // Act 4: Dimension Tabs Color States (5 distinct quantum verification states)
+      dimensionStates: [
+        // 0: Detection Mechanism (Optical Cyan and Born-Rule Wavefunction)
+        {
+          deepVoid: new THREE.Color(0x060f18),
+          core: new THREE.Color(0x0a1c28),
+          mid: new THREE.Color(0x0f2d3d),
+          bright: new THREE.Color(0x134e4a),
+          torchGlint: new THREE.Color(0x0d9488),
+          specGlint: new THREE.Color(0x5eead4),
+          rim: new THREE.Color(0x2dd4bf),
+          wireframe: new THREE.Color(0x14b8a6),
+          halo: new THREE.Color(0x115e59),
+        },
+        // 1: Adversarial Noise (Electric Cobalt and Noise Dissipation)
+        {
+          deepVoid: new THREE.Color(0x060b18),
+          core: new THREE.Color(0x0b1736),
+          mid: new THREE.Color(0x172554),
+          bright: new THREE.Color(0x1e3a8a),
+          torchGlint: new THREE.Color(0x2563eb),
+          specGlint: new THREE.Color(0x93c5fd),
+          rim: new THREE.Color(0x38bdf8),
+          wireframe: new THREE.Color(0x60a5fa),
+          halo: new THREE.Color(0x1e40af),
+        },
+        // 2: Statistical Model (Radiant Violet and Chi-Square Hypothesis Testing)
+        {
+          deepVoid: new THREE.Color(0x080711),
+          core: new THREE.Color(0x1e0c2e),
+          mid: new THREE.Color(0x3b0764),
+          bright: new THREE.Color(0x581c87),
+          torchGlint: new THREE.Color(0x7e22ce),
+          specGlint: new THREE.Color(0xd8b4fe),
+          rim: new THREE.Color(0xc084fc),
+          wireframe: new THREE.Color(0xa855f7),
+          halo: new THREE.Color(0x6b21a8),
+        },
+        // 3: Post-Quantum Longevity (Solar Amber / Gold)
+        {
+          deepVoid: new THREE.Color(0x0e0902),
+          core: new THREE.Color(0x331e05),
+          mid: new THREE.Color(0x78350f),
+          bright: new THREE.Color(0xd97706),
+          torchGlint: new THREE.Color(0xfbbf24),
+          specGlint: new THREE.Color(0xfef3c7),
+          rim: new THREE.Color(0xb45309),
+          wireframe: new THREE.Color(0xf59e0b),
+          halo: new THREE.Color(0x451a03),
+        },
+        // 4: Detection Latency (Vivid Crimson and Sub-millisecond Pauli Bound)
+        {
+          deepVoid: new THREE.Color(0x100206),
+          core: new THREE.Color(0x3b0814),
+          mid: new THREE.Color(0x881337),
+          bright: new THREE.Color(0xe11d48),
+          torchGlint: new THREE.Color(0xff3355),
+          specGlint: new THREE.Color(0xffccd5),
+          rim: new THREE.Color(0xbe123c),
+          wireframe: new THREE.Color(0xff385c),
+          halo: new THREE.Color(0x4c0519),
+        },
+      ],
+      // Act 4: Comparison fallback
       comparisonCrimson: {
         deepVoid: new THREE.Color(0x080711),
         core: new THREE.Color(0x1e0713),
@@ -538,8 +618,8 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
       lastTime = now;
       const elapsed = clock.getElapsedTime();
 
-      // Time-aware exponential damping for scroll follow (~0.085 at 60fps)
-      const scrollDampingFactor = 1.0 - Math.exp(-5.2 * delta);
+      // Time-aware exponential damping for scroll follow (tight, responsive, zero perceptible lag)
+      const scrollDampingFactor = 1.0 - Math.exp(-22.0 * delta);
       currentScroll += (targetScroll - currentScroll) * scrollDampingFactor;
       
       // Calculate scroll impulse velocity
@@ -561,11 +641,14 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
         pillarState = stateColors.pillarP3;
       }
 
-      // State machine parameter targets
+      const currentDimension = typeof activeDimensionRef.current === 'number' ? activeDimensionRef.current : 0;
+      const dimensionState = stateColors.dimensionStates[currentDimension] || stateColors.dimensionStates[0];
+
+      // State machine parameter targets (gentle, contained shifts per Stage 2)
       let targetX = 0;
       let targetY = -2.8;
       let targetScale = 1.0;
-      let targetCameraZ = 14;
+      let targetCameraZ = 14.0;
       let turbulence = 0;
       let internalFlux = 0.2;
       let fresnelPower = 2.8;
@@ -583,9 +666,9 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
       if (p < 0.18) {
         const t = p / 0.18;
         targetX = 0;
-        targetY = -2.8 + t * 0.4;
+        targetY = -2.8 + t * 0.2;
         targetScale = 1.0;
-        targetCameraZ = 14 - t * 0.6;
+        targetCameraZ = 14.0;
         turbulence = 0.0;
         internalFlux = 0.25;
         fresnelPower = 2.8;
@@ -611,17 +694,17 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
       // ─────────────────────────────────────────────────────────────
       else if (p < 0.38) {
         const t = (p - 0.18) / 0.20;
-        targetX = -1.2 * t;
-        targetY = -2.4 + t * 0.7;
-        targetScale = 0.95;
-        targetCameraZ = 13.6;
+        targetX = -0.35 * t;
+        targetY = -2.6 + t * 0.15;
+        targetScale = 0.98;
+        targetCameraZ = 14.0;
         turbulence = t * 1.4;
         internalFlux = 0.85 * t;
         fresnelPower = 2.4;
         fresnelStrength = 1.25;
         haloIntensity = 0.65;
         wireframeMix = t;
-        fillDensity = 1.0 - t * 0.72;
+        fillDensity = 1.0;
         smokeMix = 0.0;
         splitMix = 0.0;
 
@@ -640,10 +723,10 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
       // ─────────────────────────────────────────────────────────────
       else if (p < 0.72) {
         const t = (p - 0.38) / 0.34;
-        targetX = 1.8 - Math.sin(t * Math.PI) * 0.4;
-        targetY = -1.6 + Math.sin(t * Math.PI * 2.0) * 0.35;
-        targetScale = 0.92;
-        targetCameraZ = 13.8;
+        targetX = -0.35 + t * 0.75;
+        targetY = -2.45 + Math.sin(t * Math.PI) * 0.12;
+        targetScale = 0.98;
+        targetCameraZ = 14.0;
         turbulence = 0.0;
         internalFlux = 0.6;
         fresnelPower = 3.0;
@@ -666,14 +749,13 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
         targetColors.halo.copy(pillarState.halo);
       }
       // ─────────────────────────────────────────────────────────────
-      // ACT 4: COMPARISON (0.72 - 0.88) · Split Treatment
-      // ─────────────────────────────────────────────────────────────
-      else if (p < 0.88) {
-        const t = (p - 0.72) / 0.16;
+      // ACT 4: COMPARISON (0.72 - 0.92) · Structured Dimension Sync
+      else if (p < 0.92) {
+        const t = (p - 0.72) / 0.20;
         const smoothT = t * t * (3.0 - 2.0 * t);
-        targetX = 1.4 - smoothT * 1.4;
-        targetY = -1.8 - smoothT * 0.3;
-        targetScale = 0.96;
+        targetX = 0.40 * (1.0 - smoothT);
+        targetY = -2.45 - smoothT * 0.10;
+        targetScale = 0.98;
         targetCameraZ = 14.0;
         turbulence = (1.0 - smoothT) * 0.25;
         internalFlux = 0.7;
@@ -685,35 +767,36 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
         smokeMix = 0.0;
 
         // Smooth continuous bell curve: peaks in middle of Act 4 and dissolves gracefully
-        if (p < 0.81) {
-          const sIn = (p - 0.72) / 0.09;
+        if (p < 0.82) {
+          const sIn = (p - 0.72) / 0.10;
           splitMix = sIn * sIn * (3.0 - 2.0 * sIn);
         } else {
-          const sOut = Math.max(0.0, 1.0 - (p - 0.81) / 0.09);
+          const sOut = Math.max(0.0, 1.0 - (p - 0.82) / 0.10);
           splitMix = sOut * sOut * (3.0 - 2.0 * sOut);
         }
 
-        targetColors.deepVoid.lerpColors(pillarState.deepVoid, stateColors.comparisonCrimson.deepVoid, smoothT);
-        targetColors.core.lerpColors(pillarState.core, stateColors.comparisonCrimson.core, smoothT);
-        targetColors.mid.lerpColors(pillarState.mid, stateColors.comparisonCrimson.mid, smoothT);
-        targetColors.bright.lerpColors(pillarState.bright, stateColors.comparisonCrimson.bright, smoothT);
-        targetColors.torchGlint.lerpColors(pillarState.torchGlint, stateColors.comparisonCrimson.torchGlint, smoothT);
-        targetColors.specGlint.lerpColors(pillarState.specGlint, stateColors.comparisonCrimson.specGlint, smoothT);
-        targetColors.rim.lerpColors(pillarState.rim, stateColors.comparisonCrimson.rim, smoothT);
-        targetColors.wireframe.lerpColors(pillarState.wireframe, stateColors.problemBlue.wireframe, smoothT);
-        targetColors.halo.lerpColors(pillarState.halo, stateColors.comparisonCrimson.halo, smoothT);
+        // Direct synchronization to active dimension color state (replicates Act 3 pillar logic)
+        targetColors.deepVoid.copy(dimensionState.deepVoid);
+        targetColors.core.copy(dimensionState.core);
+        targetColors.mid.copy(dimensionState.mid);
+        targetColors.bright.copy(dimensionState.bright);
+        targetColors.torchGlint.copy(dimensionState.torchGlint);
+        targetColors.specGlint.copy(dimensionState.specGlint);
+        targetColors.rim.copy(dimensionState.rim);
+        targetColors.wireframe.copy(dimensionState.wireframe);
+        targetColors.halo.copy(dimensionState.halo);
       }
       // ─────────────────────────────────────────────────────────────
-      // ACT 5: CLOSING & FOOTER (0.88 - 1.00) · Smooth Recession
+      // ACT 5: CLOSING & FOOTER (0.92 - 1.00) · Smooth Recession
       // ─────────────────────────────────────────────────────────────
       else {
-        const t = (p - 0.88) / 0.12;
+        const t = (p - 0.92) / 0.08;
         const smoothT = t * t * (3.0 - 2.0 * t);
         targetX = 0;
-        // As scroll approaches 1.0, globe recedes and sinks into the deep void behind footer
-        targetY = -2.1 - smoothT * 0.9;
-        targetScale = 0.96 - smoothT * 0.24; // recedes to ~0.72
-        targetCameraZ = 14.0 + smoothT * 1.2; // steps back in z
+        // As scroll approaches 1.0, globe recedes and sinks gently into the deep void behind footer
+        targetY = -2.55 - smoothT * 0.25;
+        targetScale = 0.98 - smoothT * 0.06; // settles gently to ~0.92
+        targetCameraZ = 14.0;
         turbulence = 0.0;
         internalFlux = 0.5 - smoothT * 0.3;
         fresnelPower = 2.4;
@@ -722,32 +805,30 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
         wireframeMix = 0.0;
         fillDensity = 0.88;
         smokeMix = Math.min(1.0, smoothT * 1.4);
-
-        // Seamless continuation: finish dissolving any residual grid into solid ruby sphere by p = 0.90
-        if (p < 0.90) {
-          const sOut = Math.max(0.0, 1.0 - (p - 0.81) / 0.09);
-          splitMix = sOut * sOut * (3.0 - 2.0 * sOut);
-        } else {
-          splitMix = 0.0;
-        }
-
+        splitMix = 0.0;
         noiseAmplitude = (prefersReducedMotion ? 0.2 : 1.0) * (1.0 - smoothT * 0.38); // ripples calm down
 
-        targetColors.deepVoid.lerpColors(stateColors.comparisonCrimson.deepVoid, stateColors.closingRuby.deepVoid, smoothT);
-        targetColors.core.lerpColors(stateColors.comparisonCrimson.core, stateColors.closingRuby.core, smoothT);
-        targetColors.mid.lerpColors(stateColors.comparisonCrimson.mid, stateColors.closingRuby.mid, smoothT);
-        targetColors.bright.lerpColors(stateColors.comparisonCrimson.bright, stateColors.closingRuby.bright, smoothT);
-        targetColors.torchGlint.lerpColors(stateColors.comparisonCrimson.torchGlint, stateColors.closingRuby.torchGlint, smoothT);
-        targetColors.specGlint.lerpColors(stateColors.comparisonCrimson.specGlint, stateColors.closingRuby.specGlint, smoothT);
-        targetColors.rim.lerpColors(stateColors.comparisonCrimson.rim, stateColors.closingRuby.rim, smoothT);
+        targetColors.deepVoid.lerpColors(dimensionState.deepVoid, stateColors.closingRuby.deepVoid, smoothT);
+        targetColors.core.lerpColors(dimensionState.core, stateColors.closingRuby.core, smoothT);
+        targetColors.mid.lerpColors(dimensionState.mid, stateColors.closingRuby.mid, smoothT);
+        targetColors.bright.lerpColors(dimensionState.bright, stateColors.closingRuby.bright, smoothT);
+        targetColors.torchGlint.lerpColors(dimensionState.torchGlint, stateColors.closingRuby.torchGlint, smoothT);
+        targetColors.specGlint.lerpColors(dimensionState.specGlint, stateColors.closingRuby.specGlint, smoothT);
+        targetColors.rim.lerpColors(dimensionState.rim, stateColors.closingRuby.rim, smoothT);
         targetColors.wireframe.lerpColors(stateColors.problemBlue.wireframe, stateColors.closingRuby.wireframe, smoothT);
-        targetColors.halo.lerpColors(stateColors.comparisonCrimson.halo, stateColors.closingRuby.halo, smoothT);
+        targetColors.halo.lerpColors(dimensionState.halo, stateColors.closingRuby.halo, smoothT);
       }
 
-      // Time-aware exponential damping for mesh transforms
-      const transformFactor = 1.0 - Math.exp(-5.2 * delta);
-      heroMesh.position.x += (targetX - heroMesh.position.x) * transformFactor;
-      heroMesh.position.y += (targetY - heroMesh.position.y) * transformFactor;
+      // Layer a slow, subtle sinusoidal drift on top of the scroll-driven transform (Stage 3)
+      const driftX = prefersReducedMotion ? 0 : Math.sin(elapsed * 0.55) * 0.08;
+      const driftY = prefersReducedMotion ? 0 : Math.cos(elapsed * 0.80) * 0.09;
+      const finalTargetX = targetX + driftX;
+      const finalTargetY = targetY + driftY;
+
+      // Time-aware exponential damping for mesh transforms (routed through damped spring, zero lag)
+      const transformFactor = 1.0 - Math.exp(-14.0 * delta);
+      heroMesh.position.x += (finalTargetX - heroMesh.position.x) * transformFactor;
+      heroMesh.position.y += (finalTargetY - heroMesh.position.y) * transformFactor;
       
       const currentScale = heroMesh.scale.x;
       const newScale = currentScale + (targetScale - currentScale) * transformFactor;
@@ -820,6 +901,7 @@ export default function QuantumEntanglementCanvas({ activePillar = '01' }) {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', updateDocHeight);
 
       heroGeometry.dispose();
       heroMaterial.dispose();
