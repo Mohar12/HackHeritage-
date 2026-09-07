@@ -188,11 +188,17 @@ export default function AttackVisualizer({
   onStageSelect,
   attackData,
   detectData,
+  stepData,
+  stages: customStages,
   lastUpdated,
   isUpdating = false,
 }) {
   const isHonest = mode === 'honest' || attackType === 'honest';
-  const stages = stepData || HONEST_PROTOCOL_STAGES;
+  const stages = (Array.isArray(customStages) && customStages.length > 0)
+    ? customStages
+    : (Array.isArray(stepData) && stepData.length > 0)
+    ? stepData
+    : HONEST_PROTOCOL_STAGES;
 
   const [selectedStep, setSelectedStep] = useState(1);
   const [hudExpanded, setHudExpanded] = useState(true);
