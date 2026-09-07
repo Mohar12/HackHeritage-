@@ -1814,6 +1814,28 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.rack-pill.active-qpu {
+  background: rgba(0, 242, 254, 0.1);
+  border-color: rgba(0, 242, 254, 0.45);
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.25);
+  color: #f8fafc;
+}
+
+.rack-pill.active-qpu.purple-qpu {
+  background: rgba(147, 51, 234, 0.12);
+  border-color: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.28);
+  color: #f8fafc;
+}
+
+.rack-pill.active-qpu .dot {
+  transform: scale(1.35);
 }
 
 .dot {
@@ -2534,8 +2556,7 @@ body {
   will-change: opacity, transform;
 }
 
-.hqds-reveal.is-revealed,
-.hqds-act.is-revealed .hqds-reveal {
+.hqds-reveal.is-revealed {
   opacity: 1;
   transform: translateY(0);
 }
@@ -2796,12 +2817,29 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════
-   GLASSY LIQUID-FILL BUTTON SYSTEM (Sitewide Unified)
-   Fixed position, translucent glass, sweeping liquid fill,
-   crystal-clear idle text, soft violet-to-light gradient.
+   GLASSY LIQUID-WAVE-FILL BUTTON SYSTEM (Round 4 Architecture)
+   - Direction: Left-edge origin spreading rightward as an organic wave
+   - Leading edge: Curved sinusoidal wave contour with slight undulation
+   - Color: Saturated, vivid electric violet-to-photonic-blue gradient
+   - Scope: Sitewide unified across every button
+   - Mechanics: Fixed button position (zero cursor follow), text 100% legible
    ══════════════════════════════════════════════════════════ */
-.hqds-nav-ghost-btn {
+.hqds-nav-ghost-btn,
+.hqds-nav-pill-btn,
+.hqds-hero-primary-cta,
+.hqds-btn-primary,
+.hqds-pillar-tab-btn,
+.hqds-dimension-tab-btn,
+.hqds-dim-nav-btn,
+.hqds-fstat-arrow-btn {
   position: relative !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  transform: none !important; /* Strictly fixed position — zero cursor-following movement */
+  cursor: pointer !important;
+}
+
+.hqds-nav-ghost-btn {
   background: rgba(255, 255, 255, 0.05) !important;
   backdrop-filter: blur(16px) saturate(140%) !important;
   -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
@@ -2812,60 +2850,24 @@ body {
   font-family: 'Space Grotesk', sans-serif !important;
   font-size: 0.84rem !important;
   font-weight: 700 !important;
-  cursor: pointer !important;
-  overflow: hidden !important;
-  transform: none !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 16px rgba(0, 0, 0, 0.35) !important;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
-}
-
-.hqds-nav-ghost-btn span {
-  position: relative !important;
-  z-index: 3 !important;
-  color: #ffffff !important;
-}
-
-.hqds-nav-ghost-btn::before {
-  content: '' !important;
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 1 !important;
-  border-radius: inherit !important;
-  background: linear-gradient(180deg, rgba(216, 180, 254, 0.3) 0%, rgba(168, 85, 247, 0.45) 100%) !important;
-  transform: scaleY(0) !important;
-  transform-origin: bottom center !important;
-  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  pointer-events: none !important;
-}
-
-.hqds-nav-ghost-btn:hover {
-  transform: none !important;
-  border-color: rgba(216, 180, 254, 0.6) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 6px 20px rgba(168, 85, 247, 0.25) !important;
-}
-
-.hqds-nav-ghost-btn:hover::before {
-  transform: scaleY(1) !important;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease, background 0.35s ease !important;
 }
 
 .hqds-nav-pill-btn,
 .hqds-hero-primary-cta,
 .hqds-btn-primary {
-  position: relative !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  transform: none !important; /* Fixed position — zero cursor follow or drift */
-  background: rgba(139, 92, 246, 0.15) !important;
-  backdrop-filter: blur(18px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
-  border: 1px solid rgba(192, 132, 252, 0.42) !important;
+  background: rgba(124, 58, 237, 0.18) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border: 1px solid rgba(168, 85, 247, 0.45) !important;
   border-radius: 12px !important;
-  overflow: hidden !important;
-  cursor: pointer !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35),
               0 8px 24px rgba(0, 0, 0, 0.45),
-              0 0 18px rgba(168, 85, 247, 0.16) !important;
+              0 0 18px rgba(139, 92, 246, 0.22) !important;
   transition: border-color 0.35s ease, box-shadow 0.35s ease, background 0.35s ease !important;
 }
 
@@ -2887,84 +2889,254 @@ body {
   font-size: 1.05rem !important;
 }
 
+/* Ensure text inside all buttons remains crystal clear and atop the wave layer */
+.hqds-nav-ghost-btn span,
 .hqds-nav-pill-btn span,
 .hqds-hero-primary-cta span,
-.hqds-btn-primary span {
+.hqds-btn-primary span,
+.hqds-pillar-tab-btn span,
+.hqds-dimension-tab-btn span,
+.hqds-dim-nav-btn,
+.hqds-fstat-arrow-btn {
   position: relative !important;
   z-index: 3 !important;
   color: #ffffff !important;
-  font-family: 'Space Grotesk', sans-serif !important;
-  letter-spacing: 0.03em !important;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9) !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 8px !important;
 }
 
+/* ──────────────────────────────────────────────────────────
+   LIQUID WAVE BODY: Left-Edge Origin, Rightward Spreading Wave
+   Leading edge is shaped with an organic curved sinusoidal wave mask.
+   ────────────────────────────────────────────────────────── */
+.hqds-nav-ghost-btn::before,
 .hqds-nav-pill-btn::before,
 .hqds-hero-primary-cta::before,
-.hqds-btn-primary::before {
+.hqds-btn-primary::before,
+.hqds-pillar-tab-btn::before,
+.hqds-dimension-tab-btn::before,
+.hqds-dim-nav-btn::before,
+.hqds-fstat-arrow-btn::before {
   content: '' !important;
   position: absolute !important;
-  inset: 0 !important;
+  top: -25% !important;
+  left: 0 !important;
+  width: calc(100% + 64px) !important;
+  height: 150% !important;
   z-index: 1 !important;
   border-radius: inherit !important;
-  background: linear-gradient(
-    180deg,
-    rgba(233, 213, 255, 0.45) 0%,
-    rgba(192, 132, 252, 0.58) 42%,
-    rgba(147, 51, 234, 0.78) 100%
-  ) !important;
-  transform: scaleY(0) !important;
-  transform-origin: bottom center !important;
-  transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1) !important;
   pointer-events: none !important;
+  /* Vivid, saturated electric violet-to-photonic-blue gradient */
+  background: linear-gradient(
+    90deg,
+    #5B21B6 0%,
+    #7C3AED 24%,
+    #8B5CF6 52%,
+    #6366F1 78%,
+    #3B82F6 100%
+  ) !important;
+  /* Organic wave contour mask on the rightward leading edge */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 100' preserveAspectRatio='none'%3E%3Cpath d='M 0,0 L 180,0 C 205,18 165,36 200,52 C 166,70 206,86 182,100 L 0,100 Z' fill='%23000'/%3E%3C/svg%3E") !important;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 100' preserveAspectRatio='none'%3E%3Cpath d='M 0,0 L 180,0 C 205,18 165,36 200,52 C 166,70 206,86 182,100 L 0,100 Z' fill='%23000'/%3E%3C/svg%3E") !important;
+  -webkit-mask-size: 100% 100% !important;
+  mask-size: 100% 100% !important;
+  -webkit-mask-repeat: no-repeat !important;
+  mask-repeat: no-repeat !important;
+  transform: translateX(-100%) !important;
+  transform-origin: left center !important;
+  transition: transform 0.52s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
+/* ──────────────────────────────────────────────────────────
+   LIQUID WAVE CREST GLINT: Luminous Foam Ridge on Leading Edge
+   ────────────────────────────────────────────────────────── */
+.hqds-nav-ghost-btn::after,
 .hqds-nav-pill-btn::after,
 .hqds-hero-primary-cta::after,
-.hqds-btn-primary::after {
+.hqds-btn-primary::after,
+.hqds-pillar-tab-btn::after,
+.hqds-dimension-tab-btn::after,
+.hqds-dim-nav-btn::after,
+.hqds-fstat-arrow-btn::after {
   content: '' !important;
   position: absolute !important;
+  top: -25% !important;
   left: 0 !important;
-  right: 0 !important;
-  top: 0 !important;
-  height: 2px !important;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent) !important;
-  opacity: 0 !important;
+  width: calc(100% + 64px) !important;
+  height: 150% !important;
   z-index: 2 !important;
-  transform: translateY(100%) !important;
-  transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease !important;
   pointer-events: none !important;
+  border-radius: inherit !important;
+  background: radial-gradient(
+    ellipse at 82% 50%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(224, 231, 255, 0.72) 28%,
+    rgba(168, 85, 247, 0.45) 54%,
+    transparent 78%
+  ) !important;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 100' preserveAspectRatio='none'%3E%3Cpath d='M 166,0 C 190,18 152,36 186,52 C 153,70 192,86 168,100 L 182,100 C 206,86 166,70 200,52 C 165,36 205,18 180,0 Z' fill='%23000'/%3E%3C/svg%3E") !important;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 100' preserveAspectRatio='none'%3E%3Cpath d='M 166,0 C 190,18 152,36 186,52 C 153,70 192,86 168,100 L 182,100 C 206,86 166,70 200,52 C 165,36 205,18 180,0 Z' fill='%23000'/%3E%3C/svg%3E") !important;
+  -webkit-mask-size: 100% 100% !important;
+  mask-size: 100% 100% !important;
+  transform: translateX(-100%) !important;
+  opacity: 0 !important;
+  transition: transform 0.52s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease !important;
 }
 
+/* ──────────────────────────────────────────────────────────
+   HOVER TRIGGER: Flood across left-to-right with wave undulation
+   ────────────────────────────────────────────────────────── */
+.hqds-nav-ghost-btn:hover,
 .hqds-nav-pill-btn:hover,
 .hqds-hero-primary-cta:hover,
-.hqds-btn-primary:hover {
-  transform: none !important; /* Strictly no movement */
-  border-color: rgba(233, 213, 255, 0.8) !important;
+.hqds-btn-primary:hover,
+.hqds-pillar-tab-btn:hover,
+.hqds-dimension-tab-btn:hover,
+.hqds-dim-nav-btn:hover,
+.hqds-fstat-arrow-btn:hover {
+  transform: none !important; /* Zero cursor following / no button translation */
+  border-color: rgba(192, 132, 252, 0.85) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65),
-              0 14px 38px rgba(126, 34, 206, 0.45),
-              0 0 30px rgba(192, 132, 252, 0.38) !important;
+              0 12px 36px rgba(109, 40, 217, 0.55),
+              0 0 28px rgba(139, 92, 246, 0.42) !important;
 }
 
+.hqds-nav-ghost-btn:hover::before,
 .hqds-nav-pill-btn:hover::before,
 .hqds-hero-primary-cta:hover::before,
-.hqds-btn-primary:hover::before {
-  transform: scaleY(1) !important;
+.hqds-btn-primary:hover::before,
+.hqds-pillar-tab-btn:hover::before,
+.hqds-dimension-tab-btn:hover::before,
+.hqds-dim-nav-btn:hover::before,
+.hqds-fstat-arrow-btn:hover::before {
+  transform: translateX(0%) !important;
+  animation: hqdsLiquidWaveUndulate 2.2s ease-in-out infinite alternate !important;
 }
 
+.hqds-nav-ghost-btn:hover::after,
 .hqds-nav-pill-btn:hover::after,
 .hqds-hero-primary-cta:hover::after,
-.hqds-btn-primary:hover::after {
+.hqds-btn-primary:hover::after,
+.hqds-pillar-tab-btn:hover::after,
+.hqds-dimension-tab-btn:hover::after,
+.hqds-dim-nav-btn:hover::after,
+.hqds-fstat-arrow-btn:hover::after {
+  transform: translateX(0%) !important;
   opacity: 1 !important;
-  transform: translateY(0%) !important;
+  animation: hqdsLiquidCrestBob 2.2s ease-in-out infinite alternate !important;
 }
 
 .hqds-hero-primary-cta:focus-visible,
-.hqds-nav-pill-btn:focus-visible {
+.hqds-nav-pill-btn:focus-visible,
+.hqds-nav-ghost-btn:focus-visible {
   outline: 2px solid #ffffff !important;
   outline-offset: 3px !important;
+}
+
+/* Water flooding undulation animation across the wave leading edge */
+@keyframes hqdsLiquidWaveUndulate {
+  0% {
+    transform: translateX(0%) translateY(-3px);
+  }
+  50% {
+    transform: translateX(0%) translateY(3px);
+  }
+  100% {
+    transform: translateX(0%) translateY(-2px);
+  }
+}
+
+@keyframes hqdsLiquidCrestBob {
+  0% {
+    transform: translateX(0%) translateY(-3px);
+    filter: brightness(1.0);
+  }
+  50% {
+    transform: translateX(0%) translateY(3px);
+    filter: brightness(1.3);
+  }
+  100% {
+    transform: translateX(0%) translateY(-2px);
+    filter: brightness(1.1);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   SCROLL-TRIGGERED REVEAL ANIMATIONS (Round 4 Architecture)
+   Wired on every tab menu, content block, stat card, and comparison card
+   ══════════════════════════════════════════════════════════ */
+.hqds-reveal,
+.hqds-floating-stat-card,
+.hqds-problem-card,
+.hqds-pillar-internal-menu,
+.hqds-pillar-single-card,
+.hqds-dimension-deck-wrapper,
+.hqds-dimension-stage-container,
+.hqds-conduit-portal-resting,
+.hqds-act-header {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.28s ease,
+              box-shadow 0.28s ease;
+  will-change: opacity, transform;
+}
+
+.hqds-reveal.is-revealed,
+.hqds-floating-stat-card.is-revealed,
+.hqds-problem-card.is-revealed,
+.hqds-pillar-internal-menu.is-revealed,
+.hqds-pillar-single-card.is-revealed,
+.hqds-dimension-deck-wrapper.is-revealed,
+.hqds-dimension-stage-container.is-revealed,
+.hqds-conduit-portal-resting.is-revealed,
+.hqds-act-header.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered entry for bilateral cards and dual comparisons */
+.hqds-floating-stat-card.hqds-fstat-left {
+  transition-delay: 80ms;
+}
+.hqds-floating-stat-card.hqds-fstat-right {
+  transition-delay: 180ms;
+}
+
+.hqds-problem-card.is-classical {
+  transition-delay: 60ms;
+}
+.hqds-problem-card.is-quantum {
+  transition-delay: 180ms;
+}
+
+.hqds-pillar-internal-menu {
+  transition-delay: 60ms;
+}
+.hqds-pillar-single-card {
+  transition-delay: 140ms;
+}
+
+.hqds-dimension-deck-wrapper {
+  transition-delay: 60ms;
+}
+.hqds-dimension-stage-container {
+  transition-delay: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hqds-reveal,
+  .hqds-floating-stat-card,
+  .hqds-problem-card,
+  .hqds-pillar-internal-menu,
+  .hqds-pillar-single-card,
+  .hqds-dimension-deck-wrapper,
+  .hqds-dimension-stage-container,
+  .hqds-conduit-portal-resting {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -3101,18 +3273,19 @@ body {
   flex-direction: column;
   gap: 12px;
   text-align: left;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.72s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.28s ease,
               box-shadow 0.28s ease;
 }
 
-.hqds-floating-stat-card:hover {
+.hqds-floating-stat-card.is-revealed:hover {
   transform: translateY(-4px);
   border-color: rgba(192, 132, 252, 0.4);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7), 0 0 24px rgba(192, 132, 252, 0.15);
 }
 
-.hqds-floating-stat-card.cyan-accent:hover {
+.hqds-floating-stat-card.cyan-accent.is-revealed:hover {
   border-color: rgba(45, 212, 191, 0.45);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7), 0 0 24px rgba(45, 212, 191, 0.15);
 }
@@ -3258,13 +3431,14 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.72s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.28s ease,
               box-shadow 0.28s ease;
   overflow: hidden;
 }
 
-.hqds-problem-card:hover {
+.hqds-problem-card.is-revealed:hover {
   transform: translateY(-4px);
 }
 
@@ -3526,25 +3700,14 @@ body {
   border-radius: 20px;
   padding: 36px 38px;
   position: relative;
-  animation: hqdsPillarFadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.72s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.28s ease,
               box-shadow 0.28s ease;
 }
 
-.hqds-pillar-single-card:hover {
+.hqds-pillar-single-card.is-revealed:hover {
   transform: translateY(-4px);
-}
-
-@keyframes hqdsPillarFadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Pillar Card Theming: Distinct visual personalities */
@@ -4022,21 +4185,16 @@ body {
   -webkit-backdrop-filter: blur(28px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.72s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.28s ease,
               box-shadow 0.28s ease;
-  animation: hqdsDimCardIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.hqds-dimension-active-card:hover {
+.hqds-dimension-active-card.is-revealed:hover {
   transform: translateY(-4px);
   border-color: rgba(45, 212, 191, 0.4);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 24px rgba(45, 212, 191, 0.12);
-}
-
-@keyframes hqdsDimCardIn {
-  0% { opacity: 0; transform: translateY(12px); }
-  100% { opacity: 1; transform: translateY(0); }
 }
 
 .hqds-dimcard-header {
@@ -4653,18 +4811,97 @@ body {
    ══════════════════════════════════════════════════════════ */
 
 .hqds-header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 74px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
   background: rgba(8, 9, 14, 0.82) !important;
   backdrop-filter: blur(32px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
   border-bottom: 1px solid rgba(192, 132, 252, 0.15) !important;
-  box-shadow: 0 4px 30px rgba(0,0,0,0.55) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.55) !important;
 }
 
-/* Brand name — white to lavender gradient */
+.hqds-header-inner {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.hqds-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.hqds-logo-symbol {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  max-width: 28px;
+  max-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hqds-logo-svg {
+  width: 28px;
+  height: 28px;
+  max-width: 28px;
+  max-height: 28px;
+  display: block;
+}
+
+.hqds-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
 .hqds-brand-name {
+  font-family: 'Epilogue', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
   background: linear-gradient(135deg, #ffffff 30%, #e9d5ff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.hqds-brand-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  color: #c084fc;
+  opacity: 0.75;
+}
+
+.hqds-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hqds-header-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 /* Status pill — violet border matching both pages */

@@ -7,7 +7,7 @@
  * meters, throughput telemetry (samples/sec), and execution timing.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { runUnifiedSimulation } from '../api/client.js';
 
 const SAMPLE_PRESETS = [
@@ -18,7 +18,7 @@ const SAMPLE_PRESETS = [
   { label: '5,000 Samples (358 Batches - Max)', value: 5000 },
 ];
 
-export default function LargeScaleSimulationPanel({ onResult }) {
+export default function LargeScaleSimulationPanel({ onResult, onParamsChange }) {
   const [numSamples, setNumSamples] = useState(100);
   const [attackType, setAttackType] = useState('none');
   const [noiseRate, setNoiseRate] = useState(0.02);
@@ -30,6 +30,16 @@ export default function LargeScaleSimulationPanel({ onResult }) {
 
   const maxPairsPerBatch = 14;
   const calculatedBatches = Math.ceil(numSamples / maxPairsPerBatch);
+
+  useEffect(() => {
+    onParamsChange?.({
+      numSamples,
+      attackType,
+      noiseRate,
+      status,
+      calculatedBatches,
+    });
+  }, [numSamples, attackType, noiseRate, status, calculatedBatches, onParamsChange]);
 
   async function handleExecuteLargeScale() {
     setStatus('running');

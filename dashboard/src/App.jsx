@@ -59,6 +59,12 @@ export default function App() {
   const [selectedAttack, setSelectedAttack] = useState('intercept_resend');
   const [selectedEntity, setSelectedEntity] = useState(TARGET_SIGNATURE_ENTITIES[0]);
   const [operationPhase, setOperationPhase] = useState('IDLE');
+  const [largeScaleParams, setLargeScaleParams] = useState({
+    numSamples: 100,
+    attackType: 'none',
+    noiseRate: 0.02,
+    status: 'idle',
+  });
 
   const isAttacked = Boolean(activeData?.detect?.is_malicious || activeData?.type === 'attack');
   const fidelity = typeof activeData?.detect?.fidelity === 'number' ? activeData.detect.fidelity : 0.99;
@@ -71,6 +77,7 @@ export default function App() {
       }
     } else if (view === 'honest' || view === 'pipeline') {
       setCurrentView('honest');
+      setActiveData(null);
       if (typeof window !== 'undefined' && window.history?.pushState) {
         window.history.pushState(null, '', '?view=honest');
       }
@@ -147,6 +154,7 @@ export default function App() {
                     {activeTab === 'large_scale' && (
                       <LargeScaleSimulationPanel
                         onResult={setActiveData}
+                        onParamsChange={setLargeScaleParams}
                       />
                     )}
                   </ErrorBoundary>
@@ -218,10 +226,12 @@ export default function App() {
                   {activeTab === 'large_scale' && (
                     <ErrorBoundary title="3D Scalable Cluster Unavailable">
                       <ScalableCluster3D
-                        numSamples={activeData?.sim?.num_qubits || 100}
-                        batchesExecuted={activeData?.sim?.batches_executed || 8}
+                        numSamples={largeScaleParams.numSamples}
+                        batchesExecuted={activeData?.sim?.batches_executed || Math.ceil(largeScaleParams.numSamples / 14)}
                         throughput={activeData?.sim?.samples_per_sec || 450}
-                        status={activeData ? 'done' : 'idle'}
+                        attackType={largeScaleParams.attackType}
+                        noiseRate={largeScaleParams.noiseRate}
+                        status={largeScaleParams.status !== 'idle' ? largeScaleParams.status : (activeData ? 'done' : 'idle')}
                       />
                     </ErrorBoundary>
                   )}

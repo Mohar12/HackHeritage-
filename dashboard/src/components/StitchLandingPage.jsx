@@ -87,28 +87,69 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
   }, []);
 
   // Performance: IntersectionObserver updates activeAct ONLY when crossing sections
+  // Performance-optimized scroll-reveal IntersectionObserver (Round 4 Architecture)
   useEffect(() => {
-    const revealObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            if (entry.target.id && entry.target.classList.contains('hqds-act')) {
-              setActiveAct(entry.target.id);
-            }
-            entry.target.classList.add('is-revealed');
-          }
-        });
-      },
-      {
-        rootMargin: '0px 0px -8% 0px',
-        threshold: 0.06,
-      }
-    );
+    // 1. Act tracker for active navigation dot / header
+    const actObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && entry.target.id) {
+          setActiveAct(entry.target.id);
+        }
+      });
+    }, {
+      rootMargin: '-20% 0px -40% 0px',
+      threshold: 0.1,
+    });
 
-    const revealElements = document.querySelectorAll('.hqds-act, .hqds-reveal');
-    revealElements.forEach((el) => revealObserver.observe(el));
-    return () => revealObserver.disconnect();
-  }, []);
+    document.querySelectorAll('.hqds-act').forEach((act) => actObserver.observe(act));
+
+    // 2. Individual content blocks scroll-reveal observer
+    const contentObserver = new IntersectionObserver((entries, obs) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-revealed');
+          // Unobserve once revealed so minor scroll jitter never retriggers
+          obs.unobserve(entry.target);
+        }
+      });
+    }, {
+      rootMargin: '0px 0px -50px 0px',
+      threshold: 0.08,
+    });
+
+    const selector = [
+      '.hqds-reveal',
+      '.hqds-floating-stat-card',
+      '.hqds-act-header',
+      '.hqds-problem-card',
+      '.hqds-pillar-internal-menu',
+      '.hqds-pillar-single-card',
+      '.hqds-dimension-deck-wrapper',
+      '.hqds-dimension-stage-container',
+      '.hqds-conduit-portal-resting',
+    ].join(', ');
+
+    const revealElements = document.querySelectorAll(selector);
+    revealElements.forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      // On mount, only elements in the immediate top hero fold receive is-revealed
+      if (rect.top >= 0 && rect.top < window.innerHeight * 0.75) {
+        el.classList.add('is-revealed');
+      } else if (rect.bottom < 0) {
+        // If already scrolled past (e.g. reload while scrolled)
+        el.classList.add('is-revealed');
+      } else {
+        // Elements below viewport start unrevealed and are observed for scroll entrance
+        el.classList.remove('is-revealed');
+        contentObserver.observe(el);
+      }
+    });
+
+    return () => {
+      actObserver.disconnect();
+      contentObserver.disconnect();
+    };
+  }, [activePillar, activeDimension]);
 
   // Smooth scroll to section
   const scrollToAct = (id) => {
@@ -362,7 +403,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
           {/* Symmetrical Bilateral Floating Glass Stat Cards Framed Over the 3D Hero Object */}
           <div ref={heroCardsRef} className="hqds-hero-stage-overlap" aria-hidden="false">
             {/* Left Stat Card: Physical Collapse Latency */}
-            <div className="hqds-floating-stat-card hqds-fstat-left">
+            <div className="hqds-floating-stat-card hqds-fstat-left hqds-reveal">
               <div className="hqds-fstat-top-row">
                 <span className="hqds-fstat-label">Physical Collapse Latency</span>
                 <button
@@ -379,7 +420,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
             </div>
 
             {/* Right Stat Card: Hypothesis Rejection Confidence */}
-            <div className="hqds-floating-stat-card cyan-accent hqds-fstat-right">
+            <div className="hqds-floating-stat-card cyan-accent hqds-fstat-right hqds-reveal">
               <div className="hqds-fstat-top-row">
                 <span className="hqds-fstat-label">Hypothesis Rejection Confidence</span>
                 <button

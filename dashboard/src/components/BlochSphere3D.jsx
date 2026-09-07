@@ -10,7 +10,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
-export default function BlochSphere3D({ theta = Math.PI / 4, phi = 0, fidelity = 1.0, isAttacked = false }) {
+export default function BlochSphere3D({ theta = Math.PI / 4, phi = 0, fidelity = 1.0, isAttacked = false, badgeText, pillClass }) {
   const mountRef = useRef(null);
   const [webglSupported, setWebglSupported] = useState(true);
 
@@ -164,8 +164,8 @@ export default function BlochSphere3D({ theta = Math.PI / 4, phi = 0, fidelity =
     <div className="bloch-sphere-widget">
       <div className="widget-header">
         <h4>Interactive 3D Quantum Bloch Sphere</h4>
-        <span className={`pill-tag ${isAttacked ? 'pill-danger' : 'pill-cyan'}`}>
-          {isAttacked ? 'State Vector Perturbed' : '|ψ⟩ Pure Bell State'}
+        <span className={`pill-tag ${pillClass || (isAttacked ? 'pill-danger' : 'pill-cyan')}`}>
+          {badgeText || (isAttacked ? 'State Vector Perturbed' : '|ψ⟩ Pure Bell State')}
         </span>
       </div>
 

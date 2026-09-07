@@ -182,21 +182,63 @@ const fluidFragmentShader = `
     // Combine Metallic / Water Surface
     vec3 metallicSurface = liquidBase + torchReflection + rimLight + internalGlow;
     
-    // 7. Procedural Structural Line-Arcs (Act 2 Problem & Comparison Left)
-    float lat = sin(vPosition.y * 12.0 + uTime * 0.25);
-    float latLine = smoothstep(0.92, 0.985, abs(lat));
-    float lonAngle = atan(vPosition.z, vPosition.x);
-    float lon = sin(lonAngle * 16.0 + uTime * 0.2);
-    float lonLine = smoothstep(0.90, 0.985, abs(lon));
-    float diag = sin((vPosition.x * 0.6 + vPosition.y * 0.6 + vPosition.z * 0.6) * 8.0 - uTime * 0.35);
-    float diagLine = smoothstep(0.93, 0.985, abs(diag));
-    float wireframeRays = max(max(latLine, lonLine), diagLine * 0.75);
+    // 7. Option A: Faceted Crystalline Surface (Replacing Grid/Wireframe Lines)
+    // Flat-shaded triangular and polygonal crystal facets catching light individually
+    vec3 crystalCoord = vPosition * 1.65;
+    vec3 iCrystal = floor(crystalCoord);
+    vec3 fCrystal = fract(crystalCoord);
     
-    vec3 wireframeGlow = uColorWireframe * (wireframeRays * 2.2 + fresnel * 1.1);
-    vec3 structuralColor = mix(uColorDeepVoid * 0.4, uColorCore * 0.7, wireframeRays * 0.3) + wireframeGlow;
-    structuralColor += uColorSpecGlint * (travelingWaveGlint1 * 0.7);
+    float minFacetDist = 10.0;
+    vec3 facetCenter = vec3(0.0);
+    vec3 facetId = vec3(0.0);
     
-    vec3 finalColor = mix(metallicSurface, structuralColor, uWireframeMix);
+    for (int cx = -1; cx <= 1; cx++) {
+      for (int cy = -1; cy <= 1; cy++) {
+        for (int cz = -1; cz <= 1; cz++) {
+          vec3 neighbor = vec3(float(cx), float(cy), float(cz));
+          vec3 seed = iCrystal + neighbor;
+          vec3 jitter = sin(vec3(
+            dot(seed, vec3(127.1, 311.7, 74.7)),
+            dot(seed, vec3(269.5, 183.3, 246.1)),
+            dot(seed, vec3(113.5, 271.9, 124.6))
+          )) * 43758.5453;
+          vec3 facetPt = neighbor + fract(jitter) * 0.65 + 0.18;
+          vec3 diff = facetPt - fCrystal;
+          float distSq = dot(diff, diff);
+          if (distSq < minFacetDist) {
+            minFacetDist = distSq;
+            facetCenter = seed + facetPt;
+            facetId = fract(jitter);
+          }
+        }
+      }
+    }
+    
+    // Discrete planar facet normal for flat-shaded crystal facets
+    vec3 flatFacetNormal = normalize(facetCenter - vec3(0.0));
+    vec3 facetPerturb = normalize((facetId - 0.5) * 1.6 + flatFacetNormal * 0.4);
+    vec3 shardViewNormal = normalize(normal + facetPerturb * 0.75);
+    
+    // Angular directional lighting across triangular facets
+    vec3 facetLightDir1 = normalize(vec3(0.85, 1.1, 1.4));
+    vec3 facetLightDir2 = normalize(vec3(-1.1, -0.5, 1.1));
+    float facetDiff1 = max(0.0, dot(shardViewNormal, facetLightDir1));
+    float facetDiff2 = max(0.0, dot(shardViewNormal, facetLightDir2));
+    
+    // Razor-sharp specular flashes per individual crystal facet
+    vec3 halfVecF = normalize(facetLightDir1 + viewDir);
+    float facetSpec = pow(max(0.0, dot(shardViewNormal, halfVecF)), 42.0) * (facetId.x * 0.75 + 0.45);
+    
+    // Facet interior refraction and soft boundary bevel
+    float facetEdge = smoothstep(0.015, 0.16, minFacetDist);
+    
+    // Cool Blue-White Photonic Ice Crystalline Color
+    vec3 iceFacetColor = mix(uColorWireframe, vec3(0.88, 0.96, 1.0), facetId.y * 0.7);
+    vec3 crystalBase = mix(uColorDeepVoid * 0.35, iceFacetColor * (0.35 + facetDiff1 * 0.45 + facetDiff2 * 0.25), facetEdge);
+    vec3 crystallineSurface = crystalBase + vec3(0.96, 0.98, 1.0) * (facetSpec * 2.6) + (iceFacetColor * fresnel * 0.92);
+    crystallineSurface += uColorSpecGlint * (travelingWaveGlint1 * 0.45);
+    
+    vec3 finalColor = mix(metallicSurface, crystallineSurface, uWireframeMix);
     
     // 8. Volumetric Smoke State (Closing Act)
     if (uSmokeMix > 0.001) {
@@ -208,17 +250,17 @@ const fluidFragmentShader = `
     // 9. Comparison Split Treatment (Act 4)
     if (uSplitMix > 0.001) {
       float splitEdge = smoothstep(-0.25, 0.25, vWorldPosition.x);
-      vec3 classicalSide = structuralColor;
+      vec3 classicalSide = crystallineSurface;
       float stressFlicker = sin(uTime * 14.0 + vPosition.y * 6.0) * 0.5 + 0.5;
-      vec3 stressColor = vec3(0.85, 0.22, 0.22);
-      classicalSide = mix(classicalSide, stressColor * 0.75, wireframeRays * 0.45);
+      vec3 stressColor = vec3(0.88, 0.2, 0.2);
+      classicalSide = mix(classicalSide, stressColor * 0.82, (1.0 - facetEdge) * 0.6 + facetDiff1 * 0.35);
       vec3 splitComposite = mix(classicalSide, metallicSurface, splitEdge);
       finalColor = mix(finalColor, splitComposite, uSplitMix);
     }
     
     // 10. Opacity: 75–85% Solid Visual Presence with subtle translucent rim
     float baseAlpha = mix(0.82 * uFillDensity, 0.94, fresnel * 0.8);
-    float alpha = uOpacity * clamp(baseAlpha + wireframeRays * uWireframeMix * 0.3, 0.0, 1.0);
+    float alpha = uOpacity * clamp(baseAlpha + (facetSpec * 0.5 + 0.15) * uWireframeMix * 0.3, 0.0, 1.0);
     
     gl_FragColor = vec4(finalColor, alpha);
   }

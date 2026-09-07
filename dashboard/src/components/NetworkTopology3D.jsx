@@ -9,7 +9,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-export default function NetworkTopology3D({ isAttacked = false, activeNode = 'Alice' }) {
+export default function NetworkTopology3D({ isAttacked = false, activeNode = 'Alice', badgeText, pillClass }) {
   const mountRef = useRef(null);
 
   useEffect(() => {
@@ -125,8 +125,8 @@ export default function NetworkTopology3D({ isAttacked = false, activeNode = 'Al
           <span className="viz-badge">MESH TOPOLOGY</span>
           <h4>Quantum QDS Network Graph</h4>
         </div>
-        <span className={`pill-tag ${isAttacked ? 'pill-danger' : 'pill-cyan'}`}>
-          {isAttacked ? '🚨 Rogue Interceptor Active' : '🔒 Secure Mesh Links'}
+        <span className={`pill-tag ${pillClass || (isAttacked ? 'pill-danger' : 'pill-cyan')}`}>
+          {badgeText || (isAttacked ? '🚨 Rogue Interceptor Active' : '🔒 Secure Mesh Links')}
         </span>
       </div>
       <div ref={mountRef} className="topology-canvas-mount" />
