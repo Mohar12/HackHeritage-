@@ -106,6 +106,28 @@ docker compose down
 
 ---
 
+## Quick Start (One-Click / Single Command)
+
+To launch both the FastAPI Backend and React Dashboard simultaneously with automatic health checks, dependency verification, and auto-browser opening:
+
+```bash
+# Windows Batch (or double-click start.bat in File Explorer)
+start.bat
+
+# Or using Python directly (Cross-Platform)
+python start.py
+
+# Or via PowerShell
+.\start.ps1
+```
+
+To stop all running services:
+```bash
+stop.bat
+```
+
+---
+
 ## Local Development (without Docker)
 
 ### Backend

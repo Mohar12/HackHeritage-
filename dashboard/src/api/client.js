@@ -1,18 +1,51 @@
 /**
  * client.js
  * =========
- * API client for the QDS Threat Detection backend (FastAPI on port 8000).
+ * API client for the QDS Threat Detection backend.
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+/**
+ * Resolve the API base URL based on execution environment.
+ * - If VITE_API_URL is provided, use it (trimming any trailing slash).
+ * - In production mode (PROD=true), defaults to '' (same-origin relative URL)
+ *   so production builds never accidentally call localhost:8000.
+ * - In development mode, defaults to 'http://localhost:8000'.
+ */
+export function resolveBaseUrl(env = (typeof import.meta !== 'undefined' ? import.meta.env : {})) {
+  if (env?.VITE_API_URL) {
+    return env.VITE_API_URL.replace(/\/+$/, '');
+  }
+  if (env?.PROD) {
+    return '';
+  }
+  return 'http://localhost:8000';
+}
+
+export const BASE_URL = resolveBaseUrl();
 
 /** Generic fetch helper — throws on non-2xx status. */
-async function apiFetch(path, options = {}) {
-  const url = `${BASE_URL}${path}`;
+export async function apiFetch(path, options = {}) {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${BASE_URL}${normalizedPath}`;
+
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  const apiKey = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY;
+  if (apiKey) {
+    defaultHeaders['Authorization'] = `Bearer ${apiKey}`;
+  }
+
   const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
   });
+
   if (!response.ok) {
     const errorBody = await response.text();
     throw new Error(`API error ${response.status} for ${url}: ${errorBody}`);

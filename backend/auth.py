@@ -27,10 +27,12 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import secrets
 from typing import Set
 
-from fastapi import Request
+from fastapi import Request, HTTPException
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
@@ -107,6 +109,15 @@ def is_public_path(path: str) -> bool:
     return False
 
 
+def _sanitize_error_detail(detail: str) -> str:
+    """Mask absolute filesystem paths in error messages to prevent internal environment leakage."""
+    if not detail:
+        return "An internal server error occurred."
+    sanitized = re.sub(r"[a-zA-Z]:\\[^\s:\"']+", "[REDACTED_PATH]", detail)
+    sanitized = re.sub(r"/(?:[a-zA-Z0-9._-]+/)+[a-zA-Z0-9._-]+", "[REDACTED_PATH]", sanitized)
+    return sanitized
+
+
 class APIKeyAuthMiddleware(BaseHTTPMiddleware):
     """FastAPI/Starlette middleware enforcing API-key access control when configured,
     and injecting standard security response headers."""
@@ -136,8 +147,33 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
                     headers={"WWW-Authenticate": "Bearer"},
                 )
 
-        # 3. Process request downstream
-        response: Response = await call_next(request)
+        # 3. Process request downstream with exception containment.
+        # When an unhandled exception or HTTPException bubbles up through call_next in BaseHTTPMiddleware,
+        # catching it here and converting it directly to an HTTP response ensures that the response
+        # returns cleanly through the outermost CORSMiddleware. This guarantees that CORS headers
+        # (e.g. Access-Control-Allow-Origin) are always preserved on error responses (4xx/500).
+        try:
+            response: Response = await call_next(request)
+        except (HTTPException, StarletteHTTPException) as http_exc:
+            response = JSONResponse(
+                status_code=http_exc.status_code,
+                content={
+                    "error": type(http_exc).__name__,
+                    "detail": _sanitize_error_detail(str(http_exc.detail)),
+                    "status_code": http_exc.status_code,
+                },
+                headers=getattr(http_exc, "headers", None) or {},
+            )
+        except Exception as exc:
+            logger.exception("Unhandled error processing request %s: %s", request.url.path, exc)
+            response = JSONResponse(
+                status_code=500,
+                content={
+                    "error": type(exc).__name__,
+                    "detail": _sanitize_error_detail(str(exc)),
+                    "status_code": 500,
+                },
+            )
 
         # 4. Inject standard defensive HTTP security headers
         response.headers.setdefault("X-Content-Type-Options", "nosniff")

@@ -335,6 +335,77 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
     }
   };
 
+  // Stage 9.5: Premium Cursor-Reactive 3D Card Tilt + Specular Tracking
+  const handleCardPointerEnter = (e) => {
+    if (typeof window === 'undefined') return;
+    if (!window.matchMedia || !window.matchMedia('(pointer: fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const card = e.currentTarget;
+    card.classList.add('is-pointer-active');
+  };
+
+  const handleCardPointerMove = (e) => {
+    if (typeof window === 'undefined') return;
+    if (!window.matchMedia || !window.matchMedia('(pointer: fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const card = e.currentTarget;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+
+    if (card._rafId) return;
+
+    card._rafId = requestAnimationFrame(() => {
+      card._rafId = null;
+      const rect = card.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const px = clientX - rect.left;
+      const py = clientY - rect.top;
+      const x = Math.max(0, Math.min(1, px / rect.width));
+      const y = Math.max(0, Math.min(1, py / rect.height));
+
+      // Map: rotateY = (x - 0.5) * 8deg, rotateX = (y - 0.5) * 8deg
+      // Upper-right: rotateX -> negative, rotateY -> positive
+      // Clamped to approximately ±4deg
+      let rotY = (x - 0.5) * 8;
+      let rotX = (y - 0.5) * 8;
+      rotY = Math.max(-4, Math.min(4, rotY));
+      rotX = Math.max(-4, Math.min(4, rotX));
+
+      // Depth: center translateZ(0px), edges up to translateZ(8px)
+      const distFromCenter = Math.hypot(x - 0.5, y - 0.5) * 2;
+      const depth = Math.min(8, Math.max(0, distFromCenter * 8));
+
+      // Restrained internal parallax: 1-2px max shift relative to card
+      const shiftX = (x - 0.5) * 3;
+      const shiftY = (y - 0.5) * 3;
+
+      card.style.setProperty('--card-tilt-x', `${rotX.toFixed(2)}deg`);
+      card.style.setProperty('--card-tilt-y', `${rotY.toFixed(2)}deg`);
+      card.style.setProperty('--card-depth', `${depth.toFixed(1)}px`);
+      card.style.setProperty('--card-shift-x', `${shiftX.toFixed(2)}px`);
+      card.style.setProperty('--card-shift-y', `${shiftY.toFixed(2)}px`);
+      card.style.setProperty('--mouse-x', `${px.toFixed(1)}px`);
+      card.style.setProperty('--mouse-y', `${py.toFixed(1)}px`);
+    });
+  };
+
+  const handleCardPointerLeave = (e) => {
+    const card = e.currentTarget;
+    if (card._rafId) {
+      cancelAnimationFrame(card._rafId);
+      card._rafId = null;
+    }
+    card.classList.remove('is-pointer-active');
+    card.style.setProperty('--card-tilt-x', '0deg');
+    card.style.setProperty('--card-tilt-y', '0deg');
+    card.style.setProperty('--card-depth', '0px');
+    card.style.setProperty('--card-shift-x', '0px');
+    card.style.setProperty('--card-shift-y', '0px');
+    card.style.setProperty('--mouse-x', '-999px');
+    card.style.setProperty('--mouse-y', '-999px');
+  };
+
   // Comparison Dimensions (Sequential Overtake Moments)
   const comparisonData = [
     {
@@ -731,6 +802,9 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                       <div
                         key={currentPillar.digit}
                         className={`hqds-glass-sharp hqds-pillar-single-card pillar-card-${currentPillar.digit}`}
+                        onPointerEnter={handleCardPointerEnter}
+                        onPointerMove={handleCardPointerMove}
+                        onPointerLeave={handleCardPointerLeave}
                       >
                         <div className="hqds-pillar-header-row">
                           <div>
@@ -809,7 +883,10 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
             </div>
 
             {/* Active Dimension Display Card (Content panel stays completely static on scroll) */}
-            <div className="hqds-dimension-stage-container">
+            <div
+              className={`hqds-dimension-stage-container dim-stage-${activeDimension}`}
+              style={{ '--dim-accent': ['#2dd4bf', '#38bdf8', '#c084fc', '#f59e0b', '#ff3355'][activeDimension] || '#2dd4bf' }}
+            >
               <div className="hqds-dimension-ambient-glow" aria-hidden="true" />
               {/* Active Dimension Display Card with Smooth Cross-Fade & Stage 7B Content Fade/Rise */}
               <div ref={dimensionContentRef} className="hqds-scroll-content-wrap">
@@ -822,7 +899,10 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                         id={`dim-panel-${activeDimension}`}
                         role="tabpanel"
                         aria-labelledby={`dim-tab-${activeDimension}`}
-                        className="hqds-glass-deep hqds-dimension-active-card"
+                        className={`hqds-glass-deep hqds-dimension-active-card dim-card-${activeDimension}`}
+                        onPointerEnter={handleCardPointerEnter}
+                        onPointerMove={handleCardPointerMove}
+                        onPointerLeave={handleCardPointerLeave}
                       >
                         <div className="hqds-dimcard-header">
                           <div className="hqds-dimcard-title-group">
