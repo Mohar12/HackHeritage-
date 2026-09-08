@@ -122,6 +122,10 @@ export default function AttackSelectionPanel({
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   async function handleSimulateAttack() {
+    // Reset phase synchronously before anything else so blobThreatAlert
+    // is guaranteed to start from 0 on the very first render frame of the
+    // new attack, even if the previous run ended at DEFENSE_ABORT (=1.0).
+    if (onOperationPhase) onOperationPhase('IDLE');
     setStatus('running');
     setErrorMsg('');
     if (onStageUpdate) onStageUpdate(7);

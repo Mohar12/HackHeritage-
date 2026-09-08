@@ -260,7 +260,7 @@ const haloFragmentShader = `
   }
 `;
 
-export default function QuantumEntanglementCanvas({ activePillar = '01', activeDimension = 0 }) {
+export default function QuantumEntanglementCanvas({ activePillar = '01', activeDimension = 0, threatAlert = 0, threatAttackType = null }) {
   const mountRef = useRef(null);
   const activePillarRef = useRef(activePillar);
   const activeDimensionRef = useRef(activeDimension);
@@ -272,6 +272,18 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
   useEffect(() => {
     activeDimensionRef.current = activeDimension;
   }, [activeDimension]);
+
+  const threatAlertRef = useRef(threatAlert);
+
+  useEffect(() => {
+    threatAlertRef.current = threatAlert;
+  }, [threatAlert]);
+
+  const threatAttackTypeRef = useRef(threatAttackType);
+
+  useEffect(() => {
+    threatAttackTypeRef.current = threatAttackType;
+  }, [threatAttackType]);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -396,11 +408,44 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
     let prevScroll = 0;
     let scrollVelocity = 0;
 
-    let cachedDocHeight = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    // Minimum virtual scroll-height floor. This is calibrated to roughly match
+    // the landing page's own natural scrollable height, so on the landing page
+    // itself this Math.max is a no-op (real docHeight already exceeds it) and
+    // nothing changes there. On shorter pages (Attack Lab, Honest Protocol,
+    // Scalable Engine, Audit Ledger), this floor prevents scroll progress from
+    // being computed against a tiny denominator, which previously caused (a)
+    // large p-jumps per scroll tick (non-smooth motion) and (b) p reaching the
+    // Act 5 "closing dissolve" state after only a small amount of scrolling on
+    // short pages (the blob appearing to vanish prematurely).
+    const MIN_VIRTUAL_SCROLL_HEIGHT = 4200;
+
+    let cachedDocHeight = Math.max(
+      MIN_VIRTUAL_SCROLL_HEIGHT,
+      document.documentElement.scrollHeight - window.innerHeight
+    );
     const updateDocHeight = () => {
-      cachedDocHeight = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      cachedDocHeight = Math.max(
+        MIN_VIRTUAL_SCROLL_HEIGHT,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
     };
     window.addEventListener('resize', updateDocHeight, { passive: true });
+
+    // Also watch for content-driven height changes (not just browser window
+    // resizes) -- e.g. a telemetry panel or results section appearing after
+    // a user action changes document.documentElement.scrollHeight without
+    // firing a native "resize" event. Without this, cachedDocHeight can go
+    // stale and cause p to jump or reach 1.0 prematurely on pages whose
+    // content grows after mount.
+    let resizeObserverRaf = null;
+    const resizeObserver = new ResizeObserver(() => {
+      if (resizeObserverRaf) return;
+      resizeObserverRaf = requestAnimationFrame(() => {
+        resizeObserverRaf = null;
+        updateDocHeight();
+      });
+    });
+    resizeObserver.observe(document.body);
 
     const handleScroll = () => {
       targetScroll = Math.min(1, Math.max(0, window.scrollY / cachedDocHeight));
@@ -603,6 +648,72 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
         wireframe: new THREE.Color(0x9f1239),
         halo: new THREE.Color(0x2b0c18),
       },
+      // Attack Lab: one distinct crimson/red shade per attack type, so the blob
+      // communicates WHICH attack is active, not just that one is happening.
+      // All 5 are calibrated to similar perceived intensity/brightness so no
+      // single attack type reads as more or less severe than another.
+      threatColorsByType: {
+        intercept_resend: {
+          // Pure saturated red -- channel interception, most "classic" attack red
+          deepVoid: new THREE.Color(0x140204),
+          core: new THREE.Color(0x40060f),
+          mid: new THREE.Color(0x8a0f1f),
+          bright: new THREE.Color(0xe01e2f),
+          torchGlint: new THREE.Color(0xff2438),
+          specGlint: new THREE.Color(0xffb3ba),
+          rim: new THREE.Color(0xff4d5a),
+          wireframe: new THREE.Color(0xff1e2f),
+          halo: new THREE.Color(0x6e0f1c),
+        },
+        depolarizing: {
+          // Warm orange-red -- environmental noise/decoherence, not an active adversary
+          deepVoid: new THREE.Color(0x140702),
+          core: new THREE.Color(0x401505),
+          mid: new THREE.Color(0x8a3208),
+          bright: new THREE.Color(0xe0570f),
+          torchGlint: new THREE.Color(0xff6a24),
+          specGlint: new THREE.Color(0xffd0b3),
+          rim: new THREE.Color(0xff8a4d),
+          wireframe: new THREE.Color(0xff5e1e),
+          halo: new THREE.Color(0x6e2c0f),
+        },
+        forgery: {
+          // Crimson-magenta -- identity/signature forgery
+          deepVoid: new THREE.Color(0x120210),
+          core: new THREE.Color(0x3d0638),
+          mid: new THREE.Color(0x830f6e),
+          bright: new THREE.Color(0xd91ea8),
+          torchGlint: new THREE.Color(0xff24bd),
+          specGlint: new THREE.Color(0xffb3e8),
+          rim: new THREE.Color(0xff4dd0),
+          wireframe: new THREE.Color(0xff1eb8),
+          halo: new THREE.Color(0x6e0f5e),
+        },
+        impersonation: {
+          // Deep rose-red -- spoofed identity, slightly cooler than pure red
+          deepVoid: new THREE.Color(0x140208),
+          core: new THREE.Color(0x400620),
+          mid: new THREE.Color(0x8a0f46),
+          bright: new THREE.Color(0xe01e78),
+          torchGlint: new THREE.Color(0xff248a),
+          specGlint: new THREE.Color(0xffb3d0),
+          rim: new THREE.Color(0xff4da0),
+          wireframe: new THREE.Color(0xff1e8a),
+          halo: new THREE.Color(0x6e0f3c),
+        },
+        replay: {
+          // Deep blood-red / maroon -- stale/reused signature, darker and heavier
+          deepVoid: new THREE.Color(0x110203),
+          core: new THREE.Color(0x38070c),
+          mid: new THREE.Color(0x701018),
+          bright: new THREE.Color(0xa8202a),
+          torchGlint: new THREE.Color(0xc22834),
+          specGlint: new THREE.Color(0xf0a8ae),
+          rim: new THREE.Color(0xd6404a),
+          wireframe: new THREE.Color(0xb81e28),
+          halo: new THREE.Color(0x520d13),
+        },
+      },
     };
 
     // Animation Loop with Time-Aware Delta Damping
@@ -611,287 +722,360 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
     const clock = new THREE.Clock();
 
     const animate = () => {
+      // Schedule the next frame FIRST, unconditionally, before any logic that
+      // could throw. This guarantees the rAF loop itself can never be broken
+      // by an exception anywhere below -- worst case, a single frame's visual
+      // update is skipped and logged, but the loop keeps running and the very
+      // next frame gets a fresh chance to render correctly.
       animId = requestAnimationFrame(animate);
 
-      const now = performance.now();
-      const delta = Math.min((now - lastTime) / 1000, 0.1);
-      lastTime = now;
-      const elapsed = clock.getElapsedTime();
+      try {
+        const now = performance.now();
+        const delta = Math.min((now - lastTime) / 1000, 0.1);
+        lastTime = now;
+        const elapsed = clock.getElapsedTime();
 
-      // Time-aware exponential damping for scroll follow (tight, responsive, zero perceptible lag)
-      const scrollDampingFactor = 1.0 - Math.exp(-22.0 * delta);
-      currentScroll += (targetScroll - currentScroll) * scrollDampingFactor;
-      
-      // Calculate scroll impulse velocity
-      const instantVelocity = Math.abs(currentScroll - prevScroll) / Math.max(0.001, delta);
-      scrollVelocity += (instantVelocity * 0.08 - scrollVelocity) * (1.0 - Math.exp(-7.0 * delta));
-      prevScroll = currentScroll;
+        // Time-aware exponential damping for scroll follow (tight, responsive, zero perceptible lag)
+        const scrollDampingFactor = 1.0 - Math.exp(-22.0 * delta);
+        currentScroll += (targetScroll - currentScroll) * scrollDampingFactor;
+        
+        // Calculate scroll impulse velocity
+        const instantVelocity = Math.abs(currentScroll - prevScroll) / Math.max(0.001, delta);
+        scrollVelocity += (instantVelocity * 0.08 - scrollVelocity) * (1.0 - Math.exp(-7.0 * delta));
+        prevScroll = currentScroll;
 
-      // Damped pointer lerp
-      const pointerFactor = 1.0 - Math.exp(-4.0 * delta);
-      mouseX += (mouseTargetX - mouseX) * pointerFactor;
-      mouseY += (mouseTargetY - mouseY) * pointerFactor;
+        // Damped pointer lerp
+        const pointerFactor = 1.0 - Math.exp(-4.0 * delta);
+        mouseX += (mouseTargetX - mouseX) * pointerFactor;
+        mouseY += (mouseTargetY - mouseY) * pointerFactor;
 
-      const p = currentScroll; // Continuous normalized progress [0, 1]
-      const currentPillar = activePillarRef.current;
-      let pillarState = stateColors.pillarP1;
-      if (currentPillar === '02') {
-        pillarState = stateColors.pillarP2;
-      } else if (currentPillar === '03') {
-        pillarState = stateColors.pillarP3;
-      }
-
-      const currentDimension = typeof activeDimensionRef.current === 'number' ? activeDimensionRef.current : 0;
-      const dimensionState = stateColors.dimensionStates[currentDimension] || stateColors.dimensionStates[0];
-
-      // State machine parameter targets (gentle, contained shifts per Stage 2)
-      let targetX = 0;
-      let targetY = -2.8;
-      let targetScale = 1.0;
-      let targetCameraZ = 14.0;
-      let turbulence = 0;
-      let internalFlux = 0.2;
-      let fresnelPower = 2.8;
-      let fresnelStrength = 1.1;
-      let haloIntensity = 0.72;
-      let wireframeMix = 0;
-      let fillDensity = 1.0;
-      let smokeMix = 0;
-      let splitMix = 0;
-      let noiseAmplitude = prefersReducedMotion ? 0.2 : 1.0;
-
-      // ─────────────────────────────────────────────────────────────
-      // ACT 1: HERO (0.00 - 0.18) · Deep Violet Liquid Metal
-      // ─────────────────────────────────────────────────────────────
-      if (p < 0.18) {
-        const t = p / 0.18;
-        targetX = 0;
-        targetY = -2.8 + t * 0.2;
-        targetScale = 1.0;
-        targetCameraZ = 14.0;
-        turbulence = 0.0;
-        internalFlux = 0.25;
-        fresnelPower = 2.8;
-        fresnelStrength = 1.1;
-        haloIntensity = 0.72;
-        wireframeMix = 0.0;
-        fillDensity = 1.0;
-        smokeMix = 0.0;
-        splitMix = 0.0;
-
-        targetColors.deepVoid.copy(stateColors.heroViolet.deepVoid);
-        targetColors.core.copy(stateColors.heroViolet.core);
-        targetColors.mid.copy(stateColors.heroViolet.mid);
-        targetColors.bright.copy(stateColors.heroViolet.bright);
-        targetColors.torchGlint.copy(stateColors.heroViolet.torchGlint);
-        targetColors.specGlint.copy(stateColors.heroViolet.specGlint);
-        targetColors.rim.copy(stateColors.heroViolet.rim);
-        targetColors.wireframe.copy(stateColors.heroViolet.wireframe);
-        targetColors.halo.copy(stateColors.heroViolet.halo);
-      }
-      // ─────────────────────────────────────────────────────────────
-      // ACT 2: PROBLEM (0.18 - 0.38) · Wireframe / Structural State
-      // ─────────────────────────────────────────────────────────────
-      else if (p < 0.38) {
-        const t = (p - 0.18) / 0.20;
-        targetX = -0.35 * t;
-        targetY = -2.6 + t * 0.15;
-        targetScale = 0.98;
-        targetCameraZ = 14.0;
-        turbulence = t * 1.4;
-        internalFlux = 0.85 * t;
-        fresnelPower = 2.4;
-        fresnelStrength = 1.25;
-        haloIntensity = 0.65;
-        wireframeMix = t;
-        fillDensity = 1.0;
-        smokeMix = 0.0;
-        splitMix = 0.0;
-
-        targetColors.deepVoid.lerpColors(stateColors.heroViolet.deepVoid, stateColors.problemBlue.deepVoid, t);
-        targetColors.core.lerpColors(stateColors.heroViolet.core, stateColors.problemBlue.core, t);
-        targetColors.mid.lerpColors(stateColors.heroViolet.mid, stateColors.problemBlue.mid, t);
-        targetColors.bright.lerpColors(stateColors.heroViolet.bright, stateColors.problemBlue.bright, t);
-        targetColors.torchGlint.lerpColors(stateColors.heroViolet.torchGlint, stateColors.problemBlue.torchGlint, t);
-        targetColors.specGlint.lerpColors(stateColors.heroViolet.specGlint, stateColors.problemBlue.specGlint, t);
-        targetColors.rim.lerpColors(stateColors.heroViolet.rim, stateColors.problemBlue.rim, t);
-        targetColors.wireframe.lerpColors(stateColors.heroViolet.wireframe, stateColors.problemBlue.wireframe, t);
-        targetColors.halo.lerpColors(stateColors.heroViolet.halo, stateColors.problemBlue.halo, t);
-      }
-      // ─────────────────────────────────────────────────────────────
-      // ACT 3: PILLARS (0.38 - 0.72) · Liquid Metallic with Active Pillar Sync
-      // ─────────────────────────────────────────────────────────────
-      else if (p < 0.72) {
-        const t = (p - 0.38) / 0.34;
-        targetX = -0.35 + t * 0.75;
-        targetY = -2.45 + Math.sin(t * Math.PI) * 0.12;
-        targetScale = 0.98;
-        targetCameraZ = 14.0;
-        turbulence = 0.0;
-        internalFlux = 0.6;
-        fresnelPower = 3.0;
-        fresnelStrength = 1.2;
-        haloIntensity = 0.75;
-        wireframeMix = 0.0;
-        fillDensity = 1.0;
-        smokeMix = 0.0;
-        splitMix = 0.0;
-
-        // Dynamic sync to active selected pillar (01 / 02 / 03)
-        targetColors.deepVoid.copy(pillarState.deepVoid);
-        targetColors.core.copy(pillarState.core);
-        targetColors.mid.copy(pillarState.mid);
-        targetColors.bright.copy(pillarState.bright);
-        targetColors.torchGlint.copy(pillarState.torchGlint);
-        targetColors.specGlint.copy(pillarState.specGlint);
-        targetColors.rim.copy(pillarState.rim);
-        targetColors.wireframe.copy(pillarState.wireframe);
-        targetColors.halo.copy(pillarState.halo);
-      }
-      // ─────────────────────────────────────────────────────────────
-      // ACT 4: COMPARISON (0.72 - 0.92) · Structured Dimension Sync
-      else if (p < 0.92) {
-        const t = (p - 0.72) / 0.20;
-        const smoothT = t * t * (3.0 - 2.0 * t);
-        targetX = 0.40 * (1.0 - smoothT);
-        targetY = -2.45 - smoothT * 0.10;
-        targetScale = 0.98;
-        targetCameraZ = 14.0;
-        turbulence = (1.0 - smoothT) * 0.25;
-        internalFlux = 0.7;
-        fresnelPower = 3.0;
-        fresnelStrength = 1.2;
-        haloIntensity = 0.72;
-        wireframeMix = 0.0;
-        fillDensity = 1.0;
-        smokeMix = 0.0;
-
-        // Smooth continuous bell curve: peaks in middle of Act 4 and dissolves gracefully
-        if (p < 0.82) {
-          const sIn = (p - 0.72) / 0.10;
-          splitMix = sIn * sIn * (3.0 - 2.0 * sIn);
-        } else {
-          const sOut = Math.max(0.0, 1.0 - (p - 0.82) / 0.10);
-          splitMix = sOut * sOut * (3.0 - 2.0 * sOut);
+        const p = currentScroll; // Continuous normalized progress [0, 1]
+        const currentPillar = activePillarRef.current;
+        let pillarState = stateColors.pillarP1;
+        if (currentPillar === '02') {
+          pillarState = stateColors.pillarP2;
+        } else if (currentPillar === '03') {
+          pillarState = stateColors.pillarP3;
         }
 
-        // Direct synchronization to active dimension color state (replicates Act 3 pillar logic)
-        targetColors.deepVoid.copy(dimensionState.deepVoid);
-        targetColors.core.copy(dimensionState.core);
-        targetColors.mid.copy(dimensionState.mid);
-        targetColors.bright.copy(dimensionState.bright);
-        targetColors.torchGlint.copy(dimensionState.torchGlint);
-        targetColors.specGlint.copy(dimensionState.specGlint);
-        targetColors.rim.copy(dimensionState.rim);
-        targetColors.wireframe.copy(dimensionState.wireframe);
-        targetColors.halo.copy(dimensionState.halo);
+        const currentDimension = typeof activeDimensionRef.current === 'number' ? activeDimensionRef.current : 0;
+        const dimensionState = stateColors.dimensionStates[currentDimension] || stateColors.dimensionStates[0];
+
+        // State machine parameter targets (gentle, contained shifts per Stage 2)
+        let targetX = 0;
+        let targetY = -2.8;
+        let targetScale = 1.0;
+        let targetCameraZ = 14.0;
+        let turbulence = 0;
+        let internalFlux = 0.2;
+        let fresnelPower = 2.8;
+        let fresnelStrength = 1.1;
+        let haloIntensity = 0.72;
+        let wireframeMix = 0;
+        let fillDensity = 1.0;
+        let smokeMix = 0;
+        let splitMix = 0;
+        let noiseAmplitude = prefersReducedMotion ? 0.2 : 1.0;
+
+        // ─────────────────────────────────────────────────────────────
+        // ACT 1: HERO (0.00 - 0.18) · Deep Violet Liquid Metal
+        // ─────────────────────────────────────────────────────────────
+        if (p < 0.18) {
+          const t = p / 0.18;
+          targetX = 0;
+          targetY = -2.8 + t * 0.2;
+          targetScale = 1.0;
+          targetCameraZ = 14.0;
+          turbulence = 0.0;
+          internalFlux = 0.25;
+          fresnelPower = 2.8;
+          fresnelStrength = 1.1;
+          haloIntensity = 0.72;
+          wireframeMix = 0.0;
+          fillDensity = 1.0;
+          smokeMix = 0.0;
+          splitMix = 0.0;
+
+          targetColors.deepVoid.copy(stateColors.heroViolet.deepVoid);
+          targetColors.core.copy(stateColors.heroViolet.core);
+          targetColors.mid.copy(stateColors.heroViolet.mid);
+          targetColors.bright.copy(stateColors.heroViolet.bright);
+          targetColors.torchGlint.copy(stateColors.heroViolet.torchGlint);
+          targetColors.specGlint.copy(stateColors.heroViolet.specGlint);
+          targetColors.rim.copy(stateColors.heroViolet.rim);
+          targetColors.wireframe.copy(stateColors.heroViolet.wireframe);
+          targetColors.halo.copy(stateColors.heroViolet.halo);
+        }
+        // ─────────────────────────────────────────────────────────────
+        // ACT 2: PROBLEM (0.18 - 0.38) · Wireframe / Structural State
+        // ─────────────────────────────────────────────────────────────
+        else if (p < 0.38) {
+          const t = (p - 0.18) / 0.20;
+          targetX = -0.35 * t;
+          targetY = -2.6 + t * 0.15;
+          targetScale = 0.98;
+          targetCameraZ = 14.0;
+          turbulence = t * 1.4;
+          internalFlux = 0.85 * t;
+          fresnelPower = 2.4;
+          fresnelStrength = 1.25;
+          haloIntensity = 0.65;
+          wireframeMix = t;
+          fillDensity = 1.0;
+          smokeMix = 0.0;
+          splitMix = 0.0;
+
+          targetColors.deepVoid.lerpColors(stateColors.heroViolet.deepVoid, stateColors.problemBlue.deepVoid, t);
+          targetColors.core.lerpColors(stateColors.heroViolet.core, stateColors.problemBlue.core, t);
+          targetColors.mid.lerpColors(stateColors.heroViolet.mid, stateColors.problemBlue.mid, t);
+          targetColors.bright.lerpColors(stateColors.heroViolet.bright, stateColors.problemBlue.bright, t);
+          targetColors.torchGlint.lerpColors(stateColors.heroViolet.torchGlint, stateColors.problemBlue.torchGlint, t);
+          targetColors.specGlint.lerpColors(stateColors.heroViolet.specGlint, stateColors.problemBlue.specGlint, t);
+          targetColors.rim.lerpColors(stateColors.heroViolet.rim, stateColors.problemBlue.rim, t);
+          targetColors.wireframe.lerpColors(stateColors.heroViolet.wireframe, stateColors.problemBlue.wireframe, t);
+          targetColors.halo.lerpColors(stateColors.heroViolet.halo, stateColors.problemBlue.halo, t);
+        }
+        // ─────────────────────────────────────────────────────────────
+        // ACT 3: PILLARS (0.38 - 0.72) · Liquid Metallic with Active Pillar Sync
+        // ─────────────────────────────────────────────────────────────
+        else if (p < 0.72) {
+          const t = (p - 0.38) / 0.34;
+          targetX = -0.35 + t * 0.75;
+          targetY = -2.45 + Math.sin(t * Math.PI) * 0.12;
+          targetScale = 0.98;
+          targetCameraZ = 14.0;
+          turbulence = 0.0;
+          internalFlux = 0.6;
+          fresnelPower = 3.0;
+          fresnelStrength = 1.2;
+          haloIntensity = 0.75;
+          wireframeMix = 0.0;
+          fillDensity = 1.0;
+          smokeMix = 0.0;
+          splitMix = 0.0;
+
+          // Dynamic sync to active selected pillar (01 / 02 / 03)
+          targetColors.deepVoid.copy(pillarState.deepVoid);
+          targetColors.core.copy(pillarState.core);
+          targetColors.mid.copy(pillarState.mid);
+          targetColors.bright.copy(pillarState.bright);
+          targetColors.torchGlint.copy(pillarState.torchGlint);
+          targetColors.specGlint.copy(pillarState.specGlint);
+          targetColors.rim.copy(pillarState.rim);
+          targetColors.wireframe.copy(pillarState.wireframe);
+          targetColors.halo.copy(pillarState.halo);
+        }
+        // ─────────────────────────────────────────────────────────────
+        // ACT 4: COMPARISON (0.72 - 0.92) · Structured Dimension Sync
+        else if (p < 0.92) {
+          const t = (p - 0.72) / 0.20;
+          const smoothT = t * t * (3.0 - 2.0 * t);
+          targetX = 0.40 * (1.0 - smoothT);
+          targetY = -2.45 - smoothT * 0.10;
+          targetScale = 0.98;
+          targetCameraZ = 14.0;
+          turbulence = (1.0 - smoothT) * 0.25;
+          internalFlux = 0.7;
+          fresnelPower = 3.0;
+          fresnelStrength = 1.2;
+          haloIntensity = 0.72;
+          wireframeMix = 0.0;
+          fillDensity = 1.0;
+          smokeMix = 0.0;
+
+          // Smooth continuous bell curve: peaks in middle of Act 4 and dissolves gracefully
+          if (p < 0.82) {
+            const sIn = (p - 0.72) / 0.10;
+            splitMix = sIn * sIn * (3.0 - 2.0 * sIn);
+          } else {
+            const sOut = Math.max(0.0, 1.0 - (p - 0.82) / 0.10);
+            splitMix = sOut * sOut * (3.0 - 2.0 * sOut);
+          }
+
+          // Direct synchronization to active dimension color state (replicates Act 3 pillar logic)
+          targetColors.deepVoid.copy(dimensionState.deepVoid);
+          targetColors.core.copy(dimensionState.core);
+          targetColors.mid.copy(dimensionState.mid);
+          targetColors.bright.copy(dimensionState.bright);
+          targetColors.torchGlint.copy(dimensionState.torchGlint);
+          targetColors.specGlint.copy(dimensionState.specGlint);
+          targetColors.rim.copy(dimensionState.rim);
+          targetColors.wireframe.copy(dimensionState.wireframe);
+          targetColors.halo.copy(dimensionState.halo);
+        }
+        // ─────────────────────────────────────────────────────────────
+        // ACT 5: CLOSING & FOOTER (0.92 - 1.00) · Smooth Recession
+        // ─────────────────────────────────────────────────────────────
+        else {
+          const t = (p - 0.92) / 0.08;
+          const smoothT = t * t * (3.0 - 2.0 * t);
+          targetX = 0;
+          // As scroll approaches 1.0, globe recedes and sinks gently into the deep void behind footer
+          targetY = -2.55 - smoothT * 0.25;
+          targetScale = 0.98 - smoothT * 0.06; // settles gently to ~0.92
+          targetCameraZ = 14.0;
+          turbulence = 0.0;
+          internalFlux = 0.5 - smoothT * 0.3;
+          fresnelPower = 2.4;
+          fresnelStrength = 0.8 - smoothT * 0.3;
+          haloIntensity = 0.65 - smoothT * 0.38; // dims gracefully to 0.27
+          wireframeMix = 0.0;
+          fillDensity = 0.88;
+          smokeMix = Math.min(1.0, smoothT * 1.4);
+          splitMix = 0.0;
+          noiseAmplitude = (prefersReducedMotion ? 0.2 : 1.0) * (1.0 - smoothT * 0.38); // ripples calm down
+
+          targetColors.deepVoid.lerpColors(dimensionState.deepVoid, stateColors.closingRuby.deepVoid, smoothT);
+          targetColors.core.lerpColors(dimensionState.core, stateColors.closingRuby.core, smoothT);
+          targetColors.mid.lerpColors(dimensionState.mid, stateColors.closingRuby.mid, smoothT);
+          targetColors.bright.lerpColors(dimensionState.bright, stateColors.closingRuby.bright, smoothT);
+          targetColors.torchGlint.lerpColors(dimensionState.torchGlint, stateColors.closingRuby.torchGlint, smoothT);
+          targetColors.specGlint.lerpColors(dimensionState.specGlint, stateColors.closingRuby.specGlint, smoothT);
+          targetColors.rim.lerpColors(dimensionState.rim, stateColors.closingRuby.rim, smoothT);
+          targetColors.wireframe.lerpColors(stateColors.problemBlue.wireframe, stateColors.closingRuby.wireframe, smoothT);
+          targetColors.halo.lerpColors(dimensionState.halo, stateColors.closingRuby.halo, smoothT);
+        }
+
+        // Attack Lab threat alert overlay: blend the just-computed act-based
+        // targetColors further toward the attack-type-specific alert palette,
+        // scaled by threatAlertRef.current (0 = no change, 1 = full crimson).
+        // This runs AFTER the act-based color logic so it layers on top of
+        // whatever the scroll state currently is.
+        const alertAmount = Math.max(0, Math.min(1, threatAlertRef.current));
+        if (alertAmount > 0.001) {
+          const requestedType = threatAttackTypeRef.current;
+          const alert =
+            (requestedType && stateColors.threatColorsByType[requestedType]) ||
+            stateColors.threatColorsByType.intercept_resend;
+
+          // Defensive guard: only attempt the blend if `alert` actually has all
+          // required color properties. If the palette definition is somehow
+          // incomplete (missing key, typo, etc.), skip blending this frame
+          // instead of throwing -- the act-based scroll color still renders
+          // normally, so the blob never disappears, it just temporarily won't
+          // show the red alert tint until the underlying data issue is fixed.
+          const hasAllAlertColors =
+            alert &&
+            alert.deepVoid && alert.core && alert.mid && alert.bright &&
+            alert.torchGlint && alert.specGlint && alert.rim &&
+            alert.wireframe && alert.halo;
+
+          if (hasAllAlertColors) {
+            targetColors.deepVoid.lerp(alert.deepVoid, alertAmount);
+            targetColors.core.lerp(alert.core, alertAmount);
+            targetColors.mid.lerp(alert.mid, alertAmount);
+            targetColors.bright.lerp(alert.bright, alertAmount);
+            targetColors.torchGlint.lerp(alert.torchGlint, alertAmount);
+            targetColors.specGlint.lerp(alert.specGlint, alertAmount);
+            targetColors.rim.lerp(alert.rim, alertAmount);
+            targetColors.wireframe.lerp(alert.wireframe, alertAmount);
+            targetColors.halo.lerp(alert.halo, alertAmount);
+          } else if (!animate._loggedMissingPalette) {
+            console.warn(
+              `QuantumEntanglementCanvas: threat color palette for attack type "${requestedType}" is missing or incomplete -- falling back to no alert tint for this frame.`
+            );
+            animate._loggedMissingPalette = true;
+          }
+        }
+
+        // Layer a slow, subtle sinusoidal drift on top of the scroll-driven transform (Stage 3)
+        const driftX = prefersReducedMotion ? 0 : Math.sin(elapsed * 0.55) * 0.08;
+        const driftY = prefersReducedMotion ? 0 : Math.cos(elapsed * 0.80) * 0.09;
+        const finalTargetX = targetX + driftX;
+        const finalTargetY = targetY + driftY;
+
+        // Time-aware exponential damping for mesh transforms (routed through damped spring, zero lag)
+        const transformFactor = 1.0 - Math.exp(-14.0 * delta);
+        heroMesh.position.x += (finalTargetX - heroMesh.position.x) * transformFactor;
+        heroMesh.position.y += (finalTargetY - heroMesh.position.y) * transformFactor;
+        
+        const currentScale = heroMesh.scale.x;
+        const newScale = currentScale + (targetScale - currentScale) * transformFactor;
+        heroMesh.scale.set(newScale, newScale, newScale);
+
+        // Decoupled Ambient Halo Pool: positions behind blob, breathes smoothly
+        haloMesh.position.set(heroMesh.position.x, heroMesh.position.y, heroMesh.position.z - 0.8);
+        const breathe = Math.sin(elapsed * 1.2) * 0.035;
+        const haloScale = newScale * (1.62 + breathe);
+        haloMesh.scale.set(haloScale, haloScale, haloScale);
+
+        camera.position.z += (targetCameraZ - camera.position.z) * transformFactor;
+
+        // Uniform updates with exponential damping
+        const uniformFactor = 1.0 - Math.exp(-6.5 * delta);
+        heroMaterial.uniforms.uTime.value = elapsed;
+        heroMaterial.uniforms.uScroll.value = p;
+        heroMaterial.uniforms.uScrollVelocity.value = Math.min(scrollVelocity, 1.5);
+        heroMaterial.uniforms.uNoiseAmplitude.value += (noiseAmplitude - heroMaterial.uniforms.uNoiseAmplitude.value) * uniformFactor;
+        heroMaterial.uniforms.uPointer.value.set(mouseX, mouseY);
+        heroMaterial.uniforms.uPointerActive.value += (pointerActive - heroMaterial.uniforms.uPointerActive.value) * pointerFactor;
+
+        heroMaterial.uniforms.uTurbulence.value += (turbulence - heroMaterial.uniforms.uTurbulence.value) * uniformFactor;
+        heroMaterial.uniforms.uInternalFlux.value += (internalFlux - heroMaterial.uniforms.uInternalFlux.value) * uniformFactor;
+        heroMaterial.uniforms.uFresnelPower.value += (fresnelPower - heroMaterial.uniforms.uFresnelPower.value) * uniformFactor;
+        heroMaterial.uniforms.uFresnelStrength.value += (fresnelStrength - heroMaterial.uniforms.uFresnelStrength.value) * uniformFactor;
+        heroMaterial.uniforms.uWireframeMix.value += (wireframeMix - heroMaterial.uniforms.uWireframeMix.value) * uniformFactor;
+        heroMaterial.uniforms.uFillDensity.value += (fillDensity - heroMaterial.uniforms.uFillDensity.value) * uniformFactor;
+        heroMaterial.uniforms.uSmokeMix.value += (smokeMix - heroMaterial.uniforms.uSmokeMix.value) * uniformFactor;
+        heroMaterial.uniforms.uSplitMix.value += (splitMix - heroMaterial.uniforms.uSplitMix.value) * uniformFactor;
+
+        haloMaterial.uniforms.uPulse.value = Math.sin(elapsed * 1.8) * 0.5 + 0.5;
+        haloMaterial.uniforms.uGlowIntensity.value += (haloIntensity - haloMaterial.uniforms.uGlowIntensity.value) * uniformFactor;
+        // Subtle breathing intensity boost during an active threat alert -- slow
+        // (0.9Hz), gentle amplitude, never strobing. Fades in/out with alertAmount
+        // itself so it never appears or disappears abruptly.
+        if (alertAmount > 0.001) {
+          const alertPulse = 0.5 + 0.5 * Math.sin(elapsed * 1.8);
+          haloMaterial.uniforms.uGlowIntensity.value += alertAmount * (0.18 + alertPulse * 0.12);
+        }
+
+        // When a threat alert is active, use a faster color-response rate so the
+        // blob keeps up with the attack's own phase transitions (which happen on
+        // a ~600ms cadence) instead of perpetually lagging behind a moving target,
+        // which is what previously read as the animation being "stuck." When no
+        // alert is active, fall back to the original slower, cinematic rate used
+        // for scroll-driven Act transitions -- unchanged from before.
+        const baseColorRate = 6.5;
+        const alertColorRate = 13.0;
+        const effectiveColorRate = baseColorRate + (alertColorRate - baseColorRate) * alertAmount;
+        const colorFactor = 1.0 - Math.exp(-effectiveColorRate * delta);
+        heroMaterial.uniforms.uColorDeepVoid.value.lerp(targetColors.deepVoid, colorFactor);
+        heroMaterial.uniforms.uColorCore.value.lerp(targetColors.core, colorFactor);
+        heroMaterial.uniforms.uColorMid.value.lerp(targetColors.mid, colorFactor);
+        heroMaterial.uniforms.uColorBright.value.lerp(targetColors.bright, colorFactor);
+        heroMaterial.uniforms.uColorTorchGlint.value.lerp(targetColors.torchGlint, colorFactor);
+        heroMaterial.uniforms.uColorSpecGlint.value.lerp(targetColors.specGlint, colorFactor);
+        heroMaterial.uniforms.uColorRim.value.lerp(targetColors.rim, colorFactor);
+        heroMaterial.uniforms.uColorWireframe.value.lerp(targetColors.wireframe, colorFactor);
+        haloMaterial.uniforms.uGlowColor.value.lerp(targetColors.halo, colorFactor);
+
+        // Slow, majestic continuous rotation
+        const rotSpeed = prefersReducedMotion ? 0.02 : 0.07;
+        heroMesh.rotation.y = elapsed * rotSpeed + p * 1.6;
+        heroMesh.rotation.x = Math.sin(elapsed * 0.22) * 0.06;
+
+        // Dust drift
+        starParticles.rotation.y = elapsed * 0.008;
+        starParticles.position.y = Math.sin(elapsed * 0.2) * 0.2;
+
+        // Mouse parallax
+        if (!prefersReducedMotion) {
+          rootGroup.rotation.y = mouseX * 0.08;
+          rootGroup.rotation.x = -mouseY * 0.05;
+        }
+
+        renderer.render(scene, camera);
+      } catch (err) {
+        // Log once per distinct error message so a persistent bug doesn't
+        // spam the console 60 times a second, but always surface it so it's
+        // discoverable and fixable.
+        if (!animate._lastErrorMsg || animate._lastErrorMsg !== err.message) {
+          console.error('QuantumEntanglementCanvas animate() frame error (animation continues):', err);
+          animate._lastErrorMsg = err.message;
+        }
       }
-      // ─────────────────────────────────────────────────────────────
-      // ACT 5: CLOSING & FOOTER (0.92 - 1.00) · Smooth Recession
-      // ─────────────────────────────────────────────────────────────
-      else {
-        const t = (p - 0.92) / 0.08;
-        const smoothT = t * t * (3.0 - 2.0 * t);
-        targetX = 0;
-        // As scroll approaches 1.0, globe recedes and sinks gently into the deep void behind footer
-        targetY = -2.55 - smoothT * 0.25;
-        targetScale = 0.98 - smoothT * 0.06; // settles gently to ~0.92
-        targetCameraZ = 14.0;
-        turbulence = 0.0;
-        internalFlux = 0.5 - smoothT * 0.3;
-        fresnelPower = 2.4;
-        fresnelStrength = 0.8 - smoothT * 0.3;
-        haloIntensity = 0.65 - smoothT * 0.38; // dims gracefully to 0.27
-        wireframeMix = 0.0;
-        fillDensity = 0.88;
-        smokeMix = Math.min(1.0, smoothT * 1.4);
-        splitMix = 0.0;
-        noiseAmplitude = (prefersReducedMotion ? 0.2 : 1.0) * (1.0 - smoothT * 0.38); // ripples calm down
-
-        targetColors.deepVoid.lerpColors(dimensionState.deepVoid, stateColors.closingRuby.deepVoid, smoothT);
-        targetColors.core.lerpColors(dimensionState.core, stateColors.closingRuby.core, smoothT);
-        targetColors.mid.lerpColors(dimensionState.mid, stateColors.closingRuby.mid, smoothT);
-        targetColors.bright.lerpColors(dimensionState.bright, stateColors.closingRuby.bright, smoothT);
-        targetColors.torchGlint.lerpColors(dimensionState.torchGlint, stateColors.closingRuby.torchGlint, smoothT);
-        targetColors.specGlint.lerpColors(dimensionState.specGlint, stateColors.closingRuby.specGlint, smoothT);
-        targetColors.rim.lerpColors(dimensionState.rim, stateColors.closingRuby.rim, smoothT);
-        targetColors.wireframe.lerpColors(stateColors.problemBlue.wireframe, stateColors.closingRuby.wireframe, smoothT);
-        targetColors.halo.lerpColors(dimensionState.halo, stateColors.closingRuby.halo, smoothT);
-      }
-
-      // Layer a slow, subtle sinusoidal drift on top of the scroll-driven transform (Stage 3)
-      const driftX = prefersReducedMotion ? 0 : Math.sin(elapsed * 0.55) * 0.08;
-      const driftY = prefersReducedMotion ? 0 : Math.cos(elapsed * 0.80) * 0.09;
-      const finalTargetX = targetX + driftX;
-      const finalTargetY = targetY + driftY;
-
-      // Time-aware exponential damping for mesh transforms (routed through damped spring, zero lag)
-      const transformFactor = 1.0 - Math.exp(-14.0 * delta);
-      heroMesh.position.x += (finalTargetX - heroMesh.position.x) * transformFactor;
-      heroMesh.position.y += (finalTargetY - heroMesh.position.y) * transformFactor;
-      
-      const currentScale = heroMesh.scale.x;
-      const newScale = currentScale + (targetScale - currentScale) * transformFactor;
-      heroMesh.scale.set(newScale, newScale, newScale);
-
-      // Decoupled Ambient Halo Pool: positions behind blob, breathes smoothly
-      haloMesh.position.set(heroMesh.position.x, heroMesh.position.y, heroMesh.position.z - 0.8);
-      const breathe = Math.sin(elapsed * 1.2) * 0.035;
-      const haloScale = newScale * (1.62 + breathe);
-      haloMesh.scale.set(haloScale, haloScale, haloScale);
-
-      camera.position.z += (targetCameraZ - camera.position.z) * transformFactor;
-
-      // Uniform updates with exponential damping
-      const uniformFactor = 1.0 - Math.exp(-6.5 * delta);
-      heroMaterial.uniforms.uTime.value = elapsed;
-      heroMaterial.uniforms.uScroll.value = p;
-      heroMaterial.uniforms.uScrollVelocity.value = Math.min(scrollVelocity, 1.5);
-      heroMaterial.uniforms.uNoiseAmplitude.value += (noiseAmplitude - heroMaterial.uniforms.uNoiseAmplitude.value) * uniformFactor;
-      heroMaterial.uniforms.uPointer.value.set(mouseX, mouseY);
-      heroMaterial.uniforms.uPointerActive.value += (pointerActive - heroMaterial.uniforms.uPointerActive.value) * pointerFactor;
-
-      heroMaterial.uniforms.uTurbulence.value += (turbulence - heroMaterial.uniforms.uTurbulence.value) * uniformFactor;
-      heroMaterial.uniforms.uInternalFlux.value += (internalFlux - heroMaterial.uniforms.uInternalFlux.value) * uniformFactor;
-      heroMaterial.uniforms.uFresnelPower.value += (fresnelPower - heroMaterial.uniforms.uFresnelPower.value) * uniformFactor;
-      heroMaterial.uniforms.uFresnelStrength.value += (fresnelStrength - heroMaterial.uniforms.uFresnelStrength.value) * uniformFactor;
-      heroMaterial.uniforms.uWireframeMix.value += (wireframeMix - heroMaterial.uniforms.uWireframeMix.value) * uniformFactor;
-      heroMaterial.uniforms.uFillDensity.value += (fillDensity - heroMaterial.uniforms.uFillDensity.value) * uniformFactor;
-      heroMaterial.uniforms.uSmokeMix.value += (smokeMix - heroMaterial.uniforms.uSmokeMix.value) * uniformFactor;
-      heroMaterial.uniforms.uSplitMix.value += (splitMix - heroMaterial.uniforms.uSplitMix.value) * uniformFactor;
-
-      haloMaterial.uniforms.uPulse.value = Math.sin(elapsed * 1.8) * 0.5 + 0.5;
-      haloMaterial.uniforms.uGlowIntensity.value += (haloIntensity - haloMaterial.uniforms.uGlowIntensity.value) * uniformFactor;
-
-      // Time-aware lerp for Color uniforms
-      const colorFactor = 1.0 - Math.exp(-6.5 * delta);
-      heroMaterial.uniforms.uColorDeepVoid.value.lerp(targetColors.deepVoid, colorFactor);
-      heroMaterial.uniforms.uColorCore.value.lerp(targetColors.core, colorFactor);
-      heroMaterial.uniforms.uColorMid.value.lerp(targetColors.mid, colorFactor);
-      heroMaterial.uniforms.uColorBright.value.lerp(targetColors.bright, colorFactor);
-      heroMaterial.uniforms.uColorTorchGlint.value.lerp(targetColors.torchGlint, colorFactor);
-      heroMaterial.uniforms.uColorSpecGlint.value.lerp(targetColors.specGlint, colorFactor);
-      heroMaterial.uniforms.uColorRim.value.lerp(targetColors.rim, colorFactor);
-      heroMaterial.uniforms.uColorWireframe.value.lerp(targetColors.wireframe, colorFactor);
-      haloMaterial.uniforms.uGlowColor.value.lerp(targetColors.halo, colorFactor);
-
-      // Slow, majestic continuous rotation
-      const rotSpeed = prefersReducedMotion ? 0.02 : 0.07;
-      heroMesh.rotation.y = elapsed * rotSpeed + p * 1.6;
-      heroMesh.rotation.x = Math.sin(elapsed * 0.22) * 0.06;
-
-      // Dust drift
-      starParticles.rotation.y = elapsed * 0.008;
-      starParticles.position.y = Math.sin(elapsed * 0.2) * 0.2;
-
-      // Mouse parallax
-      if (!prefersReducedMotion) {
-        rootGroup.rotation.y = mouseX * 0.08;
-        rootGroup.rotation.x = -mouseY * 0.05;
-      }
-
-      renderer.render(scene, camera);
     };
+
 
     animate();
 
@@ -902,6 +1086,9 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('resize', updateDocHeight);
+
+      resizeObserver.disconnect();
+      if (resizeObserverRaf) cancelAnimationFrame(resizeObserverRaf);
 
       heroGeometry.dispose();
       heroMaterial.dispose();

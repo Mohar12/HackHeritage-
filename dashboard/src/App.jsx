@@ -16,6 +16,7 @@
  */
 
 import React, { useState } from 'react';
+import QuantumEntanglementCanvas from './components/QuantumEntanglementCanvas.jsx';
 import StitchLandingPage from './components/StitchLandingPage.jsx';
 import HonestProtocolPage from './components/HonestProtocolPage.jsx';
 import StitchHeader from './components/StitchHeader.jsx';
@@ -31,6 +32,23 @@ import ScalableCluster3D from './components/ScalableCluster3D.jsx';
 import AuditLedgerPanel from './components/AuditLedgerPanel.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import './index.css';
+
+// Per-tab & per-attack vector color pattern synchronization for QuantumEntanglementCanvas
+const ATTACK_TO_PILLAR = {
+  intercept_resend: '03',
+  depolarizing: '01',
+  forgery: '02',
+  impersonation: '02',
+  replay: '01',
+};
+
+const ATTACK_TO_DIMENSION = {
+  intercept_resend: 4,
+  depolarizing: 0,
+  forgery: 2,
+  impersonation: 3,
+  replay: 1,
+};
 
 export default function App() {
   const getInitialView = () => {
@@ -68,6 +86,34 @@ export default function App() {
 
   const isAttacked = Boolean(activeData?.detect?.is_malicious || activeData?.type === 'attack');
   const fidelity = typeof activeData?.detect?.fidelity === 'number' ? activeData.detect.fidelity : 0.99;
+
+  // Blob threat-alert intensity: ramps up progressively through the attack's
+  // own phase sequence (so the blob visibly reacts to Eve intercepting the
+  // channel in real time, not just at the very end), rather than jumping
+  // from 0 to 1 only once the final detection result lands. This avoids the
+  // abrupt on/off flicker that happens when activeData is briefly stale or
+  // reset between attack launches.
+  const attackPhaseIntensity = {
+    IDLE: 0,
+    DISPATCH: 0.08,
+    IN_TRANSIT: 0.18,
+    INTERCEPT: 0.55,
+    COLLAPSE: 0.85,
+    DEFENSE_ABORT: 1.0,
+  };
+
+  const blobThreatAlert =
+    activeTab === 'attack'
+      ? Math.max(
+          attackPhaseIntensity[operationPhase] || 0,
+          activeData?.detect?.is_malicious ? 0.9 : 0
+        )
+      : 0;
+
+  // Which attack type's color the blob should blend toward. Falls back to
+  // the currently selected attack type even before a result lands, so the
+  // color is correct throughout the whole phase sequence, not just at the end.
+  const blobThreatAttackType = activeTab === 'attack' ? selectedAttack : null;
 
   const handleNavigate = (view) => {
     if (view === 'landing') {
@@ -115,9 +161,20 @@ export default function App() {
   }
 
   // View 3: Operational Command Center (Modules 2, 3, 4)
+  const activePillar = activeTab === 'attack'
+    ? (ATTACK_TO_PILLAR[selectedAttack] || '01')
+    : activeTab === 'large_scale' ? '02' : '01';
+
+  const activeDimension = activeTab === 'attack'
+    ? (ATTACK_TO_DIMENSION[selectedAttack] ?? 0)
+    : activeTab === 'large_scale' ? 3 : 1;
+
   return (
     <ErrorBoundary title="Quantum SOC Global Error">
       <div className="soc-container" style={{ background: '#06070a' }}>
+        {/* 3D WebGL Canvas: Single 3D Hero Object Background */}
+        <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} threatAlert={blobThreatAlert} threatAttackType={blobThreatAttackType} />
+
         {/* Canonical Stitch Header */}
         <StitchHeader activeTab={activeTab} onNavigate={handleNavigate} />
 

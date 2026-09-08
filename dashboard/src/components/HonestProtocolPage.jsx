@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 import StitchHeader from './StitchHeader.jsx';
 import Teleportation3D from './Teleportation3D.jsx';
 import AttackVisualizer from './AttackVisualizer.jsx';
@@ -359,8 +360,28 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
     }
   }
 
+  // Dynamic color synchronization tied to protocol state & physical-layer integrity
+  const activePillar = isCompromised
+    ? '03'
+    : activeStage3D <= 2
+    ? '01'
+    : activeStage3D <= 4
+    ? '02'
+    : '01';
+
+  const activeDimension = isCompromised
+    ? 4
+    : activeStage3D <= 2
+    ? 0
+    : activeStage3D <= 4
+    ? 1
+    : 2;
+
   return (
     <div className="soc-container" style={{ background: '#06070a' }}>
+      {/* 3D WebGL Canvas: Single 3D Hero Object Background */}
+      <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} />
+
       {/* Canonical Stitch Header */}
       <StitchHeader activeTab="honest" onNavigate={onNavigate} />
 

@@ -47,6 +47,15 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  position: relative;
+}
+
+.soc-header,
+.hqds-header,
+.soc-main,
+.soc-audit-deck {
+  position: relative;
+  z-index: 2;
 }
 
 /* Header */
