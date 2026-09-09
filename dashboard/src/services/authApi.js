@@ -8,7 +8,7 @@
 
 const API_BASE = (typeof window !== 'undefined' && window.__VITE_API_URL__) 
   || import.meta.env.VITE_API_URL 
-  || 'http://localhost:8000';
+  || '';
 
 export async function loginUser({ email, password }) {
   const response = await fetch(`${API_BASE}/auth/login`, {

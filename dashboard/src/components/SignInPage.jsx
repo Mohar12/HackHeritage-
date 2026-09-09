@@ -10,8 +10,14 @@
 import React, { useState, useEffect } from 'react';
 import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 import { loginUser, registerUser } from '../services/authApi.js';
+import { useAuth } from '../context/AuthContext.jsx';
+
+const API_BASE = (typeof window !== 'undefined' && window.__VITE_API_URL__) 
+  || import.meta.env.VITE_API_URL 
+  || '';
 
 export default function SignInPage({ onNavigate, onLoginSuccess }) {
+  const auth = useAuth();
   const [mode, setMode] = useState('signin'); // 'signin' | 'register'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,17 +28,40 @@ export default function SignInPage({ onNavigate, onLoginSuccess }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [connectingProvider, setConnectingProvider] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [socialNotice, setSocialNotice] = useState('');
 
-  // Lock scrolling on auth route
+  // Handle URL errors passed from OAuth redirects and lock scrolling
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get('error');
+      if (err) {
+        setErrorMessage(decodeURIComponent(err));
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState(null, '', cleanUrl);
+      }
+    }
+
     const origOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = origOverflow;
     };
   }, []);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (auth?.isAuthenticated && !auth?.isLoading) {
+      if (onLoginSuccess) {
+        onLoginSuccess(auth.user);
+      } else if (onNavigate) {
+        onNavigate('honest');
+      }
+    }
+  }, [auth?.isAuthenticated, auth?.isLoading, auth?.user, onLoginSuccess, onNavigate]);
+
 
   const handleModeChange = (newMode) => {
     setMode(newMode);
@@ -70,16 +99,20 @@ export default function SignInPage({ onNavigate, onLoginSuccess }) {
 
     try {
       if (mode === 'signin') {
-        const res = await loginUser({ email, password });
+        const user = (auth && auth.login) 
+          ? await auth.login({ email, password }) 
+          : (await loginUser({ email, password })).user;
         if (onLoginSuccess) {
-          onLoginSuccess(res.user);
+          onLoginSuccess(user);
         } else if (onNavigate) {
           onNavigate('honest');
         }
       } else {
-        const res = await registerUser({ email, password, fullName });
+        const user = (auth && auth.register) 
+          ? await auth.register({ email, password, fullName }) 
+          : (await registerUser({ email, password, fullName })).user;
         if (onLoginSuccess) {
-          onLoginSuccess(res.user);
+          onLoginSuccess(user);
         } else if (onNavigate) {
           onNavigate('honest');
         }
@@ -91,10 +124,22 @@ export default function SignInPage({ onNavigate, onLoginSuccess }) {
     }
   };
 
-  const handleSocialClick = (provider) => {
-    setSocialNotice(`${provider} Enterprise SSO is coming soon.`);
-    setTimeout(() => setSocialNotice(''), 3500);
+  const handleSocialClick = (providerKey) => {
+    if (connectingProvider || isLoading) return;
+    const providerName = providerKey.toLowerCase() === 'google' 
+      ? 'Google' 
+      : providerKey.toLowerCase() === 'github' 
+        ? 'GitHub' 
+        : 'Microsoft';
+    setConnectingProvider(providerName);
+    setSocialNotice(`Connecting to ${providerName}…`);
+    setErrorMessage('');
+
+    // Seamless browser redirect to FastAPI OAuth initiator
+    const targetUrl = `${API_BASE}/auth/${providerKey.toLowerCase()}/login`;
+    window.location.href = targetUrl;
   };
+
 
   return (
     <div className="hqds-auth-root">
@@ -373,14 +418,16 @@ export default function SignInPage({ onNavigate, onLoginSuccess }) {
             <span>or continue with</span>
           </div>
 
-          {/* Social Authentication Placeholders */}
+          {/* Social Authentication Row */}
           <div className="hqds-auth-social-row">
             {/* Google */}
             <button
               type="button"
-              className="hqds-auth-social-btn"
-              onClick={() => handleSocialClick('Google')}
-              aria-label="Continue with Google"
+              className={`hqds-auth-social-btn ${connectingProvider === 'Google' ? 'is-connecting' : ''}`}
+              onClick={() => handleSocialClick('google')}
+              disabled={Boolean(connectingProvider || isLoading)}
+              aria-label={connectingProvider === 'Google' ? 'Connecting to Google…' : 'Continue with Google'}
+              title={connectingProvider === 'Google' ? 'Connecting to Google…' : 'Continue with Google'}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path fill="#EA4335" d="M12 5c1.7 0 3 .6 4 1.5l3-3C17.2 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
@@ -393,9 +440,11 @@ export default function SignInPage({ onNavigate, onLoginSuccess }) {
             {/* GitHub */}
             <button
               type="button"
-              className="hqds-auth-social-btn"
-              onClick={() => handleSocialClick('GitHub')}
-              aria-label="Continue with GitHub"
+              className={`hqds-auth-social-btn ${connectingProvider === 'GitHub' ? 'is-connecting' : ''}`}
+              onClick={() => handleSocialClick('github')}
+              disabled={Boolean(connectingProvider || isLoading)}
+              aria-label={connectingProvider === 'GitHub' ? 'Connecting to GitHub…' : 'Continue with GitHub'}
+              title={connectingProvider === 'GitHub' ? 'Connecting to GitHub…' : 'Continue with GitHub'}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                 <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
@@ -405,9 +454,11 @@ export default function SignInPage({ onNavigate, onLoginSuccess }) {
             {/* Microsoft */}
             <button
               type="button"
-              className="hqds-auth-social-btn"
-              onClick={() => handleSocialClick('Microsoft')}
-              aria-label="Continue with Microsoft"
+              className={`hqds-auth-social-btn ${connectingProvider === 'Microsoft' ? 'is-connecting' : ''}`}
+              onClick={() => handleSocialClick('microsoft')}
+              disabled={Boolean(connectingProvider || isLoading)}
+              aria-label={connectingProvider === 'Microsoft' ? 'Connecting to Microsoft…' : 'Continue with Microsoft'}
+              title={connectingProvider === 'Microsoft' ? 'Connecting to Microsoft…' : 'Continue with Microsoft'}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path fill="#F25022" d="M1 1h10v10H1z"/>
@@ -417,6 +468,7 @@ export default function SignInPage({ onNavigate, onLoginSuccess }) {
               </svg>
             </button>
           </div>
+
 
           {/* Social placeholder feedback */}
           {socialNotice && (

@@ -16,6 +16,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import StitchLandingPage from './components/StitchLandingPage.jsx';
 import SignInPage from './components/SignInPage.jsx';
 import HonestProtocolPage from './components/HonestProtocolPage.jsx';
@@ -33,7 +34,8 @@ import AuditLedgerPanel from './components/AuditLedgerPanel.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import './index.css';
 
-export default function App() {
+function AppContent() {
+
   const getInitialView = () => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -260,7 +262,7 @@ export default function App() {
                     </ErrorBoundary>
                   )}
 
-                  {/* Continuous Deterministic Verdict & Telemetry Desk */}
+                   {/* Continuous Deterministic Verdict & Telemetry Desk */}
                   <ErrorBoundary title="Telemetry & Verdict Desk Unavailable">
                     <ResultsCharts data={activeData} />
                   </ErrorBoundary>
@@ -271,3 +273,12 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+

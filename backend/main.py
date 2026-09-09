@@ -16,6 +16,9 @@ import re
 import time
 from typing import Any
 
+# Ensure environment variables from .env are loaded before any submodules evaluate os.environ
+import backend.env_loader
+
 # Ensure Qiskit 1.x/2.x compatibility polyfills are active before any qiskit imports
 import backend.qiskit_compat
 backend.qiskit_compat.apply_qiskit_compat()
@@ -23,6 +26,7 @@ backend.qiskit_compat.apply_qiskit_compat()
 import numpy as np
 from fastapi import FastAPI, APIRouter, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 

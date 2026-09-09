@@ -153,6 +153,15 @@ def main() -> None:
     ensure_env_file(project_root)
     ensure_frontend_deps(dashboard_dir)
 
+    # Load environment variables into launcher process
+    env_file = project_root / ".env"
+    if env_file.exists():
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(str(env_file))
+        except Exception:
+            pass
+
     # 2. Check and clean ports
     for port in (8000, 5173):
         if is_port_in_use(port):
@@ -173,6 +182,8 @@ def main() -> None:
         "8000",
         "--reload",
     ]
+    if env_file.exists():
+        backend_cmd.extend(["--env-file", str(env_file)])
 
     backend_process = subprocess.Popen(
         backend_cmd,
@@ -183,6 +194,7 @@ def main() -> None:
 
     # 4. Start Frontend
     log_info("Launching React + Vite Dashboard (port 5173)...")
+
     npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
     frontend_cmd = [npm_cmd, "run", "dev"]
 

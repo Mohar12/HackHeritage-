@@ -22,6 +22,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 import TabCrossFade from './TabCrossFade.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+
 
 // Stage 8 & 11: Narrative acts calibration config for precision scroll navigation rail
 const RAIL_SECTIONS = [
@@ -33,10 +35,12 @@ const RAIL_SECTIONS = [
 ];
 
 export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
+  const { isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
   const [activeAct, setActiveAct] = useState('hero');
   const [activePillar, setActivePillar] = useState('01');
   const [activeDimension, setActiveDimension] = useState(0);
   const [initialCalibrationDone, setInitialCalibrationDone] = useState(false);
+
 
   // Direct DOM refs for 60-120fps performance without React re-render overhead
   const heroCardsRef = useRef(null);
@@ -758,20 +762,47 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
             >
               <span>Console</span>
             </button>
-            <button
-              type="button"
-              className="hqds-nav-pill-btn"
-              onClick={() => {
-                if (onNavigate) {
-                  onNavigate('sign-in');
-                } else {
-                  handleLaunchHonest();
-                }
-              }}
-            >
-              <span>Sign In</span>
-            </button>
+            {isAuthLoading ? (
+              <button
+                type="button"
+                className="hqds-nav-pill-btn"
+                disabled
+                aria-label="Checking session"
+                style={{ opacity: 0.6, pointerEvents: 'none' }}
+              >
+                <span>···</span>
+              </button>
+            ) : isAuthenticated ? (
+              <button
+                type="button"
+                className="hqds-nav-pill-btn"
+                onClick={async () => {
+                  try {
+                    await logout();
+                  } catch (err) {
+                    console.error('Logout error:', err);
+                  }
+                }}
+              >
+                <span>Logout</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="hqds-nav-pill-btn"
+                onClick={() => {
+                  if (onNavigate) {
+                    onNavigate('sign-in');
+                  } else {
+                    handleLaunchHonest();
+                  }
+                }}
+              >
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
+
         </div>
       </nav>
 
