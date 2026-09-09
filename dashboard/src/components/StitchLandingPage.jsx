@@ -23,6 +23,15 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 import TabCrossFade from './TabCrossFade.jsx';
 
+// Stage 8 & 11: Narrative acts calibration config for precision scroll navigation rail
+const RAIL_SECTIONS = [
+  { id: 'hero', label: 'GET STARTED', defaultPct: 0 },
+  { id: 'problem', label: 'PHYSICAL LAYER', defaultPct: 22 },
+  { id: 'pillars', label: 'PILLARS', defaultPct: 44 },
+  { id: 'comparison', label: 'VERIFICATION', defaultPct: 68 },
+  { id: 'conduit', label: 'HORIZON', defaultPct: 94 },
+];
+
 export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
   const [activeAct, setActiveAct] = useState('hero');
   const [activePillar, setActivePillar] = useState('01');
@@ -113,6 +122,29 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
           dimensionTotalHeight = 690;
         }
       }
+
+      // Stage 8: Precision calculation of section calibration ticks
+      const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollableHeight > 0) {
+        if (railIndicatorRef.current && !animId) {
+          const initialProg = Math.min(1, Math.max(0, window.scrollY / scrollableHeight));
+          railIndicatorRef.current.style.height = `${(initialProg * 100).toFixed(2)}%`;
+        }
+        RAIL_SECTIONS.forEach((sec) => {
+          const el = document.getElementById(sec.id);
+          const tickEl = document.getElementById(`hqds-rail-tick-${sec.id}`);
+          if (el && tickEl) {
+            if (sec.id === 'hero') {
+              tickEl.style.top = '0%';
+            } else {
+              const rect = el.getBoundingClientRect();
+              const topInDoc = rect.top + window.scrollY;
+              const pct = Math.min(100, Math.max(0, (topInDoc / scrollableHeight) * 100));
+              tickEl.style.top = `${pct.toFixed(2)}%`;
+            }
+          }
+        });
+      }
     };
 
     // Initial measurement & re-measurement after layout calibration
@@ -150,11 +182,11 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
       // Tight, responsive damped lerp of scroll position (0.18 per frame: eliminates sitewide lag)
       lerpedScrollY += (targetScrollY - lerpedScrollY) * 0.18;
 
-      // Update lateral progress rail
+      // Update lateral progress rail (Stage 8 precision continuous traversal)
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
       const progress = docHeight > 0 ? Math.min(1, Math.max(0, lerpedScrollY / docHeight)) : 0;
       if (railIndicatorRef.current) {
-        railIndicatorRef.current.style.height = `${Math.min(100, Math.max(10, progress * 100))}%`;
+        railIndicatorRef.current.style.height = `${(progress * 100).toFixed(2)}%`;
       }
 
       const vh = window.innerHeight;
@@ -335,6 +367,173 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
     }
   };
 
+  // Stage 9.6: Subtle Physical Depth Hover with Inertia / LERP & Dead-Zone
+  const startCardTiltLoop = useCallback((card) => {
+    if (!card._tiltState) return;
+    const state = card._tiltState;
+    if (state.rafId) return; // Loop is already running
+
+    const SMOOTHING = 0.075; // Deliberate, calm physical inertia (Section 4)
+
+    const loop = () => {
+      // Continuous interpolation: current += (target - current) * smoothing
+      state.currentRotX += (state.targetRotX - state.currentRotX) * SMOOTHING;
+      state.currentRotY += (state.targetRotY - state.currentRotY) * SMOOTHING;
+      state.currentDepth += (state.targetDepth - state.currentDepth) * SMOOTHING;
+      state.currentShiftX += (state.targetShiftX - state.currentShiftX) * SMOOTHING;
+      state.currentShiftY += (state.targetShiftY - state.currentShiftY) * SMOOTHING;
+
+      // Direct DOM updates - zero React state overhead (Section 4 & 13)
+      card.style.setProperty('--card-tilt-x', `${state.currentRotX.toFixed(3)}deg`);
+      card.style.setProperty('--card-tilt-y', `${state.currentRotY.toFixed(3)}deg`);
+      card.style.setProperty('--card-depth', `${state.currentDepth.toFixed(2)}px`);
+      card.style.setProperty('--card-shift-x', `${state.currentShiftX.toFixed(2)}px`);
+      card.style.setProperty('--card-shift-y', `${state.currentShiftY.toFixed(2)}px`);
+
+      // Natural settling check when pointer leaves the card (Section 11)
+      if (!state.isHovered) {
+        const isSettled =
+          Math.abs(state.targetRotX - state.currentRotX) < 0.005 &&
+          Math.abs(state.targetRotY - state.currentRotY) < 0.005 &&
+          Math.abs(state.targetDepth - state.currentDepth) < 0.01;
+
+        if (isSettled) {
+          state.currentRotX = 0;
+          state.currentRotY = 0;
+          state.currentDepth = 0;
+          state.currentShiftX = 0;
+          state.currentShiftY = 0;
+          card.style.setProperty('--card-tilt-x', '0deg');
+          card.style.setProperty('--card-tilt-y', '0deg');
+          card.style.setProperty('--card-depth', '0px');
+          card.style.setProperty('--card-shift-x', '0px');
+          card.style.setProperty('--card-shift-y', '0px');
+          card.style.setProperty('--mouse-x', '-999px');
+          card.style.setProperty('--mouse-y', '-999px');
+          card.classList.remove('is-pointer-active');
+          state.rafId = null;
+          return;
+        }
+      }
+
+      state.rafId = requestAnimationFrame(loop);
+    };
+
+    state.rafId = requestAnimationFrame(loop);
+  }, []);
+
+  const handleCardPointerEnter = useCallback((e) => {
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const card = e.currentTarget;
+    card.classList.add('is-pointer-active');
+
+    if (!card._tiltState) {
+      card._tiltState = {
+        targetRotX: 0,
+        targetRotY: 0,
+        currentRotX: 0,
+        currentRotY: 0,
+        targetDepth: 0,
+        currentDepth: 0,
+        targetShiftX: 0,
+        currentShiftX: 0,
+        targetShiftY: 0,
+        currentShiftY: 0,
+        rafId: null,
+        isHovered: false,
+      };
+    }
+    card._tiltState.isHovered = true;
+    startCardTiltLoop(card);
+  }, [startCardTiltLoop]);
+
+  const handleCardPointerMove = useCallback((e) => {
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const card = e.currentTarget;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+
+    const rect = card.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
+
+    // Section 10: Specular light is soft, atmospheric, and immediate
+    card.style.setProperty('--mouse-x', `${px.toFixed(1)}px`);
+    card.style.setProperty('--mouse-y', `${py.toFixed(1)}px`);
+
+    if (!card._tiltState) {
+      card._tiltState = {
+        targetRotX: 0,
+        targetRotY: 0,
+        currentRotX: 0,
+        currentRotY: 0,
+        targetDepth: 0,
+        currentDepth: 0,
+        targetShiftX: 0,
+        currentShiftX: 0,
+        targetShiftY: 0,
+        currentShiftY: 0,
+        rafId: null,
+        isHovered: true,
+      };
+    }
+
+    const state = card._tiltState;
+    state.isHovered = true;
+
+    // Normalized coordinates relative to center: -1.0 (left/top) to +1.0 (right/bottom)
+    const normX = (px / rect.width - 0.5) * 2;
+    const normY = (py / rect.height - 0.5) * 2;
+
+    // Section 5 & 6: Dead-zone around center + gentle nonlinear response
+    const DEAD_ZONE = 0.14; // Center dead-zone prevents micro-jitter
+    const applyDeadZoneAndCurve = (val) => {
+      const abs = Math.abs(val);
+      if (abs <= DEAD_ZONE) return 0;
+      const normalized = Math.min(1, (abs - DEAD_ZONE) / (1 - DEAD_ZONE));
+      // Gentle non-linear curve (Section 6)
+      return Math.sign(val) * Math.pow(normalized, 1.35);
+    };
+
+    const curvedX = applyDeadZoneAndCurve(normX);
+    const curvedY = applyDeadZoneAndCurve(normY);
+
+    // Section 2: Max rotation strictly ±1.5deg (never exceeds 2deg)
+    const MAX_ROT = 1.5;
+    state.targetRotY = Math.max(-MAX_ROT, Math.min(MAX_ROT, curvedX * MAX_ROT));
+    state.targetRotX = Math.max(-MAX_ROT, Math.min(MAX_ROT, curvedY * MAX_ROT));
+
+    // Section 7: Very subtle depth (max 2.0 - 2.5px, never jumping)
+    const distFromCenter = Math.min(1, Math.hypot(curvedX, curvedY));
+    state.targetDepth = distFromCenter * 2.2;
+
+    // Subtle edge optical shift (< 1px)
+    state.targetShiftX = curvedX * 0.8;
+    state.targetShiftY = curvedY * 0.8;
+
+    startCardTiltLoop(card);
+  }, [startCardTiltLoop]);
+
+  const handleCardPointerLeave = useCallback((e) => {
+    const card = e.currentTarget;
+    if (!card._tiltState) return;
+
+    const state = card._tiltState;
+    state.isHovered = false;
+    // Section 11: Smooth settling back to 0deg / 0px via existing interpolation loop
+    state.targetRotX = 0;
+    state.targetRotY = 0;
+    state.targetDepth = 0;
+    state.targetShiftX = 0;
+    state.targetShiftY = 0;
+
+    startCardTiltLoop(card);
+  }, [startCardTiltLoop]);
+
   // Comparison Dimensions (Sequential Overtake Moments)
   const comparisonData = [
     {
@@ -504,9 +703,28 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
       {/* Atmospheric Cryogenic Ambient Scrim */}
       <div className="hqds-ambient-scrim" aria-hidden="true" />
 
-      {/* Minimal Lateral Progress Rail */}
+      {/* Precision Scroll Navigation Rail (Stage 8 Precision Redesign) */}
       <div className="hqds-progress-rail-minimal" aria-hidden="true">
-        <div ref={railIndicatorRef} className="hqds-rail-indicator-fill" style={{ height: '15%' }} />
+        <div className="hqds-rail-track">
+          {/* Continuous Progress Fill & Active Calibration Marker */}
+          <div ref={railIndicatorRef} className="hqds-rail-indicator-fill" style={{ height: '0%' }}>
+            <div className="hqds-rail-marker" />
+          </div>
+
+          {/* Major Narrative Section Calibration Ticks */}
+          <div className="hqds-rail-ticks">
+            {RAIL_SECTIONS.map((sec) => (
+              <div
+                key={sec.id}
+                id={`hqds-rail-tick-${sec.id}`}
+                className={`hqds-rail-tick ${activeAct === sec.id ? 'is-active' : ''}`}
+                style={{ top: `${sec.defaultPct}%` }}
+                data-label={sec.label}
+                data-section={sec.id}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Minimal Top Navigation (Liquid Brokers Reference Architecture) */}
@@ -545,7 +763,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
               className="hqds-nav-pill-btn"
               onClick={handleLaunchHonest}
             >
-              <span>Launch Protocol</span>
+              <span>Sign In</span>
             </button>
           </div>
         </div>
@@ -571,7 +789,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                 className="hqds-hero-primary-cta hqds-hero-enter-cta"
                 onClick={handleLaunchHonest}
               >
-                <span>Deploy Quantum Protection</span>
+                <span>Get Started</span>
               </button>
             </div>
           </div>
@@ -731,6 +949,9 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                       <div
                         key={currentPillar.digit}
                         className={`hqds-glass-sharp hqds-pillar-single-card pillar-card-${currentPillar.digit}`}
+                        onPointerEnter={handleCardPointerEnter}
+                        onPointerMove={handleCardPointerMove}
+                        onPointerLeave={handleCardPointerLeave}
                       >
                         <div className="hqds-pillar-header-row">
                           <div>
@@ -809,7 +1030,10 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
             </div>
 
             {/* Active Dimension Display Card (Content panel stays completely static on scroll) */}
-            <div className="hqds-dimension-stage-container">
+            <div
+              className={`hqds-dimension-stage-container dim-stage-${activeDimension}`}
+              style={{ '--dim-accent': ['#2dd4bf', '#38bdf8', '#c084fc', '#f59e0b', '#ff3355'][activeDimension] || '#2dd4bf' }}
+            >
               <div className="hqds-dimension-ambient-glow" aria-hidden="true" />
               {/* Active Dimension Display Card with Smooth Cross-Fade & Stage 7B Content Fade/Rise */}
               <div ref={dimensionContentRef} className="hqds-scroll-content-wrap">
@@ -822,7 +1046,10 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                         id={`dim-panel-${activeDimension}`}
                         role="tabpanel"
                         aria-labelledby={`dim-tab-${activeDimension}`}
-                        className="hqds-glass-deep hqds-dimension-active-card"
+                        className={`hqds-glass-deep hqds-dimension-active-card dim-card-${activeDimension}`}
+                        onPointerEnter={handleCardPointerEnter}
+                        onPointerMove={handleCardPointerMove}
+                        onPointerLeave={handleCardPointerLeave}
                       >
                         <div className="hqds-dimcard-header">
                           <div className="hqds-dimcard-title-group">

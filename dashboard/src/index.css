@@ -2731,13 +2731,14 @@ body {
   z-index: 2;
   max-width: 1240px;
   margin: 0 auto;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  width: 100%;
 }
 
 .hqds-brand-wrap {
+  justify-self: start;
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -2749,42 +2750,30 @@ body {
   font-family: 'Epilogue', sans-serif;
   font-size: 1.22rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
-  background: linear-gradient(
-    120deg,
-    #ffffff 0%,
-    #ffffff 38%,
-    #a5f3fc 50%,
-    #c084fc 64%,
-    #ffffff 78%,
-    #ffffff 100%
-  );
-  background-size: 260% 100%;
+  letter-spacing: -0.015em;
+  background: linear-gradient(180deg, #ffffff 30%, #e0f2fe 70%, #bae6fd 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: hqdsLogoShimmer 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   display: inline-block;
+  animation: hqdsLogoLuminance 6s ease-in-out infinite alternate;
 }
 
-@keyframes hqdsLogoShimmer {
+@keyframes hqdsLogoLuminance {
   0% {
-    background-position: 100% 50%;
-    filter: drop-shadow(0 0 0px rgba(165, 243, 252, 0));
-  }
-  50% {
-    background-position: 0% 50%;
-    filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.3));
+    filter: drop-shadow(0 0 1px rgba(186, 230, 253, 0.2));
+    opacity: 0.95;
   }
   100% {
-    background-position: -100% 50%;
-    filter: drop-shadow(0 0 0px rgba(165, 243, 252, 0));
+    filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.35));
+    opacity: 1;
   }
 }
 
 .hqds-nav-center {
+  justify-self: center;
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 36px;
 }
 
 .hqds-nav-link {
@@ -2825,6 +2814,7 @@ body {
 }
 
 .hqds-nav-right {
+  justify-self: end;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -2863,25 +2853,41 @@ body {
    - Fixed position sitewide (zero cursor following)
    ══════════════════════════════════════════════════════════ */
 
-@keyframes hqdsWaveBob {
+/* ══════════════════════════════════════════════════════════
+   STAGE 11: BUTTON OPTICAL FLUID SURFACE ENGINE (Sitewide Unified)
+   - Multi-layered living fluid volume: deep currents + surface caustics
+   - Full-surface continuous motion (not a single sliding front-face bar)
+   - Cold photonic optical water palette (#02203f -> #0284c7 -> #38bdf8 -> #ffffff)
+   - Smooth physical expansion & calm settling dissolution on leave
+   - Fixed geometry: button strictly never moves or scales
+   ══════════════════════════════════════════════════════════ */
+@keyframes hqdsFluidCurrent {
   0% {
-    transform: translate3d(0, -4px, 0);
+    background-position: 0% 40%, 15% 50%;
   }
   50% {
-    transform: translate3d(0, 4px, 0);
+    background-position: 50% 60%, 75% 45%;
   }
   100% {
-    transform: translate3d(0, -2px, 0);
+    background-position: 100% 40%, 30% 55%;
   }
 }
 
-/* ══════════════════════════════════════════════════════════
-   STAGE 1: BUTTON LIQUID-FILL WAVE HOVER SYSTEM (ALL BUTTONS)
-   - Speed: unhurried 0.95s gentle cubic-bezier easing (water rising)
-   - Wave: calm 4.2s slow ripple oscillation frequency
-   - Color: rich, deep saturated gradient (#581c87 -> #7C6EF0 -> #4C6FFF)
-   - Applies consistently to every button on the site
-   ══════════════════════════════════════════════════════════ */
+@keyframes hqdsCausticSheen {
+  0% {
+    background-position: 20% 20%, 0% 0%;
+    transform: translateY(0px) scale(1.0);
+  }
+  50% {
+    background-position: 80% 60%, 50% 30%;
+    transform: translateY(-1.5px) scale(1.02);
+  }
+  100% {
+    background-position: 30% 80%, 100% 60%;
+    transform: translateY(1px) scale(0.99);
+  }
+}
+
 .hqds-nav-pill-btn,
 .hqds-hero-primary-cta,
 .hqds-btn-primary,
@@ -2893,16 +2899,16 @@ body {
   align-items: center !important;
   justify-content: center !important;
   transform: none !important; /* Fixed position — strictly no cursor follow or drift */
-  background: rgba(14, 11, 26, 0.65) !important;
+  background: rgba(8, 14, 26, 0.72) !important;
   backdrop-filter: blur(20px) saturate(160%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
-  border: 1px solid rgba(192, 132, 252, 0.35) !important;
+  border: 1px solid rgba(56, 189, 248, 0.28) !important;
   border-radius: 12px !important;
   overflow: hidden !important;
   cursor: pointer !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28),
-              0 8px 24px rgba(0, 0, 0, 0.5),
-              0 0 18px rgba(109, 40, 217, 0.2) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22),
+              0 8px 24px rgba(0, 0, 0, 0.55),
+              0 0 14px rgba(2, 132, 199, 0.15) !important;
   transition: border-color 0.45s ease, box-shadow 0.45s ease, background 0.45s ease !important;
 }
 
@@ -2949,14 +2955,14 @@ body {
   color: #ffffff !important;
   font-family: 'Space Grotesk', sans-serif !important;
   letter-spacing: 0.03em !important;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 14px rgba(124, 58, 237, 0.5) !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95), 0 0 12px rgba(56, 189, 248, 0.4) !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
   transition: color 0.45s ease, text-shadow 0.45s ease !important;
 }
 
-/* Left-to-right rich, saturated liquid wave body (unhurried 0.95s gentle curve) */
+/* Layer 1 & 2: Broad Fluid Body with internal circulating currents */
 .hqds-nav-pill-btn::before,
 .hqds-hero-primary-cta::before,
 .hqds-btn-primary::before,
@@ -2965,30 +2971,21 @@ body {
 .hqds-dim-nav-btn::before {
   content: '' !important;
   position: absolute !important;
-  top: -20% !important;
-  bottom: -20% !important;
-  left: -155% !important;
-  width: 155% !important;
+  inset: 0 !important;
   z-index: 1 !important;
   border-radius: inherit !important;
-  background: linear-gradient(
-    90deg,
-    #581c87 0%,
-    #6d28d9 20%,
-    #7c3aed 42%,
-    #7C6EF0 68%,
-    #4C6FFF 88%,
-    #38bdf8 100%
-  ) !important;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 100' preserveAspectRatio='none'%3E%3Cpath d='M0,0 L110,0 C128,22 142,38 122,58 C102,78 134,88 116,100 L0,100 Z' fill='%23000'/%3E%3C/svg%3E") !important;
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 100' preserveAspectRatio='none'%3E%3Cpath d='M0,0 L110,0 C128,22 142,38 122,58 C102,78 134,88 116,100 L0,100 Z' fill='%23000'/%3E%3C/svg%3E") !important;
-  -webkit-mask-size: 100% 100% !important;
-  mask-size: 100% 100% !important;
-  transition: left 0.95s cubic-bezier(0.25, 1, 0.4, 1), transform 0.95s cubic-bezier(0.25, 1, 0.4, 1) !important;
+  background: 
+    radial-gradient(ellipse 130% 90% at 30% 40%, rgba(14, 165, 233, 0.72) 0%, rgba(2, 132, 199, 0.45) 45%, transparent 75%),
+    linear-gradient(115deg, #021a36 0%, #034e7b 24%, #0284c7 50%, #0ea5e9 72%, #38bdf8 90%, #0284c7 100%) !important;
+  background-size: 200% 200%, 240% 140% !important;
+  opacity: 0 !important;
+  filter: blur(1.5px) !important;
+  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), filter 0.55s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  animation: hqdsFluidCurrent 5.8s ease-in-out infinite alternate !important;
   pointer-events: none !important;
 }
 
-/* Undulating wave leading crest specular highlight (calm 4.2s ripple) */
+/* Layer 3 & 4: Surface Wave Turbulence & Luminous Optical Caustics */
 .hqds-nav-pill-btn::after,
 .hqds-hero-primary-cta::after,
 .hqds-btn-primary::after,
@@ -2997,19 +2994,17 @@ body {
 .hqds-dim-nav-btn::after {
   content: '' !important;
   position: absolute !important;
-  top: -20% !important;
-  bottom: -20% !important;
-  left: -155% !important;
-  width: 155% !important;
+  inset: 0 !important;
   z-index: 2 !important;
+  border-radius: inherit !important;
   pointer-events: none !important;
-  background: linear-gradient(180deg, #ffffff 0%, #ddd6fe 40%, #a5b4fc 75%, #4C6FFF 100%) !important;
-  opacity: 0.94 !important;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 100' preserveAspectRatio='none'%3E%3Cpath d='M104,0 C122,22 136,38 116,58 C96,78 128,88 110,100 L116,100 C134,88 102,78 122,58 C142,38 128,22 110,0 Z' fill='%23000'/%3E%3C/svg%3E") !important;
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 100' preserveAspectRatio='none'%3E%3Cpath d='M104,0 C122,22 136,38 116,58 C96,78 128,88 110,100 L116,100 C134,88 102,78 122,58 C142,38 128,22 110,0 Z' fill='%23000'/%3E%3C/svg%3E") !important;
-  -webkit-mask-size: 100% 100% !important;
-  mask-size: 100% 100% !important;
-  transition: left 0.95s cubic-bezier(0.25, 1, 0.4, 1), transform 0.95s cubic-bezier(0.25, 1, 0.4, 1) !important;
+  background: 
+    radial-gradient(ellipse 80% 55% at 65% 25%, rgba(255, 255, 255, 0.45) 0%, rgba(186, 230, 253, 0.22) 50%, transparent 75%),
+    linear-gradient(135deg, transparent 15%, rgba(56, 189, 248, 0.28) 42%, rgba(255, 255, 255, 0.55) 62%, rgba(56, 189, 248, 0.2) 80%, transparent 95%) !important;
+  background-size: 180% 180%, 220% 150% !important;
+  opacity: 0 !important;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  animation: hqdsCausticSheen 4s ease-in-out infinite alternate !important;
 }
 
 .hqds-nav-pill-btn:hover,
@@ -3019,10 +3014,10 @@ body {
 .hqds-nav-ghost-btn:hover,
 .hqds-dim-nav-btn:hover {
   transform: none !important; /* Strictly no movement */
-  border-color: rgba(216, 180, 254, 0.85) !important;
+  border-color: rgba(56, 189, 248, 0.75) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65),
-              0 16px 44px rgba(109, 40, 217, 0.55),
-              0 0 32px rgba(76, 111, 255, 0.45) !important;
+              0 14px 38px rgba(2, 132, 199, 0.45),
+              0 0 26px rgba(56, 189, 248, 0.35) !important;
 }
 
 .hqds-nav-pill-btn:hover::before,
@@ -3031,8 +3026,8 @@ body {
 .hqds-btn-xl:hover::before,
 .hqds-nav-ghost-btn:hover::before,
 .hqds-dim-nav-btn:hover::before {
-  left: 0% !important;
-  animation: hqdsWaveBob 4.2s ease-in-out infinite alternate !important;
+  opacity: 1 !important;
+  filter: blur(0px) !important;
 }
 
 .hqds-nav-pill-btn:hover::after,
@@ -3041,8 +3036,7 @@ body {
 .hqds-btn-xl:hover::after,
 .hqds-nav-ghost-btn:hover::after,
 .hqds-dim-nav-btn:hover::after {
-  left: 0% !important;
-  animation: hqdsWaveBob 4.2s ease-in-out infinite alternate !important;
+  opacity: 0.92 !important;
 }
 
 .hqds-hero-primary-cta:focus-visible,
@@ -3054,8 +3048,11 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════
-   MINIMAL LATERAL SCROLL PROGRESS RAIL (Clean Capillary Indicator)
-   Restrained, thin 2px track with crisp position dot (no neon smear)
+   STAGE 11: PRECISION SCROLL NAVIGATION RAIL (Instrumentation Spine)
+   - Translucent optical vertical track with cold photonic gradient fill
+   - Embedded precision nodes (tiny circular points, no horizontal ruler cuts)
+   - Active node expansion with restrained cyan halo
+   - Monospace section telemetry label
    ══════════════════════════════════════════════════════════ */
 .hqds-progress-rail-minimal {
   position: fixed;
@@ -3063,46 +3060,152 @@ body {
   top: 50%;
   transform: translateY(-50%);
   z-index: 80;
-  width: 2px;
-  height: 140px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 2px;
+  width: 14px;
+  height: 180px;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hqds-root.is-calibrated .hqds-progress-rail-minimal {
+  opacity: 1;
+}
+
+.hqds-rail-track {
+  position: relative;
+  width: 2px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  box-shadow: 0 0 1px rgba(56, 189, 248, 0.15);
 }
 
 .hqds-rail-indicator-fill {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  background: #c084fc;
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.75) 0%, #38bdf8 65%, #0284c7 100%);
   border-radius: 2px;
-  box-shadow: 0 0 6px rgba(192, 132, 252, 0.35);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+  will-change: height;
 }
 
-/* Crisp position indicator dot */
-.hqds-rail-indicator-fill::after {
-  content: '';
+/* Precision Concentric Active Position Marker */
+.hqds-rail-marker {
   position: absolute;
-  bottom: -3px;
+  bottom: 0;
   left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
+  transform: translate(-50%, 50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(8, 14, 26, 0.92);
+  border: 1px solid rgba(56, 189, 248, 0.85);
+  box-shadow: 0 0 5px rgba(56, 189, 248, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.hqds-rail-marker::after {
+  content: '';
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
   background: #ffffff;
-  border: 1.5px solid #c084fc;
-  box-shadow: 0 0 4px rgba(192, 132, 252, 0.5);
+  box-shadow: 0 0 2px #ffffff;
+}
+
+/* Major Narrative Section Calibration Nodes (Embedded in spine, NOT ruler ticks) */
+.hqds-rail-ticks {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hqds-rail-tick {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 2;
+  transition: width 0.22s ease, height 0.22s ease, background-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.hqds-rail-tick.is-active {
+  width: 6px;
+  height: 6px;
+  background: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.75), 0 0 2px #ffffff;
+}
+
+/* Restrained active section micro-label */
+.hqds-rail-tick::before {
+  content: attr(data-label);
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: rgba(56, 189, 248, 0.9);
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.hqds-rail-tick.is-active::before {
+  opacity: 1;
+}
+
+@media (max-width: 1024px) {
+  .hqds-rail-tick::before {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .hqds-progress-rail-minimal {
+    right: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hqds-progress-rail-minimal,
+  .hqds-rail-tick,
+  .hqds-rail-tick::before {
+    transition: none !important;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
-   HERO SECTION LAYOUT & SYMMETRY (Balanced Center Composition)
+   HERO SECTION LAYOUT & SYMMETRY (Stage 11 Connected Rhythm)
    ══════════════════════════════════════════════════════════ */
 .hqds-act-hero-unified {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 130px 32px 40px;
+  justify-content: flex-start;
+  padding: 116px 32px 64px;
   text-align: center;
   position: relative;
   box-sizing: border-box;
@@ -3113,7 +3216,7 @@ body {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  max-width: 980px;
+  max-width: 1040px;
   margin: 0 auto;
   z-index: 25;
 }
@@ -3122,51 +3225,64 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
   font-family: 'Epilogue', sans-serif;
-  font-size: clamp(2.4rem, 4.8vw, 4.1rem);
+  font-size: clamp(2.3rem, 3.75vw, 3.65rem);
   font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
+  letter-spacing: -0.024em;
+  line-height: 1.22;
   color: #ffffff;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
   text-align: center;
+  max-width: 1020px;
 }
 
 .hqds-hero-two-line-title span {
   display: block;
 }
 
+@media (min-width: 1080px) {
+  .hqds-hero-two-line-title span {
+    white-space: nowrap;
+  }
+}
+
+/* Stage 12: Visibly Present Cold Photonic Optical Gradient (White -> Ice -> Cyan -> Cool Blue) */
 .hqds-hero-two-line-title span:first-child {
-  background: linear-gradient(180deg, #ffffff 40%, rgba(255, 255, 255, 0.78) 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #e0f2fe 18%, #7dd3fc 55%, #38bdf8 85%, #0284c7 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .hqds-hero-two-line-title span:last-child {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(192, 132, 252, 0.88) 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #bae6fd 20%, #38bdf8 52%, #0284c7 82%, #0369a1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .hqds-hero-one-line-sub {
-  font-size: clamp(1.05rem, 1.4vw, 1.2rem);
-  line-height: 1.6;
-  color: rgba(248, 250, 252, 0.84);
+  font-size: clamp(0.96rem, 1.15vw, 1.1rem);
+  line-height: 1.55;
+  color: rgba(226, 232, 240, 0.88);
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8);
-  max-width: 740px;
-  margin: 0 auto 32px;
+  max-width: 680px;
+  margin: 0 auto 24px;
   text-align: center;
   font-weight: 400;
 }
 
 /* Floating Glass Stat Cards Framed Symmetrically Across the 3D Hero Object */
+/* Stage 12: Decoupled Independent Visual Layer (Absolute Stage Anchor) */
 .hqds-hero-stage-overlap {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  bottom: clamp(95px, 14.2vh, 142px);
   width: 100%;
   max-width: 1140px;
-  margin: 30px auto 0 auto;
-  height: auto;
+  padding: 0 32px;
+  box-sizing: border-box;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -3174,6 +3290,19 @@ body {
   z-index: 25;
   will-change: transform, opacity;
   transition: none !important;
+}
+
+@media (max-width: 768px) {
+  .hqds-hero-stage-overlap {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    margin: 40px auto 0 auto;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0 20px;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -3231,11 +3360,11 @@ body {
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 20px 24px;
+  padding: 18px 22px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   text-align: left;
   transition: border-color 0.28s ease,
               box-shadow 0.28s ease;
@@ -3889,18 +4018,57 @@ body {
   }
 }
 
-/* Single Active Pillar Display Card (Tightened spacing, tailored themes, discrete hover) */
+/* Single Active Pillar Display Card (Stage 9.6: Subtle Physical Depth Hover) */
+.hqds-glass-sharp.hqds-pillar-single-card,
 .hqds-pillar-single-card {
   border-radius: 20px;
   padding: 36px 38px;
   position: relative;
+  overflow: hidden;
   animation: hqdsPillarFadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: perspective(1200px) rotateX(var(--card-tilt-x, 0deg)) rotateY(var(--card-tilt-y, 0deg)) translateZ(var(--card-depth, 0px));
+  transform-style: preserve-3d;
+  will-change: transform;
   transition: border-color 0.28s ease,
               box-shadow 0.28s ease;
 }
 
+.hqds-glass-sharp.hqds-pillar-single-card:hover,
 .hqds-pillar-single-card:hover {
-  transform: translateY(-4px);
+  /* Retain authoritative perspective transform — no translateY or scale */
+  transform: perspective(1200px) rotateX(var(--card-tilt-x, 0deg)) rotateY(var(--card-tilt-y, 0deg)) translateZ(var(--card-depth, 0px));
+}
+
+.hqds-glass-sharp.hqds-pillar-single-card.is-pointer-active::before,
+.hqds-glass-sharp.hqds-pillar-single-card:hover::before,
+.hqds-pillar-single-card.is-pointer-active::before,
+.hqds-pillar-single-card:hover::before {
+  opacity: 0.55;
+}
+
+/* Reduced specular intensity (50-60% of original, soft reflected sheen) */
+.hqds-pillar-single-card.pillar-card-01::before {
+  background: radial-gradient(
+    circle 300px at var(--mouse-x, -999px) var(--mouse-y, -999px),
+    rgba(45, 212, 191, 0.08),
+    transparent 72%
+  );
+}
+
+.hqds-pillar-single-card.pillar-card-02::before {
+  background: radial-gradient(
+    circle 300px at var(--mouse-x, -999px) var(--mouse-y, -999px),
+    rgba(192, 132, 252, 0.08),
+    transparent 72%
+  );
+}
+
+.hqds-pillar-single-card.pillar-card-03::before {
+  background: radial-gradient(
+    circle 300px at var(--mouse-x, -999px) var(--mouse-y, -999px),
+    rgba(244, 63, 94, 0.08),
+    transparent 72%
+  );
 }
 
 @keyframes hqdsPillarFadeIn {
@@ -3922,7 +4090,10 @@ body {
 }
 .hqds-pillar-single-card.pillar-card-01:hover {
   border-color: rgba(45, 212, 191, 0.45);
-  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.75), 0 0 24px rgba(45, 212, 191, 0.12);
+  box-shadow:
+    0 2px 12px rgba(45, 212, 191, 0.22),
+    0 12px 38px rgba(45, 212, 191, 0.12),
+    0 22px 52px rgba(0, 0, 0, 0.75);
 }
 .hqds-pillar-single-card.pillar-card-01 .hqds-pillar-eyebrow {
   color: #5eead4;
@@ -3946,7 +4117,10 @@ body {
 }
 .hqds-pillar-single-card.pillar-card-02:hover {
   border-color: rgba(192, 132, 252, 0.45);
-  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.75), 0 0 24px rgba(192, 132, 252, 0.12);
+  box-shadow:
+    0 2px 12px rgba(192, 132, 252, 0.22),
+    0 12px 38px rgba(192, 132, 252, 0.12),
+    0 22px 52px rgba(0, 0, 0, 0.75);
 }
 .hqds-pillar-single-card.pillar-card-02 .hqds-pillar-eyebrow {
   color: #d8b4fe;
@@ -3970,7 +4144,10 @@ body {
 }
 .hqds-pillar-single-card.pillar-card-03:hover {
   border-color: rgba(244, 63, 94, 0.45);
-  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.75), 0 0 24px rgba(244, 63, 94, 0.12);
+  box-shadow:
+    0 2px 12px rgba(244, 63, 94, 0.22),
+    0 12px 38px rgba(244, 63, 94, 0.12),
+    0 22px 52px rgba(0, 0, 0, 0.75);
 }
 .hqds-pillar-single-card.pillar-card-03 .hqds-pillar-eyebrow {
   color: #fda4af;
@@ -4495,26 +4672,114 @@ body {
   100% { transform: scale(1.0); opacity: 0.7; }
 }
 
-/* Active Dimension Card (Discrete Hover, Clean Padding, No Mouse Tilt) */
+/* Active Dimension Card (Stage 9.6: Subtle Physical Depth Hover) */
 .hqds-dimension-active-card {
   position: relative;
   z-index: 2;
   border-radius: 20px;
+  overflow: hidden;
   padding: 40px 40px;
   background: rgba(11, 14, 24, 0.82);
   backdrop-filter: blur(28px) saturate(150%);
   -webkit-backdrop-filter: blur(28px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: perspective(1200px) rotateX(var(--card-tilt-x, 0deg)) rotateY(var(--card-tilt-y, 0deg)) translateZ(var(--card-depth, 0px));
+  transform-style: preserve-3d;
+  will-change: transform;
   transition: border-color 0.28s ease,
               box-shadow 0.28s ease;
   animation: hqdsDimCardIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Dimension Specular Light Tracking - Soft, atmospheric, reduced intensity (50-60%) */
+.hqds-dimension-active-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle 300px at var(--mouse-x, -999px) var(--mouse-y, -999px),
+    var(--dim-specular, rgba(45, 212, 191, 0.08)),
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hqds-dimension-active-card:hover::before,
+.hqds-dimension-active-card.is-pointer-active::before {
+  opacity: 0.55;
+}
+
+/* Per-dimension theme colors for shared ancestor & active dimension card */
+.hqds-dimension-stage-container.dim-stage-0,
+.hqds-dimension-active-card.dim-card-0 {
+  --dim-accent: #2dd4bf;
+  --dim-glow-tight: rgba(45, 212, 191, 0.22);
+  --dim-glow-diffuse: rgba(45, 212, 191, 0.12);
+  --dim-border-hover: rgba(45, 212, 191, 0.45);
+  --dim-specular: rgba(45, 212, 191, 0.08);
+}
+
+.hqds-dimension-stage-container.dim-stage-1,
+.hqds-dimension-active-card.dim-card-1 {
+  --dim-accent: #38bdf8;
+  --dim-glow-tight: rgba(56, 189, 248, 0.22);
+  --dim-glow-diffuse: rgba(56, 189, 248, 0.12);
+  --dim-border-hover: rgba(56, 189, 248, 0.45);
+  --dim-specular: rgba(56, 189, 248, 0.08);
+}
+
+.hqds-dimension-stage-container.dim-stage-2,
+.hqds-dimension-active-card.dim-card-2 {
+  --dim-accent: #c084fc;
+  --dim-glow-tight: rgba(192, 132, 252, 0.22);
+  --dim-glow-diffuse: rgba(192, 132, 252, 0.12);
+  --dim-border-hover: rgba(192, 132, 252, 0.45);
+  --dim-specular: rgba(192, 132, 252, 0.08);
+}
+
+.hqds-dimension-stage-container.dim-stage-3,
+.hqds-dimension-active-card.dim-card-3 {
+  --dim-accent: #f59e0b;
+  --dim-glow-tight: rgba(245, 158, 11, 0.22);
+  --dim-glow-diffuse: rgba(245, 158, 11, 0.12);
+  --dim-border-hover: rgba(245, 158, 11, 0.45);
+  --dim-specular: rgba(245, 158, 11, 0.08);
+}
+
+.hqds-dimension-stage-container.dim-stage-4,
+.hqds-dimension-active-card.dim-card-4 {
+  --dim-accent: #ff3355;
+  --dim-glow-tight: rgba(255, 51, 85, 0.22);
+  --dim-glow-diffuse: rgba(255, 51, 85, 0.12);
+  --dim-border-hover: rgba(255, 51, 85, 0.45);
+  --dim-specular: rgba(255, 51, 85, 0.08);
+}
+
 .hqds-dimension-active-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(45, 212, 191, 0.4);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 24px rgba(45, 212, 191, 0.12);
+  transform: perspective(1200px) rotateX(var(--card-tilt-x, 0deg)) rotateY(var(--card-tilt-y, 0deg)) translateZ(var(--card-depth, 0px));
+  border-color: var(--dim-border-hover, var(--dim-accent, rgba(45, 212, 191, 0.45)));
+  box-shadow:
+    0 2px 12px var(--dim-glow-tight, color-mix(in srgb, var(--dim-accent, #2dd4bf) 22%, transparent)),
+    0 12px 38px var(--dim-glow-diffuse, color-mix(in srgb, var(--dim-accent, #2dd4bf) 12%, transparent)),
+    0 24px 60px rgba(0, 0, 0, 0.8);
+}
+
+/* Stage 9.6: Subtle Internal Edge Parallax (< 1px relative to card depth) */
+.hqds-pillar-single-card .hqds-pillar-header-row,
+.hqds-dimension-active-card .hqds-dimcard-header {
+  transform: translate3d(var(--card-shift-x, 0px), var(--card-shift-y, 0px), 0);
+  will-change: transform;
+}
+
+.hqds-pillar-single-card .hqds-pillar-content-split,
+.hqds-dimension-active-card .hqds-dimcard-columns {
+  transform: translate3d(calc(var(--card-shift-x, 0px) * 0.5), calc(var(--card-shift-y, 0px) * 0.5), 0);
+  will-change: transform;
 }
 
 @keyframes hqdsDimCardIn {
@@ -4889,6 +5154,10 @@ body {
 
 /* Responsive Breakpoints */
 @media (max-width: 1024px) {
+  .hqds-nav-inner {
+    display: flex;
+    justify-content: space-between;
+  }
   .hqds-nav-center {
     display: none;
   }
@@ -4901,17 +5170,6 @@ body {
   .hqds-comparison-row {
     grid-template-columns: 1fr;
     gap: 14px;
-  }
-  .hqds-hero-stage-overlap {
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    height: auto;
-    margin-top: 40px;
-  }
-  .hqds-floating-stat-card {
-    width: 100%;
-    max-width: 320px;
   }
 }
 
@@ -4957,10 +5215,26 @@ body {
   .hqds-nav-ghost-btn,
   .hqds-hero-primary-cta,
   .hqds-floating-stat-card,
-  .hqds-fstat-arrow-btn {
+  .hqds-fstat-arrow-btn,
+  .hqds-pillar-single-card,
+  .hqds-pillar-single-card:hover,
+  .hqds-dimension-active-card,
+  .hqds-dimension-active-card:hover,
+  .hqds-pillar-single-card .hqds-pillar-header-row,
+  .hqds-pillar-single-card .hqds-pillar-content-split,
+  .hqds-dimension-active-card .hqds-dimcard-header,
+  .hqds-dimension-active-card .hqds-dimcard-columns {
     transition: none !important;
     transform: none !important;
     animation: none !important;
+  }
+
+  .hqds-glass-sharp::before,
+  .hqds-glass-sharp:hover::before,
+  .hqds-dimension-active-card::before,
+  .hqds-dimension-active-card:hover::before {
+    display: none !important;
+    opacity: 0 !important;
   }
 }
 

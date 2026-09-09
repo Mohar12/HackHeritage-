@@ -305,8 +305,8 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
     const rootGroup = new THREE.Group();
     scene.add(rootGroup);
 
-    // Massive 3D hero object geometry (scale increased by 1.45x: radius 4.8, 128x128 subdivision)
-    const heroGeometry = new THREE.SphereGeometry(4.8, 128, 128);
+    // Massive 3D hero object geometry (calibrated for hero composition balance: radius 4.45, 128x128 subdivision)
+    const heroGeometry = new THREE.SphereGeometry(4.45, 128, 128);
 
     // Initial Material State: Deep Violet Liquid Metal
     const heroMaterial = new THREE.ShaderMaterial({
@@ -694,7 +694,7 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
       // ─────────────────────────────────────────────────────────────
       else if (p < 0.38) {
         const t = (p - 0.18) / 0.20;
-        targetX = -0.35 * t;
+        targetX = 0;
         targetY = -2.6 + t * 0.15;
         targetScale = 0.98;
         targetCameraZ = 14.0;
@@ -723,7 +723,7 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
       // ─────────────────────────────────────────────────────────────
       else if (p < 0.72) {
         const t = (p - 0.38) / 0.34;
-        targetX = -0.35 + t * 0.75;
+        targetX = 0;
         targetY = -2.45 + Math.sin(t * Math.PI) * 0.12;
         targetScale = 0.98;
         targetCameraZ = 14.0;
@@ -753,7 +753,7 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
       else if (p < 0.92) {
         const t = (p - 0.72) / 0.20;
         const smoothT = t * t * (3.0 - 2.0 * t);
-        targetX = 0.40 * (1.0 - smoothT);
+        targetX = 0;
         targetY = -2.45 - smoothT * 0.10;
         targetScale = 0.98;
         targetCameraZ = 14.0;
