@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const BACKEND_URL = process.env.VITE_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8000';
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -9,11 +11,13 @@ export default defineConfig({
     port: 5173,
     proxy: {
       // Proxy API calls to the FastAPI backend during development
-      '/generate-keys': { target: 'http://backend:8000', changeOrigin: true },
-      '/signatures':    { target: 'http://backend:8000', changeOrigin: true },
-      '/simulate-attack': { target: 'http://backend:8000', changeOrigin: true },
-      '/detect':        { target: 'http://backend:8000', changeOrigin: true },
-      '/health':        { target: 'http://backend:8000', changeOrigin: true },
+      '/auth':          { target: BACKEND_URL, changeOrigin: true },
+      '/api':           { target: BACKEND_URL, changeOrigin: true },
+      '/generate-keys': { target: BACKEND_URL, changeOrigin: true },
+      '/signatures':    { target: BACKEND_URL, changeOrigin: true },
+      '/simulate-attack': { target: BACKEND_URL, changeOrigin: true },
+      '/detect':        { target: BACKEND_URL, changeOrigin: true },
+      '/health':        { target: BACKEND_URL, changeOrigin: true },
     },
   },
   build: {

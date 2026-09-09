@@ -761,7 +761,13 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
             <button
               type="button"
               className="hqds-nav-pill-btn"
-              onClick={handleLaunchHonest}
+              onClick={() => {
+                if (onNavigate) {
+                  onNavigate('sign-in');
+                } else {
+                  handleLaunchHonest();
+                }
+              }}
             >
               <span>Sign In</span>
             </button>

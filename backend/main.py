@@ -65,7 +65,8 @@ logger = logging.getLogger(__name__)
 # Ensure Qiskit 2.x compatibility adapter is loaded at startup
 apply_qiskit_compat()
 
-from backend.routes import keys, signatures, attacks, detection
+from backend.routes import keys, signatures, attacks, detection, auth_routes
+from backend.db import init_db
 
 # ---------------------------------------------------------------------------
 # Application factory
@@ -729,12 +730,21 @@ async def simulate(req: SimulationRequest) -> SimulationResponse:
         ) from exc
 
 
+@app.on_event("startup")
+async def on_startup():
+    try:
+        init_db()
+        logger.info("PostgreSQL database initialized successfully.")
+    except Exception as exc:
+        logger.warning("PostgreSQL init warning: %s", exc)
+
 app.include_router(router)
 app.include_router(keys.router, prefix="/generate-keys", tags=["Keys"])
 app.include_router(signatures.router, prefix="/signatures", tags=["Signatures"])
 app.include_router(attacks.router, prefix="/simulate-attack", tags=["Attacks"])
 app.include_router(attacks.router, prefix="/attacks", tags=["Attacks"])
 app.include_router(detection.router, prefix="/detect", tags=["Detection"])
+app.include_router(auth_routes.router, prefix="/auth", tags=["Authentication"])
 
 # Versioned API aliases for full routing consistency
 app.include_router(keys.router, prefix="/api/v1/generate-keys", tags=["Keys"], include_in_schema=False)
@@ -742,6 +752,7 @@ app.include_router(signatures.router, prefix="/api/v1/signatures", tags=["Signat
 app.include_router(attacks.router, prefix="/api/v1/simulate-attack", tags=["Attacks"], include_in_schema=False)
 app.include_router(attacks.router, prefix="/api/v1/attacks", tags=["Attacks"], include_in_schema=False)
 app.include_router(detection.router, prefix="/api/v1/detect", tags=["Detection"], include_in_schema=False)
+app.include_router(auth_routes.router, prefix="/api/v1/auth", tags=["Authentication"], include_in_schema=False)
 
 
 @app.post(

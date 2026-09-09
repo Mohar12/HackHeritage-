@@ -15,8 +15,9 @@
  *  - Liquid Glass Design System & Specular Refraction Styling
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StitchLandingPage from './components/StitchLandingPage.jsx';
+import SignInPage from './components/SignInPage.jsx';
 import HonestProtocolPage from './components/HonestProtocolPage.jsx';
 import StitchHeader from './components/StitchHeader.jsx';
 import ProtocolRunPanel from './components/ProtocolRunPanel.jsx';
@@ -37,6 +38,9 @@ export default function App() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const qView = params.get('view');
+      if (qView === 'sign-in' || qView === 'signin' || qView === 'login') return 'sign-in';
+      if (window.location.pathname === '/sign-in' || window.location.pathname === '/login') return 'sign-in';
+      if (window.location.hash === '#sign-in' || window.location.hash === '#signin' || window.location.hash === '#login') return 'sign-in';
       if (qView === 'honest' || qView === 'pipeline') return 'honest';
       if (qView === 'attack' || qView === 'large_scale' || qView === 'audit') return 'operations';
       if (window.location.hash === '#honest' || window.location.hash === '#pipeline') return 'honest';
@@ -45,7 +49,8 @@ export default function App() {
     return 'landing';
   };
 
-  const [currentView, setCurrentView] = useState(getInitialView); // 'landing' | 'honest' | 'operations'
+  const [currentView, setCurrentView] = useState(getInitialView); // 'landing' | 'sign-in' | 'honest' | 'operations'
+  const [currentUser, setCurrentUser] = useState(null);
   const [activeData, setActiveData] = useState(null);
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -60,6 +65,15 @@ export default function App() {
   const [selectedEntity, setSelectedEntity] = useState(TARGET_SIGNATURE_ENTITIES[0]);
   const [operationPhase, setOperationPhase] = useState('IDLE');
 
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentView(getInitialView());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const isAttacked = Boolean(activeData?.detect?.is_malicious || activeData?.type === 'attack');
   const fidelity = typeof activeData?.detect?.fidelity === 'number' ? activeData.detect.fidelity : 0.99;
 
@@ -67,7 +81,12 @@ export default function App() {
     if (view === 'landing') {
       setCurrentView('landing');
       if (typeof window !== 'undefined' && window.history?.pushState) {
-        window.history.pushState(null, '', window.location.pathname);
+        window.history.pushState(null, '', '/');
+      }
+    } else if (view === 'sign-in' || view === 'signin' || view === 'login') {
+      setCurrentView('sign-in');
+      if (typeof window !== 'undefined' && window.history?.pushState) {
+        window.history.pushState(null, '', '/sign-in');
       }
     } else if (view === 'honest' || view === 'pipeline') {
       setCurrentView('honest');
@@ -82,6 +101,21 @@ export default function App() {
       }
     }
   };
+
+  // View 0: Secure Authentication Page (Stage 13)
+  if (currentView === 'sign-in') {
+    return (
+      <ErrorBoundary title="HyperQDS Authentication Error">
+        <SignInPage 
+          onNavigate={handleNavigate}
+          onLoginSuccess={(user) => {
+            setCurrentUser(user);
+            handleNavigate('honest');
+          }}
+        />
+      </ErrorBoundary>
+    );
+  }
 
   // View 1: Canonical Stitch Landing Page
   if (currentView === 'landing') {

@@ -46,6 +46,8 @@ PUBLIC_PATH_PREFIXES: tuple[str, ...] = (
     "/api/redoc",
     "/api/openapi.json",
     "/favicon.ico",
+    "/auth",
+    "/api/v1/auth",
 )
 
 
