@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import * as THREE from 'three';
 
-export default function NetworkTopology3D({
+function NetworkTopology3DComponent({
   isAttacked = false,
   activeNode: propActiveNode = 'Alice',
   activeLink = 'all',
@@ -20,6 +20,25 @@ export default function NetworkTopology3D({
       setSelectedNode(propActiveNode);
     }
   }, [propActiveNode]);
+
+  // Keep interaction state in refs so Three.js scene is NEVER torn down on hover or selection!
+  const interactionRef = useRef({
+    hoveredNode,
+    selectedNode,
+    propActiveNode,
+    activeLink,
+    isAttacked,
+  });
+
+  useEffect(() => {
+    interactionRef.current = {
+      hoveredNode,
+      selectedNode,
+      propActiveNode,
+      activeLink,
+      isAttacked,
+    };
+  }, [hoveredNode, selectedNode, propActiveNode, activeLink, isAttacked]);
 
   // Extract live metrics from the shared resultData
   const detect = resultData?.detect;
@@ -94,9 +113,9 @@ export default function NetworkTopology3D({
 
     let renderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
       renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       container.appendChild(renderer.domElement);
     } catch (e) {
       return;
@@ -106,7 +125,7 @@ export default function NetworkTopology3D({
     scene.add(networkGroup);
 
     // Grid plane
-    const gridHelper = new THREE.GridHelper(5, 10, 0x2a3d66, 0x141e36);
+    const gridHelper = new THREE.GridHelper(5, 8, 0x2a3d66, 0x141e36);
     gridHelper.position.y = -0.5;
     networkGroup.add(gridHelper);
 
@@ -132,10 +151,10 @@ export default function NetworkTopology3D({
       return sprite;
     };
 
-    // Node Meshes
+    // Node Meshes (optimized 16 segments)
     const nodeMeshes = [];
     const createNodeMesh = (name, color, pos) => {
-      const geo = new THREE.CylinderGeometry(0.28, 0.28, 0.16, 24);
+      const geo = new THREE.CylinderGeometry(0.28, 0.28, 0.16, 16);
       const mat = new THREE.MeshPhongMaterial({
         color,
         emissive: color,
@@ -156,13 +175,11 @@ export default function NetworkTopology3D({
       return mesh;
     };
 
-    const aliceMesh = createNodeMesh('Alice', 0x00f2fe, [-1.6, 0, 0]);
-    const bobMesh = createNodeMesh('Bob', 0x00e676, [1.6, 0, -1.0]);
-    const charlieMesh = createNodeMesh('Charlie', 0xffd600, [1.6, 0, 1.0]);
-    let eveMesh = null;
-    if (isAttacked) {
-      eveMesh = createNodeMesh('Eve', 0xff1744, [0, 0, 0]);
-    }
+    createNodeMesh('Alice', 0x00f2fe, [-1.6, 0, 0]);
+    createNodeMesh('Bob', 0x00e676, [1.6, 0, -1.0]);
+    createNodeMesh('Charlie', 0xffd600, [1.6, 0, 1.0]);
+    const eveMesh = createNodeMesh('Eve', 0xff1744, [0, 0, 0]);
+    eveMesh.visible = Boolean(isAttacked);
 
     // Network Links
     const links = [];
@@ -178,7 +195,7 @@ export default function NetworkTopology3D({
         linewidth: 2,
       });
       const line = new THREE.Line(geo, mat);
-      line.userData = { id, p1, p2 };
+      line.userData = { id, p1, p2, defaultColor: color };
       networkGroup.add(line);
       links.push(line);
       return line;
@@ -202,18 +219,18 @@ export default function NetworkTopology3D({
       mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(nodeMeshes);
+      const visibleNodes = nodeMeshes.filter((m) => m.visible);
+      const intersects = raycaster.intersectObjects(visibleNodes);
       return intersects.length > 0 ? intersects[0].object.userData.name : null;
     };
 
+    let prevHovered = null;
     const handlePointerMove = (e) => {
       const nodeName = getIntersectedNode(e);
-      if (nodeName) {
+      if (nodeName !== prevHovered) {
+        prevHovered = nodeName;
         setHoveredNode(nodeName);
-        renderer.domElement.style.cursor = 'pointer';
-      } else {
-        setHoveredNode(null);
-        renderer.domElement.style.cursor = 'default';
+        renderer.domElement.style.cursor = nodeName ? 'pointer' : 'default';
       }
     };
 
@@ -228,18 +245,31 @@ export default function NetworkTopology3D({
     renderer.domElement.addEventListener('pointermove', handlePointerMove);
     renderer.domElement.addEventListener('click', handleClick);
 
-    let reqId;
+    let reqId = null;
     let isDisposed = false;
+    let isVisible = true;
 
     const animate = () => {
       if (isDisposed) return;
+      if (!isVisible) {
+        reqId = null;
+        return; // Pause rAF loop when off-screen!
+      }
+
       reqId = requestAnimationFrame(animate);
 
       // Gentle rotation of the entire network mesh
       networkGroup.rotation.y += 0.004;
 
+      const { hoveredNode: hN, selectedNode: sN, propActiveNode: pN, activeLink: aL, isAttacked: attNow } = interactionRef.current;
+      const activeName = hN || sN || pN;
+
+      // Update Eve node visibility smoothly from ref
+      if (eveMesh.visible !== Boolean(attNow)) {
+        eveMesh.visible = Boolean(attNow);
+      }
+
       // Update node emissive glow based on active selection
-      const activeName = hoveredNode || selectedNode || propActiveNode;
       nodeMeshes.forEach((mesh) => {
         const isCurrent = mesh.userData.name === activeName;
         if (isCurrent) {
@@ -253,14 +283,29 @@ export default function NetworkTopology3D({
 
       // Update link opacities based on active link
       links.forEach((l) => {
-        const matches = activeLink === 'all' || l.userData.id === activeLink || activeLink.includes(activeName);
+        const matches = aL === 'all' || l.userData.id === aL || (aL && aL.includes(activeName));
         l.material.opacity = matches ? 0.95 : 0.28;
+        l.material.color.setHex(attNow ? 0xff1744 : l.userData.defaultColor);
       });
 
       if (renderer && scene && camera) {
         renderer.render(scene, camera);
       }
     };
+
+    // IntersectionObserver to pause loop when scrolled out of view
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        isVisible = Boolean(entry && entry.isIntersecting);
+        if (isVisible && !isDisposed && !reqId) {
+          animate();
+        }
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
+
     animate();
 
     const handleResize = () => {
@@ -274,7 +319,8 @@ export default function NetworkTopology3D({
 
     return () => {
       isDisposed = true;
-      cancelAnimationFrame(reqId);
+      observer.disconnect();
+      if (reqId) cancelAnimationFrame(reqId);
       window.removeEventListener('resize', handleResize);
       if (renderer?.domElement) {
         renderer.domElement.removeEventListener('pointermove', handlePointerMove);
@@ -282,10 +328,29 @@ export default function NetworkTopology3D({
         if (container.contains(renderer.domElement)) {
           container.removeChild(renderer.domElement);
         }
+      }
+
+      // Deep GPU Resource Disposal
+      scene.traverse((obj) => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach((m) => {
+              if (m.map) m.map.dispose();
+              m.dispose();
+            });
+          } else {
+            if (obj.material.map) obj.material.map.dispose();
+            obj.material.dispose();
+          }
+        }
+      });
+
+      if (renderer) {
         renderer.dispose();
       }
     };
-  }, [isAttacked, hoveredNode, selectedNode, propActiveNode, activeLink]);
+  }, []);
 
   return (
     <div className="network-topology-widget">
@@ -359,3 +424,5 @@ export default function NetworkTopology3D({
     </div>
   );
 }
+
+export default memo(NetworkTopology3DComponent);

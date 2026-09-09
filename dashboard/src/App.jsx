@@ -15,7 +15,7 @@
  *  - Liquid Glass Design System & Specular Refraction Styling
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import QuantumEntanglementCanvas from './components/QuantumEntanglementCanvas.jsx';
 import StitchLandingPage from './components/StitchLandingPage.jsx';
 import HonestProtocolPage from './components/HonestProtocolPage.jsx';
@@ -75,6 +75,12 @@ export default function App() {
   }); // 'attack' | 'large_scale' | 'audit'
   const [activeStage, setActiveStage] = useState(1);
   const [selectedAttack, setSelectedAttack] = useState('intercept_resend');
+  const handleSelectAttack = useCallback((attackType) => {
+    setSelectedAttack(attackType);
+    setActiveData(null);     // clear stale telemetry from the previous attack type
+    setOperationPhase('IDLE');
+  }, []);
+
   const [selectedEntity, setSelectedEntity] = useState(TARGET_SIGNATURE_ENTITIES[0]);
   const [operationPhase, setOperationPhase] = useState('IDLE');
   const [largeScaleParams, setLargeScaleParams] = useState({
@@ -115,7 +121,7 @@ export default function App() {
   // color is correct throughout the whole phase sequence, not just at the end.
   const blobThreatAttackType = activeTab === 'attack' ? selectedAttack : null;
 
-  const handleNavigate = (view) => {
+  const handleNavigate = useCallback((view) => {
     if (view === 'landing') {
       setCurrentView('landing');
       if (typeof window !== 'undefined' && window.history?.pushState) {
@@ -134,14 +140,18 @@ export default function App() {
         window.history.pushState(null, '', `?view=${view}`);
       }
     }
-  };
+  }, []);
+
+  const handleEnterSOC = useCallback(() => {
+    handleNavigate('honest');
+  }, [handleNavigate]);
 
   // View 1: Canonical Stitch Landing Page
   if (currentView === 'landing') {
     return (
       <ErrorBoundary title="HyperQDS Landing Page Error">
         <StitchLandingPage 
-          onEnterSOC={() => handleNavigate('honest')}
+          onEnterSOC={handleEnterSOC}
           onNavigate={handleNavigate}
         />
       </ErrorBoundary>
@@ -154,7 +164,7 @@ export default function App() {
       <ErrorBoundary title="HyperQDS Honest Protocol Error">
         <HonestProtocolPage 
           onNavigate={handleNavigate}
-          onResultData={(data) => setActiveData(data)}
+          onResultData={setActiveData}
         />
       </ErrorBoundary>
     );
@@ -202,7 +212,7 @@ export default function App() {
                         onResult={setActiveData}
                         onStageUpdate={setActiveStage}
                         selectedAttack={selectedAttack}
-                        onSelectAttack={setSelectedAttack}
+                        onSelectAttack={handleSelectAttack}
                         selectedEntity={selectedEntity}
                         onSelectEntity={setSelectedEntity}
                         onOperationPhase={setOperationPhase}

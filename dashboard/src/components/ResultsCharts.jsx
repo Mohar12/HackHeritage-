@@ -72,7 +72,7 @@ function CustomRechartsTooltip({ active, payload, label }) {
   return null;
 }
 
-export default function ResultsCharts({ data, emptyMessage, emptySubtext, mode }) {
+const ResultsCharts = React.memo(function ResultsCharts({ data, emptyMessage, emptySubtext, mode }) {
   const [showBoundsDetail, setShowBoundsDetail] = useState(false);
 
   if (!data) {
@@ -420,4 +420,7 @@ export default function ResultsCharts({ data, emptyMessage, emptySubtext, mode }
       )}
     </section>
   );
-}
+});
+
+export default ResultsCharts;
+

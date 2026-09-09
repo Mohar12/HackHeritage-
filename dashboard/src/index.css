@@ -1721,6 +1721,39 @@ body {
   color: #4ade80;
 }
 
+/* Live Math Readout — shows live detection metrics below the 3D canvas */
+.live-math-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  margin: 0.55rem 0 0.2rem;
+  background: rgba(255, 23, 68, 0.06);
+  border: 1px solid rgba(255, 23, 68, 0.18);
+  border-radius: 6px;
+}
+
+.lmr-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 72px;
+}
+
+.lmr-label {
+  font-size: 0.63rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.lmr-val {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
 .success-text {
   color: var(--accent-green);
 }
@@ -5770,7 +5803,12 @@ a,
 .btn-refresh,
 .btn-retry,
 .phase-pill {
-  transition: all var(--hover-duration) var(--hover-ease);
+  transition: transform var(--hover-duration) var(--hover-ease),
+              opacity var(--hover-duration) var(--hover-ease),
+              background var(--hover-duration) var(--hover-ease),
+              border-color var(--hover-duration) var(--hover-ease),
+              box-shadow var(--hover-duration) var(--hover-ease),
+              color var(--hover-duration) var(--hover-ease);
 }
 
 /* ── 2. Top Navigation Tabs & View Selectors ── */

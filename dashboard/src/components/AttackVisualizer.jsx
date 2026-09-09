@@ -181,7 +181,7 @@ function StageIcon({ type }) {
   }
 }
 
-export default function AttackVisualizer({
+const AttackVisualizer = React.memo(function AttackVisualizer({
   attackType = 'intercept_resend',
   mode = 'attack',
   activeStage = 1,
@@ -630,4 +630,7 @@ export default function AttackVisualizer({
       </div>
     </div>
   );
-}
+});
+
+export default AttackVisualizer;
+

@@ -81,7 +81,7 @@ function buildDefaultHonestResult(entity) {
 }
 
 
-export default function HonestProtocolPage({ onNavigate, onResultData }) {
+export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNavigate, onResultData }) {
   // Protocol Parameters
   const [selectedEntityId, setSelectedEntityId] = useState(TARGET_SIGNATURE_ENTITIES[0]?.id || 'TX-2026-FED-BOE');
   const currentEntity = TARGET_SIGNATURE_ENTITIES.find((e) => e.id === selectedEntityId) || TARGET_SIGNATURE_ENTITIES[0];
@@ -110,7 +110,7 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
     : willReject;
 
   // Map 7-Stage sequence to 3D Teleportation stage, active network node, and link
-  function handleStageSelect(stageId, step) {
+  const handleStageSelect = React.useCallback((stageId, step) => {
     setActiveStage3D(stageId);
     
     // Map stage to appropriate network topology node and link
@@ -130,14 +130,14 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
       setActiveNetworkNode('Charlie');
       setActiveNetworkLink('Bob-Charlie');
     }
-  }
+  }, []);
 
-  // Live debounced physics recomputation whenever inputs change
+  // Live debounced physics recomputation whenever inputs change (250ms debounce)
   useEffect(() => {
     let isCancelled = false;
-    setIsUpdating(true);
 
     const timer = setTimeout(async () => {
+      setIsUpdating(true);
       try {
         const totalShots = Number(shots) || 1024;
         const qCount = Number(nQubits) || 14;
@@ -242,13 +242,13 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
           setIsUpdating(false);
         }
       }
-    }, 280);
+    }, 250);
 
     return () => {
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [nQubits, shots, securityPolicy, injectedBitErrors, selectedEntityId]);
+  }, [nQubits, shots, securityPolicy, injectedBitErrors, selectedEntityId, inducedQber, willReject, currentEntity, currentQberThreshold, onResultData]);
 
   // Execute Full Authentic Qiskit Aer Teleportation Pipeline (Manual Stage Stepping)
   async function handleRunProtocol() {
@@ -696,7 +696,7 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
               activeStage={activeStage3D}
               isCompromised={isCompromised}
               mode="honest"
-              onStageChange={(stageId) => setActiveStage3D(stageId)}
+              onStageChange={setActiveStage3D}
             />
           </ErrorBoundary>
 
@@ -726,7 +726,7 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
                 activeNode={activeNetworkNode}
                 activeLink={activeNetworkLink}
                 resultData={resultData}
-                onNodeSelect={(nodeName) => setActiveNetworkNode(nodeName)}
+                onNodeSelect={setActiveNetworkNode}
                 badgeText={isCompromised ? '🚨 High Channel Loss / Noise' : 'No Interceptor Detected'}
                 pillClass={isCompromised ? 'pill-danger' : 'pill-green'}
               />
@@ -736,4 +736,6 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
       </main>
     </div>
   );
-}
+});
+
+export default HonestProtocolPage;

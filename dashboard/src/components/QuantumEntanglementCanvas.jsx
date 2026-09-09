@@ -260,7 +260,7 @@ const haloFragmentShader = `
   }
 `;
 
-export default function QuantumEntanglementCanvas({ activePillar = '01', activeDimension = 0, threatAlert = 0, threatAttackType = null }) {
+const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas({ activePillar = '01', activeDimension = 0, threatAlert = 0, threatAttackType = null }) {
   const mountRef = useRef(null);
   const activePillarRef = useRef(activePillar);
   const activeDimensionRef = useRef(activeDimension);
@@ -317,8 +317,8 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
     const rootGroup = new THREE.Group();
     scene.add(rootGroup);
 
-    // Massive 3D hero object geometry (scale increased by 1.45x: radius 4.8, 128x128 subdivision)
-    const heroGeometry = new THREE.SphereGeometry(4.8, 128, 128);
+    // 3D hero object geometry (72x72 subdivision balanced for fluid fidelity & GPU framerate)
+    const heroGeometry = new THREE.SphereGeometry(4.8, 72, 72);
 
     // Initial Material State: Deep Violet Liquid Metal
     const heroMaterial = new THREE.ShaderMaterial({
@@ -716,17 +716,27 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
       },
     };
 
-    // Animation Loop with Time-Aware Delta Damping
+    // Animation Loop with Time-Aware Delta Damping & Tab Visibility Pausing
     let animId;
     let lastTime = performance.now();
     const clock = new THREE.Clock();
+    let isVisible = !document.hidden;
+
+    const handleVisibilityChange = () => {
+      const currentlyVisible = !document.hidden;
+      if (currentlyVisible && !isVisible) {
+        isVisible = true;
+        lastTime = performance.now();
+        animId = requestAnimationFrame(animate);
+      } else if (!currentlyVisible) {
+        isVisible = false;
+        cancelAnimationFrame(animId);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const animate = () => {
-      // Schedule the next frame FIRST, unconditionally, before any logic that
-      // could throw. This guarantees the rAF loop itself can never be broken
-      // by an exception anywhere below -- worst case, a single frame's visual
-      // update is skipped and logged, but the loop keeps running and the very
-      // next frame gets a fresh chance to render correctly.
+      if (!isVisible) return;
       animId = requestAnimationFrame(animate);
 
       try {
@@ -1080,6 +1090,7 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
     animate();
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       cancelAnimationFrame(animId);
       clearTimeout(pointerIdleTimer);
       window.removeEventListener('scroll', handleScroll);
@@ -1096,6 +1107,19 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
       haloMaterial.dispose();
       particleGeometry.dispose();
       particleMaterial.dispose();
+
+      scene.traverse((child) => {
+        if (child.isMesh || child.isPoints) {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach((m) => m.dispose());
+            } else {
+              child.material.dispose();
+            }
+          }
+        }
+      });
 
       if (renderer && renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
@@ -1118,4 +1142,7 @@ export default function QuantumEntanglementCanvas({ activePillar = '01', activeD
       aria-hidden="true"
     />
   );
-}
+});
+
+export default QuantumEntanglementCanvas;
+

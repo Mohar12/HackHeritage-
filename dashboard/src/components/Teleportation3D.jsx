@@ -19,7 +19,7 @@
  *  - Manual stage selection smoothly animates the chosen stage.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import * as THREE from 'three';
 
 const STAGES = [
@@ -33,7 +33,7 @@ const STAGES = [
   { id: 8, name: 'Immutable Audit Ledger Commit', desc: 'SHA3-512 post-quantum cryptographic hash committed to immutable ledger' },
 ];
 
-export default function Teleportation3D({
+function Teleportation3DComponent({
   activeStage = 1,
   isCompromised = false,
   mode = 'attack',
@@ -114,9 +114,9 @@ export default function Teleportation3D({
 
     let renderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
       renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       container.appendChild(renderer.domElement);
     } catch (err) {
       console.warn('WebGL init failed:', err);
@@ -265,7 +265,7 @@ export default function Teleportation3D({
     };
 
     // Primary Quantum Channel (Alice -> Bob): Multi-segment for physical in-transit noise jitter
-    const NUM_CHANNEL_SEGMENTS = 32;
+    const NUM_CHANNEL_SEGMENTS = 16;
     const pAlice = new THREE.Vector3(-2.4, 0.2, 0);
     const pBob = new THREE.Vector3(2.2, 0.8, -0.6);
     const lineQuantumGeo = new THREE.BufferGeometry();
@@ -448,12 +448,17 @@ export default function Teleportation3D({
     threatAlertLight.position.set(2.2, 1.2, -0.6);
     scene.add(threatAlertLight);
 
-    let reqId;
+    let reqId = null;
     let isDisposed = false;
+    let isVisible = true;
 
     // Primary 60FPS Render & Physical Animation Loop
     const animate = () => {
       if (isDisposed) return;
+      if (!isVisible) {
+        reqId = null;
+        return; // Suspend rAF loop when off-screen
+      }
       reqId = requestAnimationFrame(animate);
 
       const stage = stageRef.current || 1;
@@ -750,6 +755,20 @@ export default function Teleportation3D({
         renderer.render(scene, camera);
       }
     };
+
+    // IntersectionObserver to pause loop when scrolled out of view
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        isVisible = Boolean(entry && entry.isIntersecting);
+        if (isVisible && !isDisposed && !reqId) {
+          animate();
+        }
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
+
     animate();
 
     const handleResize = () => {
@@ -763,8 +782,26 @@ export default function Teleportation3D({
 
     return () => {
       isDisposed = true;
-      cancelAnimationFrame(reqId);
+      observer.disconnect();
+      if (reqId) cancelAnimationFrame(reqId);
       window.removeEventListener('resize', handleResize);
+
+      // Deep GPU Resource Disposal
+      scene.traverse((obj) => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach((m) => {
+              if (m.map) m.map.dispose();
+              m.dispose();
+            });
+          } else {
+            if (obj.material.map) obj.material.map.dispose();
+            obj.material.dispose();
+          }
+        }
+      });
+
       if (renderer) {
         if (renderer.domElement && container.contains(renderer.domElement)) {
           container.removeChild(renderer.domElement);
@@ -855,3 +892,5 @@ export default function Teleportation3D({
     </div>
   );
 }
+
+export default memo(Teleportation3DComponent);

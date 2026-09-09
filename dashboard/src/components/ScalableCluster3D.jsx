@@ -12,10 +12,10 @@
  *  - Synchronized QPU core indicator pulsing.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import * as THREE from 'three';
 
-export default function ScalableCluster3D({
+function ScalableCluster3DComponent({
   numSamples = 100,
   batchesExecuted = 8,
   throughput = 450,
@@ -24,7 +24,7 @@ export default function ScalableCluster3D({
   status = 'idle',
 }) {
   const mountRef = useRef(null);
-  const [activeCore, setActiveCore] = useState(0);
+  const rackContainerRef = useRef(null);
 
   // References to keep animation loop in sync with props without tearing down WebGL context
   const paramsRef = useRef({
@@ -61,16 +61,16 @@ export default function ScalableCluster3D({
 
     let renderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
       renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       container.appendChild(renderer.domElement);
     } catch (e) {
       return;
     }
 
     // Grid Floor
-    const grid = new THREE.GridHelper(10, 20, 0x1e3a8a, 0x0f172a);
+    const grid = new THREE.GridHelper(10, 16, 0x1e3a8a, 0x0f172a);
     grid.position.y = -0.6;
     scene.add(grid);
 
@@ -90,7 +90,7 @@ export default function ScalableCluster3D({
 
     // Superconducting Cryostat Multi-Layer QPU Ground Shield
     const cryoChassis = new THREE.Mesh(
-      new THREE.CylinderGeometry(3.6, 3.8, 0.4, 48),
+      new THREE.CylinderGeometry(3.6, 3.8, 0.4, 32),
       new THREE.MeshStandardMaterial({ color: 0x070c18, metalness: 0.9, roughness: 0.25 })
     );
     cryoChassis.position.y = -0.6;
@@ -99,29 +99,28 @@ export default function ScalableCluster3D({
     // Gold-Plated Cryogenic Sapphire Interposer Die
     const dieGeo = new THREE.BoxGeometry(4.2, 0.12, 3.2);
     const dieMat = new THREE.MeshStandardMaterial({
-      color: 0xd97706, // Gold plated copper package
-      metalness: 0.95,
-      roughness: 0.15,
+      color: 0x1c1917,
+      metalness: 0.85,
+      roughness: 0.2,
     });
     const dieMesh = new THREE.Mesh(dieGeo, dieMat);
-    dieMesh.position.y = -0.34;
+    dieMesh.position.y = -0.36;
     scene.add(dieMesh);
 
-    // Central Multi-Qubit Superconducting Processor Core (Sapphire substrate)
-    const siliconSubstrate = new THREE.Mesh(
-      new THREE.BoxGeometry(3.4, 0.08, 2.4),
-      new THREE.MeshStandardMaterial({
-        color: 0x030712,
-        metalness: 0.85,
-        roughness: 0.12,
-      })
-    );
-    siliconSubstrate.position.y = -0.24;
+    // Silicon Substrate
+    const subGeo = new THREE.BoxGeometry(3.8, 0.08, 2.8);
+    const subMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      metalness: 0.7,
+      roughness: 0.35,
+    });
+    const siliconSubstrate = new THREE.Mesh(subGeo, subMat);
+    siliconSubstrate.position.y = -0.26;
     scene.add(siliconSubstrate);
 
     // =========================================================================
     // 28-Qubit Transmon Lattice (4 rows × 7 columns = 28 Physical Qubits)
-    // Matches the 28-Qubit Statevector Circuit Cap
+    // Optimized with 4 shared quadrant materials instead of 28 separate allocations
     // =========================================================================
     const transmonGroup = new THREE.Group();
     scene.add(transmonGroup);
@@ -131,19 +130,23 @@ export default function ScalableCluster3D({
     const cols = 7;
     const padGeo = new THREE.BoxGeometry(0.18, 0.035, 0.18);
 
+    // 4 shared materials for the 4 QPU cores
+    const coreMaterials = [0, 1, 2, 3].map(() => new THREE.MeshStandardMaterial({
+      color: 0x00e5ff,
+      metalness: 0.9,
+      roughness: 0.2,
+      emissive: 0x003355,
+      emissiveIntensity: 0.3,
+    }));
+
+    const sharedMeanderMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.4 });
+
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const cx = -1.35 + c * 0.45;
         const cz = -0.66 + r * 0.44;
 
-        const padMat = new THREE.MeshStandardMaterial({
-          color: 0x00e5ff,
-          metalness: 0.9,
-          roughness: 0.2,
-          emissive: 0x003355,
-          emissiveIntensity: 0.3,
-        });
-        const qPad = new THREE.Mesh(padGeo, padMat);
+        const qPad = new THREE.Mesh(padGeo, coreMaterials[r]);
         qPad.position.set(cx, -0.19, cz);
         transmonGroup.add(qPad);
 
@@ -156,7 +159,7 @@ export default function ScalableCluster3D({
         ];
         const meanderLine = new THREE.Line(
           new THREE.BufferGeometry().setFromPoints(meanderPts),
-          new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.4 })
+          sharedMeanderMat
         );
         transmonGroup.add(meanderLine);
 
@@ -166,7 +169,7 @@ export default function ScalableCluster3D({
           x: cx,
           z: cz,
           mesh: qPad,
-          material: padMat,
+          material: coreMaterials[r],
           quadrant: r, // Row maps directly to QPU Core 0..3
         });
       }
@@ -213,7 +216,7 @@ export default function ScalableCluster3D({
       );
 
       const curve = new THREE.QuadraticBezierCurve3(p0, mid, p1);
-      const samplePts = curve.getPoints(24);
+      const samplePts = curve.getPoints(12);
       const geo = new THREE.BufferGeometry().setFromPoints(samplePts);
 
       const mat = new THREE.LineBasicMaterial({
@@ -227,7 +230,7 @@ export default function ScalableCluster3D({
       arcGroup.add(line);
 
       // Entangled EPR Flying Photon Packets traveling along the arc
-      const photonGeo = new THREE.SphereGeometry(0.028, 12, 12);
+      const photonGeo = new THREE.SphereGeometry(0.028, 8, 8);
       const photonMat = new THREE.MeshBasicMaterial({ color: 0x00f2fe });
       const photonMesh = new THREE.Mesh(photonGeo, photonMat);
       arcGroup.add(photonMesh);
@@ -284,13 +287,18 @@ export default function ScalableCluster3D({
     // =========================================================================
     // Animation Loop: Driven by Real Sample Scale N, Batch Count & Noise Rate
     // =========================================================================
-    let reqId;
+    let reqId = null;
     let isDisposed = false;
+    let isVisible = true;
     let clock = new THREE.Clock();
     let lastCoreReported = -1;
 
     const animate = () => {
       if (isDisposed) return;
+      if (!isVisible) {
+        reqId = null;
+        return; // Suspend rAF loop when off-screen
+      }
       reqId = requestAnimationFrame(animate);
 
       const elapsed = clock.getElapsedTime();
@@ -306,11 +314,6 @@ export default function ScalableCluster3D({
       const noiseIntensity = Math.min(1.0, Math.max(0.0, effNoise * 3.5));
 
       // Scaling cycle speed with throughput (samples/sec) & batch magnitude
-      // N=10 (1 batch): 1.4s cycle
-      // N=100 (8 batches): 0.28s per batch (2.2s total pass)
-      // N=500 (36 batches): 0.11s per batch
-      // N=1,000 (72 batches): 0.065s per batch
-      // N=5,000 (358 batches): 0.035s per batch
       const secondsPerBatch = Math.max(
         0.035,
         Math.min(1.4, 2.2 / Math.pow(totalBatches, 0.68))
@@ -326,9 +329,15 @@ export default function ScalableCluster3D({
       // Round-robin distribution across QPU Cores 0, 1, 2, 3
       const currentActiveCore = currentBatchIdx % 4;
 
+      // Update rack indicator pills directly in DOM to avoid React re-render cycle churn
       if (currentActiveCore !== lastCoreReported) {
         lastCoreReported = currentActiveCore;
-        setActiveCore(currentActiveCore);
+        if (rackContainerRef.current) {
+          const pills = rackContainerRef.current.children;
+          for (let i = 0; i < pills.length; i++) {
+            pills[i].classList.toggle('active-qpu', i === currentActiveCore);
+          }
+        }
       }
 
       // Gentle cryogenic chip inspection tilt
@@ -342,54 +351,50 @@ export default function ScalableCluster3D({
         alertPointLight.intensity = 0;
       }
 
-      // Update 28 Transmon Qubit Pads
-      transmonGrid.forEach((q, idx) => {
-        const isCoreActive = q.quadrant === currentActiveCore;
-        const padPulse = (Math.sin(elapsed * 5.0 * runMultiplier + idx * 0.3) + 1.0) / 2.0;
+      // Update 4 QPU Core shared materials instead of 28 separate allocations
+      for (let r = 0; r < 4; r++) {
+        const mat = coreMaterials[r];
+        const isCoreActive = r === currentActiveCore;
+        const padPulse = (Math.sin(elapsed * 5.0 * runMultiplier + r * 0.5) + 1.0) / 2.0;
 
         if (noiseIntensity > 0.1) {
-          // Noise / Adversarial state: pads flicker toward amber / crimson
           const glitch = Math.random() < noiseIntensity * 0.3;
           if (glitch) {
-            q.material.color.setHex(0xff1744);
-            q.material.emissive.setHex(0xaa0022);
-            q.material.emissiveIntensity = 0.8;
+            mat.color.setHex(0xff1744);
+            mat.emissive.setHex(0xaa0022);
+            mat.emissiveIntensity = 0.8;
           } else {
-            q.material.color.setRGB(
+            mat.color.setRGB(
               0.2 + noiseIntensity * 0.7,
               0.7 * (1.0 - noiseIntensity),
               0.9 * (1.0 - noiseIntensity * 0.8)
             );
-            q.material.emissive.setRGB(noiseIntensity * 0.4, 0.1, 0.2);
-            q.material.emissiveIntensity = isCoreActive ? 0.7 : 0.2;
+            mat.emissive.setRGB(noiseIntensity * 0.4, 0.1, 0.2);
+            mat.emissiveIntensity = isCoreActive ? 0.7 : 0.2;
           }
         } else {
-          // Clean baseline: serene cyber-cyan with active core flaring
           if (isCoreActive) {
-            q.material.color.setRGB(0.0, 0.95, 1.0);
-            q.material.emissive.setRGB(0.0, 0.35, 0.55);
-            q.material.emissiveIntensity = 0.6 + padPulse * 0.4;
+            mat.color.setRGB(0.0, 0.95, 1.0);
+            mat.emissive.setRGB(0.0, 0.35, 0.55);
+            mat.emissiveIntensity = 0.6 + padPulse * 0.4;
           } else {
-            q.material.color.setRGB(0.0, 0.55 + padPulse * 0.25, 0.85);
-            q.material.emissive.setRGB(0.0, 0.1, 0.25);
-            q.material.emissiveIntensity = 0.2;
+            mat.color.setRGB(0.0, 0.55 + padPulse * 0.25, 0.85);
+            mat.emissive.setRGB(0.0, 0.1, 0.25);
+            mat.emissiveIntensity = 0.2;
           }
         }
-      });
+      }
 
       // Update 14 Resonant Bell-Pair Entanglement Arcs
       arcObjects.forEach((arc) => {
         const isArcCoreActive = arc.core === currentActiveCore;
-
-        // Entanglement formation wave along the arc
-        const wave = (Math.sin(intraBatchProg * Math.PI * 2 + arc.index * 0.5) + 1.0) / 2.0;
 
         // Position flying photon packets along the curve
         const photonT = (intraBatchProg + arc.index * 0.1) % 1.0;
         const photonPos = arc.curve.getPoint(photonT);
         arc.photonMesh.position.copy(photonPos);
 
-        // Path Jitter / Brownian noise perturbation on vertices when noise is present
+        // Path Jitter on vertices when noise is present
         if (noiseIntensity > 0.05) {
           const positions = arc.geo.attributes.position;
           const count = positions.count;
@@ -404,18 +409,10 @@ export default function ScalableCluster3D({
           }
           positions.needsUpdate = true;
 
-          // Color shift toward amber/red
-          arc.mat.color.setRGB(
-            1.0,
-            Math.max(0.1, 0.85 - noiseIntensity * 0.75),
-            Math.max(0.0, 0.1 - noiseIntensity * 0.1)
-          );
-          arc.photonMat.color.setRGB(1.0, 0.2, 0.2);
-
-          // Stochastic phase decoherence flicker
-          const dropout = Math.random() < noiseIntensity * 0.25;
-          arc.mat.opacity = dropout ? 0.15 : (isArcCoreActive ? 0.95 : 0.45);
-          arc.photonMesh.visible = !dropout;
+          arc.mat.color.setRGB(1.0, 0.3, 0.1);
+          arc.mat.opacity = 0.3;
+          arc.photonMat.color.setHex(0xff0000);
+          arc.photonMesh.visible = Math.random() > 0.2;
         } else {
           // Reset arc geometry to smooth curve
           const positions = arc.geo.attributes.position;
@@ -426,12 +423,10 @@ export default function ScalableCluster3D({
           }
           positions.needsUpdate = true;
 
-          // Pristine gold arc with cyber cyan photons
-          arc.mat.color.setHex(isArcCoreActive ? 0xffea00 : 0xd97706);
-          arc.mat.opacity = isArcCoreActive ? 0.9 : 0.4 + wave * 0.3;
+          arc.mat.color.setHex(isArcCoreActive ? 0x00f2fe : 0xffd600);
+          arc.mat.opacity = isArcCoreActive ? 0.95 : 0.4;
           arc.photonMat.color.setHex(0x00f2fe);
           arc.photonMesh.visible = true;
-          arc.photonMesh.scale.setScalar(isArcCoreActive ? 1.2 : 0.85);
         }
       });
 
@@ -449,6 +444,20 @@ export default function ScalableCluster3D({
         renderer.render(scene, camera);
       }
     };
+
+    // IntersectionObserver to pause loop when scrolled out of view
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        isVisible = Boolean(entry && entry.isIntersecting);
+        if (isVisible && !isDisposed && !reqId) {
+          animate();
+        }
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
+
     animate();
 
     const handleResize = () => {
@@ -462,8 +471,26 @@ export default function ScalableCluster3D({
 
     return () => {
       isDisposed = true;
-      cancelAnimationFrame(reqId);
+      observer.disconnect();
+      if (reqId) cancelAnimationFrame(reqId);
       window.removeEventListener('resize', handleResize);
+
+      // Deep GPU Resource Disposal
+      scene.traverse((obj) => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach((m) => {
+              if (m.map) m.map.dispose();
+              m.dispose();
+            });
+          } else {
+            if (obj.material.map) obj.material.map.dispose();
+            obj.material.dispose();
+          }
+        }
+      });
+
       if (renderer) {
         if (renderer.domElement && container.contains(renderer.domElement)) {
           container.removeChild(renderer.domElement);
@@ -492,20 +519,20 @@ export default function ScalableCluster3D({
       <div ref={mountRef} className="cluster-canvas-mount" />
 
       {/* Cluster Node Rack Indicators */}
-      <div className="cluster-rack-indicators">
-        <div className={`rack-pill ${activeCore === 0 ? 'active-qpu' : ''}`}>
+      <div ref={rackContainerRef} className="cluster-rack-indicators">
+        <div className="rack-pill active-qpu">
           <span className="dot cyan" />
           <span><strong>QPU-01</strong> [Aer Core 0]</span>
         </div>
-        <div className={`rack-pill ${activeCore === 1 ? 'active-qpu' : ''}`}>
+        <div className="rack-pill">
           <span className="dot cyan" />
           <span><strong>QPU-02</strong> [Aer Core 1]</span>
         </div>
-        <div className={`rack-pill ${activeCore === 2 ? 'active-qpu purple-qpu' : ''}`}>
+        <div className="rack-pill purple-qpu">
           <span className="dot purple" />
           <span><strong>QPU-03</strong> [Aer Core 2]</span>
         </div>
-        <div className={`rack-pill ${activeCore === 3 ? 'active-qpu purple-qpu' : ''}`}>
+        <div className="rack-pill purple-qpu">
           <span className="dot purple" />
           <span><strong>QPU-04</strong> [Aer Core 3]</span>
         </div>
@@ -537,3 +564,5 @@ export default function ScalableCluster3D({
     </div>
   );
 }
+
+export default memo(ScalableCluster3DComponent);
