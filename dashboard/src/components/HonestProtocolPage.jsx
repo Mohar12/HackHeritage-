@@ -380,7 +380,7 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
   return (
     <div className="soc-container" style={{ background: '#06070a' }}>
       {/* 3D WebGL Canvas: Single 3D Hero Object Background */}
-      <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} />
+      <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} isDashboard={true} />
 
       {/* Canonical Stitch Header */}
       <StitchHeader activeTab="honest" onNavigate={onNavigate} />

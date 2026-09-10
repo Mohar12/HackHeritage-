@@ -218,7 +218,7 @@ function AppContent() {
     <ErrorBoundary title="Quantum SOC Global Error">
       <div className="soc-container" style={{ background: '#06070a' }}>
         {/* 3D WebGL Canvas: Single 3D Hero Object Background */}
-        <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} threatAlert={blobThreatAlert} threatAttackType={blobThreatAttackType} />
+        <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} threatAlert={blobThreatAlert} threatAttackType={blobThreatAttackType} isDashboard={true} />
 
         {/* Canonical Stitch Header */}
         <StitchHeader activeTab={activeTab} onNavigate={handleNavigate} />

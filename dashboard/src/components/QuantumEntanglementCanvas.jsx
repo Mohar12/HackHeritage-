@@ -260,10 +260,17 @@ const haloFragmentShader = `
   }
 `;
 
-const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas({ activePillar = '01', activeDimension = 0, threatAlert = 0, threatAttackType = null }) {
+const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas({
+  activePillar = '01',
+  activeDimension = 0,
+  threatAlert = 0,
+  threatAttackType = null,
+  isDashboard = false,
+}) {
   const mountRef = useRef(null);
   const activePillarRef = useRef(activePillar);
   const activeDimensionRef = useRef(activeDimension);
+  const isDashboardRef = useRef(isDashboard);
 
   useEffect(() => {
     activePillarRef.current = activePillar;
@@ -272,6 +279,10 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
   useEffect(() => {
     activeDimensionRef.current = activeDimension;
   }, [activeDimension]);
+
+  useEffect(() => {
+    isDashboardRef.current = isDashboard;
+  }, [isDashboard]);
 
   const threatAlertRef = useRef(threatAlert);
 
@@ -316,6 +327,9 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
 
     const rootGroup = new THREE.Group();
     scene.add(rootGroup);
+    if (isDashboardRef.current) {
+      rootGroup.scale.set(0.68, 0.68, 0.68);
+    }
 
     // Massive 3D hero object geometry (calibrated for hero composition balance: radius 4.45, 128x128 subdivision)
     const heroGeometry = new THREE.SphereGeometry(4.45, 128, 128);
@@ -355,7 +369,7 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
     });
 
     const heroMesh = new THREE.Mesh(heroGeometry, heroMaterial);
-    heroMesh.position.set(0, -2.8, 0);
+    heroMesh.position.set(0, isDashboardRef.current ? -1.0 : -2.8, 0);
     rootGroup.add(heroMesh);
 
     // Additive wide ambient light pool halo (1.65x blob radius, decoupled from blob spin)
@@ -988,6 +1002,11 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
           }
         }
 
+        if (isDashboardRef.current) {
+          targetScale = 0.65;
+          targetY = -1.0;
+        }
+
         // Layer a slow, subtle sinusoidal drift on top of the scroll-driven transform (Stage 3)
         const driftX = prefersReducedMotion ? 0 : Math.sin(elapsed * 0.55) * 0.08;
         const driftY = prefersReducedMotion ? 0 : Math.cos(elapsed * 0.80) * 0.09;
@@ -1131,13 +1150,21 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
   return (
     <div
       ref={mountRef}
-      className="hqds-webgl-container"
+      className={`hqds-webgl-container ${isDashboard ? 'hqds-blob-dashboard' : ''}`}
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1,
+        zIndex: isDashboard ? 0 : 1,
         pointerEvents: 'none',
         overflow: 'hidden',
+        ...(isDashboard
+          ? {
+              opacity: 0.12,
+              filter: 'blur(28px)',
+              transform: 'scale(0.7)',
+              transformOrigin: '50% 50%',
+            }
+          : {}),
       }}
       aria-hidden="true"
     />

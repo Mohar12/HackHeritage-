@@ -127,3 +127,4 @@ scratch/
 **/.temp-execution-*.js
 
 
+*.aux
