@@ -19,7 +19,7 @@ from psycopg2.pool import ThreadedConnectionPool
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DATABASE_URL = "postgresql://postgres:12345678@127.0.0.1:5432/hyperqds"
+DEFAULT_DATABASE_URL = "postgresql://postgres:ARKA2006@127.0.0.1:5432/hyperqds"
 _pool: Optional[ThreadedConnectionPool] = None
 
 
@@ -305,4 +305,20 @@ def get_or_create_oauth_user(
     new_user = create_user(email=target_email, password_hash=None, full_name=full_name)
     link_oauth_account(new_user["id"], clean_provider, clean_puid, clean_email or target_email)
     return new_user
+
+
+def check_db_health() -> dict[str, Any]:
+    """Verify PostgreSQL database connectivity and return status details."""
+    try:
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1;")
+                cur.fetchone()
+            dbname = parse_db_url(get_database_url())["dbname"]
+            return {"status": "connected", "database": dbname}
+        finally:
+            release_connection(conn)
+    except Exception as exc:
+        return {"status": "error", "error": str(exc)}
 
