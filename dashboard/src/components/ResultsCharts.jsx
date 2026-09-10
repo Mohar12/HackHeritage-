@@ -72,7 +72,7 @@ function CustomRechartsTooltip({ active, payload, label }) {
   return null;
 }
 
-export default function ResultsCharts({ data }) {
+const ResultsCharts = React.memo(function ResultsCharts({ data, emptyMessage, emptySubtext, mode }) {
   const [showBoundsDetail, setShowBoundsDetail] = useState(false);
 
   if (!data) {
@@ -82,8 +82,8 @@ export default function ResultsCharts({ data }) {
         <h2>Real-Time Scientific Telemetry</h2>
         <div className="empty-state">
           <div className="empty-icon">⚛️</div>
-          <p>No active simulation or telemetry data loaded.</p>
-          <span>Select a protocol or attack module on the left to execute quantum circuit simulation on Qiskit Aer and view live Born statistics.</span>
+          <p>{emptyMessage || 'No active simulation or telemetry data loaded.'}</p>
+          <span>{emptySubtext || 'Select a protocol or attack module on the left to execute quantum circuit simulation on Qiskit Aer and view live Born statistics.'}</span>
         </div>
       </section>
     );
@@ -420,4 +420,7 @@ export default function ResultsCharts({ data }) {
       )}
     </section>
   );
-}
+});
+
+export default ResultsCharts;
+

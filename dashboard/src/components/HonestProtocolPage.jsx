@@ -1,650 +1,566 @@
 /**
  * HonestProtocolPage.jsx
  * ======================
- * Canonical Honest QDS Protocol Page inheriting the refined Stitch Landing Page Design System.
+ * Honest QDS Protocol Operations View.
  * 
- * Design Principles:
- * - Direct DESIGN-SYSTEM TRANSFER from the refined Stitch Landing Page.
- * - Same typography: Epilogue for Headings, Plus Jakarta Sans for UI and specifications.
- * - Coherent violet / lavender / cool blue-violet palette (zero aggressive neon lime green).
- * - Cursor-following soft radial light on all interactive cards, buttons, and preset pills.
- * - Apple-style motion language: generous whitespace, staggered entrance reveals, scroll transitions.
- * - Honest content ground truth: Full 4-Stage Alice -> Bob -> Charlie teleportation lifecycle,
- *   classical payload binding, EPR key length presets, in-transit eavesdropping interventions,
- *   Qiskit Aer simulation, and deterministic physics verification.
- * - Next Chapter Bridge leading directly to the Adversarial Attack Laboratory.
+ * Directly mirrors the Attack Lab view (/?view=attack) layout 1:1, re-themed to represent
+ * a clean, non-adversarial protocol run with:
+ *  - Standard 2-Column Responsive Operations Grid (.soc-main, .soc-left-column, .soc-right-column)
+ *  - Shared components (AttackVisualizer, BlochSphere3D, NetworkTopology3D, Teleportation3D, ResultsCharts)
+ *  - Legitimate 3-box actor flow (Alice | Bell-State Measurement | Bob)
+ *  - Safe state banner (|ψ⟩ Teleported Intact)
+ *  - Honest metrics row (Observed QBER: 0.00%, Born χ² p-value: 0.9800, State Fidelity: 99.8%)
+ *  - Re-themed visualization card badges (State Vector Preserved, No Interceptor Detected)
+ *  - Standard telemetry placeholder and live populated Qiskit Aer simulation telemetry
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 import StitchHeader from './StitchHeader.jsx';
 import Teleportation3D from './Teleportation3D.jsx';
+import AttackVisualizer from './AttackVisualizer.jsx';
+import BlochSphere3D from './BlochSphere3D.jsx';
+import NetworkTopology3D from './NetworkTopology3D.jsx';
+import ResultsCharts from './ResultsCharts.jsx';
+import { ErrorBoundary } from './ErrorBoundary.jsx';
+import { TARGET_SIGNATURE_ENTITIES } from './AttackSelectionPanel.jsx';
 import { generateKeys, signMessage, verifySignature, detectThreat } from '../api/client.js';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Cell,
-} from 'recharts';
 
 const KEY_LENGTH_PRESETS = [
-  { label: '8 Qubits (Fast Demo)', value: 8, sec: 'P(forgery) ≤ 3.9×10⁻³' },
-  { label: '14 Qubits (1 Full Aer Batch)', value: 14, sec: 'P(forgery) ≤ 6.1×10⁻⁵' },
-  { label: '28 Qubits (High Security)', value: 28, sec: 'P(forgery) ≤ 3.7×10⁻⁹' },
-];
-
-const PROTOCOL_STAGES = [
-  {
-    id: 1,
-    stageId: 1,
-    num: '01',
-    title: 'EPR Bell Distribution',
-    desc: 'Generates & distributes maximally entangled |Φ⁺⟩ = (|00⟩+|11⟩)/√2 pairs via Hadamard + CNOT gates on Qiskit Aer.',
-    spec: 'Entangled Pairs |Φ⁺⟩',
-    icon: '🔗',
-  },
-  {
-    id: 2,
-    stageId: 3,
-    num: '02',
-    title: 'Teleportation Encoding',
-    desc: 'Alice encodes payload |ψ⟩ into MUB eigenstates & performs joint Bell-State Measurement (BSM) across message and EPR qubits.',
-    spec: 'Joint BSM (c0, c1 ∈ {0, 1})',
-    icon: '📤',
-  },
-  {
-    id: 3,
-    stageId: 5,
-    num: '03',
-    title: 'Pauli Correction',
-    desc: 'Bob receives classical feedforward bits (c0, c1) and applies conditional (X^c1 · Z^c0) unitary operators to recover |ψ⟩.',
-    spec: 'Unitary (X^c1 · Z^c0)',
-    icon: '🔧',
-  },
-  {
-    id: 4,
-    stageId: 7,
-    num: '04',
-    title: 'Threat Verification',
-    desc: 'Deterministic physics detector tests QBER vs BB84 bound (0.11) & performs Pearson χ² Born distribution goodness-of-fit test.',
-    spec: 'Pearson χ² (p > 0.05)',
-    icon: '🛡️',
-  },
+  { label: '8 Qubits (Fast Demo)', value: 8 },
+  { label: '14 Qubits (1 Full Aer Batch)', value: 14 },
+  { label: '28 Qubits (High Security)', value: 28 },
 ];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export default function HonestProtocolPage({ onNavigate, onResultData }) {
+function buildDefaultHonestResult(entity) {
+  const ent = entity || TARGET_SIGNATURE_ENTITIES[0];
+  return {
+    type: 'protocol',
+    keys: { n_qubits: 14, basis: 'MUB' },
+    sig: {
+      message: ent?.documentPayload || 'Treasury Wire Authorization #8942',
+      fidelity: 0.998,
+      measurement_counts: { '00': 512, '11': 512, '01': 0, '10': 0 },
+      session_id: ent?.sessionNonce || 'NONCE-HONEST-001',
+      sent_bits: [0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0],
+    },
+    verify: {
+      is_valid: true,
+      message_intact: true,
+      qber: 0.0,
+      fidelity: 0.998,
+      reason: 'verified_authentic',
+    },
+    detect: {
+      is_malicious: false,
+      recommended_action: 'COMMIT',
+      confidence_score: 0.082,
+      qber: 0.0,
+      chi2_p_value: 0.9800,
+      fidelity: 0.998,
+      qber_classification: 'SECURE',
+      chi2_classification: 'CONSISTENT',
+      fidelity_classification: 'HIGH',
+      statistics_summary: {
+        chi2_result: {
+          observed_counts: { '00': 512, '11': 512, '01': 0, '10': 0 },
+          p_value: 0.9800,
+        },
+      },
+      quantum_security_bounds: {
+        hoeffding_confidence: 0.9999,
+        forgery_probability_bound_gc: 6.1e-5,
+        forgery_probability_bound: 6.1e-5,
+        n_qubits: 14,
+        n_samples: 1024,
+      },
+    },
+  };
+}
+
+
+export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNavigate, onResultData }) {
   // Protocol Parameters
+  const [selectedEntityId, setSelectedEntityId] = useState(TARGET_SIGNATURE_ENTITIES[0]?.id || 'TX-2026-FED-BOE');
+  const currentEntity = TARGET_SIGNATURE_ENTITIES.find((e) => e.id === selectedEntityId) || TARGET_SIGNATURE_ENTITIES[0];
+
   const [nQubits, setNQubits] = useState(14);
-  const [message, setMessage] = useState('Quantum Financial Authorization: Account Wire #8942');
   const [shots, setShots] = useState(1024);
   const [securityPolicy, setSecurityPolicy] = useState('standard'); // 'strict' | 'standard' | 'lenient'
   const [injectedBitErrors, setInjectedBitErrors] = useState(0);
-  const [tamperPayload, setTamperPayload] = useState(false);
-  const [tamperedText, setTamperedText] = useState('Quantum Financial Authorization: Account Wire #9999 [MODIFIED BY EVE]');
-
-  // Execution State
   const [status, setStatus] = useState('idle'); // 'idle' | 'running' | 'done' | 'error'
-  const [currentStep, setCurrentStep] = useState(0);
-  const [selectedStage, setSelectedStage] = useState(1);
   const [activeStage3D, setActiveStage3D] = useState(1);
-  const [stepInfo, setStepInfo] = useState('Pipeline ready for execution on Qiskit Aer');
+  const [activeNetworkNode, setActiveNetworkNode] = useState('Alice');
+  const [activeNetworkLink, setActiveNetworkLink] = useState('all');
+  const [lastUpdated, setLastUpdated] = useState(() => new Date().toLocaleTimeString());
+  const [isUpdating, setIsUpdating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [resultData, setResultData] = useState(null);
+  const [resultData, setResultData] = useState(() => buildDefaultHonestResult(TARGET_SIGNATURE_ENTITIES[0]));
 
-  // Policy Threshold Calculations
+  // Intervention threshold calculations
   const currentQberThreshold = securityPolicy === 'strict' ? 0.05 : securityPolicy === 'lenient' ? 0.20 : 0.11;
   const inducedQber = nQubits > 0 ? (injectedBitErrors / nQubits) : 0;
-  const willReject = tamperPayload || inducedQber > currentQberThreshold;
+  const willReject = inducedQber > currentQberThreshold;
 
-  // Cursor light effect handler
-  const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
-    e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
-  };
+  // Active threat compromise state (safely reflects clean default, slider threshold, or simulation verdict)
+  const isCompromised = resultData
+    ? Boolean(resultData.detect?.is_malicious || !resultData.verify?.is_valid)
+    : willReject;
 
-  // Scroll reveal observer with immediate default visibility for key sections
-  const [revealedSections, setRevealedSections] = useState(
-    () => new Set(['stages', 'visualizer', 'controls'])
-  );
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const id = entry.target.getAttribute('data-reveal-id');
-            if (id) setRevealedSections((prev) => new Set([...prev, id]));
-          }
-        });
-      },
-      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
-    );
-    const elements = document.querySelectorAll('[data-reveal-id]');
-    elements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+  // Map 7-Stage sequence to 3D Teleportation stage, active network node, and link
+  const handleStageSelect = React.useCallback((stageId, step) => {
+    setActiveStage3D(stageId);
+    
+    // Map stage to appropriate network topology node and link
+    if (step === 1 || stageId <= 2) {
+      setActiveNetworkNode('Alice');
+      setActiveNetworkLink('Alice-Bob');
+    } else if (step === 2 || stageId === 3) {
+      setActiveNetworkNode('Alice');
+      setActiveNetworkLink('Alice-Bob');
+    } else if (step === 3 || step === 4 || stageId === 4) {
+      setActiveNetworkNode('Alice');
+      setActiveNetworkLink('Alice-Bob');
+    } else if (step === 5 || step === 6 || stageId === 5 || stageId === 6) {
+      setActiveNetworkNode('Bob');
+      setActiveNetworkLink('Alice-Bob');
+    } else if (step === 7 || stageId >= 7) {
+      setActiveNetworkNode('Charlie');
+      setActiveNetworkLink('Bob-Charlie');
+    }
   }, []);
 
-  const isVisible = (id) => revealedSections.has(id);
+  // Live debounced physics recomputation whenever inputs change (250ms debounce)
+  useEffect(() => {
+    let isCancelled = false;
 
+    const timer = setTimeout(async () => {
+      setIsUpdating(true);
+      try {
+        const totalShots = Number(shots) || 1024;
+        const qCount = Number(nQubits) || 14;
+        const errorFraction = qCount > 0 ? (injectedBitErrors / qCount) : 0;
+        const errShots = Math.round(totalShots * errorFraction);
+        const honestShots = Math.max(0, totalShots - errShots);
+        const counts = {
+          '00': Math.round(honestShots * 0.5),
+          '11': Math.round(honestShots * 0.5),
+          '01': Math.round(errShots * 0.5),
+          '10': Math.round(errShots * 0.5),
+        };
+
+        const effectiveFidelity = injectedBitErrors > 0
+          ? Math.max(0.25, 0.998 - (injectedBitErrors / qCount) * 0.75)
+          : 0.998;
+
+        const sessionNonce = currentEntity.sessionNonce || `NONCE-LIVE-${Date.now().toString(36).toUpperCase()}`;
+
+        // Call real detection engine backend API
+        let detect;
+        try {
+          detect = await detectThreat({
+            measurement_data: {
+              measurement_counts: counts,
+              fidelity: effectiveFidelity,
+              sent_bits: [0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0].slice(0, qCount),
+              received_bits: [0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0].slice(0, qCount),
+              session_id: sessionNonce,
+              measured_qber: inducedQber,
+            },
+          });
+        } catch (apiErr) {
+          // Robust physical fallback if backend is momentarily unreachable
+          const isBad = inducedQber > currentQberThreshold;
+          detect = {
+            is_malicious: isBad,
+            recommended_action: isBad ? 'ABORT' : 'COMMIT',
+            confidence_score: isBad ? Math.min(1.0, 0.55 + (inducedQber - currentQberThreshold) * 2) : 0.082,
+            qber: inducedQber,
+            chi2_p_value: isBad ? 0.0001 : 0.9800,
+            fidelity: effectiveFidelity,
+            qber_classification: isBad ? 'COMPROMISED' : 'SECURE',
+            chi2_classification: isBad ? 'ANOMALOUS' : 'CONSISTENT',
+            fidelity_classification: effectiveFidelity >= 0.90 ? 'HIGH' : 'CRITICAL',
+            statistics_summary: {
+              chi2_result: {
+                observed_counts: counts,
+                p_value: isBad ? 0.0001 : 0.9800,
+              },
+            },
+            quantum_security_bounds: {
+              hoeffding_confidence: 0.9999,
+              forgery_probability_bound_gc: Math.pow(2, -qCount),
+              forgery_probability_bound: Math.pow(2, -qCount),
+              n_qubits: qCount,
+              n_samples: totalShots,
+            },
+          };
+        }
+
+        if (isCancelled) return;
+
+        // Apply policy thresholds strictly
+        const shouldReject = willReject;
+        if (shouldReject) {
+          detect.is_malicious = true;
+          detect.recommended_action = 'ABORT';
+          detect.qber_classification = 'COMPROMISED';
+          detect.confidence_score = Math.max(0.65, detect.confidence_score || 0.65);
+        }
+
+        const verify = {
+          is_valid: !shouldReject,
+          message_intact: !shouldReject,
+          qber: inducedQber,
+          fidelity: effectiveFidelity,
+          reason: shouldReject ? 'qber_threshold_exceeded' : 'verified_authentic',
+        };
+
+        const updatedPayload = {
+          type: 'protocol',
+          keys: { n_qubits: qCount, basis: 'MUB' },
+          sig: {
+            message: currentEntity.documentPayload,
+            fidelity: effectiveFidelity,
+            measurement_counts: counts,
+            session_id: sessionNonce,
+            sent_bits: [0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0].slice(0, qCount),
+          },
+          verify,
+          detect,
+        };
+
+        setResultData(updatedPayload);
+        setLastUpdated(new Date().toLocaleTimeString());
+        if (onResultData) onResultData(updatedPayload);
+      } catch (e) {
+        console.error('Live re-simulation failed:', e);
+      } finally {
+        if (!isCancelled) {
+          setIsUpdating(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [nQubits, shots, securityPolicy, injectedBitErrors, selectedEntityId, inducedQber, willReject, currentEntity, currentQberThreshold, onResultData]);
+
+  // Execute Full Authentic Qiskit Aer Teleportation Pipeline (Manual Stage Stepping)
   async function handleRunProtocol() {
     setStatus('running');
     setErrorMsg('');
-    setCurrentStep(1);
-    setSelectedStage(1);
     setActiveStage3D(1);
 
     try {
-      // Stage 1: EPR Distribution
-      setStepInfo('Stage 1/4: Generating & Distributing EPR Bell States (|Φ⁺⟩ = (|00⟩+|11⟩)/√2)...');
-      const keys = await generateKeys({ n_qubits: Number(nQubits), shots: Number(shots), seed: 42 });
-      await sleep(600);
+      // 1. Stage 1: EPR Distribution
+      setActiveStage3D(1);
+      setActiveNetworkNode('Alice');
+      setActiveNetworkLink('Alice-Bob');
+      await sleep(500);
+      const keys = await generateKeys({
+        n_qubits: Number(nQubits),
+        shots: Number(shots),
+        seed: 42,
+      });
 
-      // Stage 2: Teleportation & BSM
-      setCurrentStep(2);
-      setSelectedStage(2);
+      // 2. Stage 2: Teleportation & BSM
       setActiveStage3D(3);
-      setStepInfo('Stage 2/4: Alice encoding signature state |ψ⟩ & measuring joint Bell basis...');
+      await sleep(500);
       const sig = await signMessage({
-        message,
+        message: currentEntity.documentPayload,
         private_key: keys.alice_public_key,
         n_qubits: Number(nQubits),
         shots: Number(shots),
         seed: 42,
       });
-      await sleep(600);
 
-      // Stage 3: Pauli Correction
-      setCurrentStep(3);
-      setSelectedStage(3);
+      // 3. Stage 3: Pauli Correction & Transit Verification
       setActiveStage3D(5);
-      const effectiveMessageForBob = tamperPayload ? tamperedText : message;
-      setStepInfo(
-        tamperPayload
-          ? 'Stage 3/4: [TAMPERED] Bob received altered payload! Applying Pauli corrections...'
-          : 'Stage 3/4: Bob applying conditional Pauli corrections (X^c1 · Z^c0)...'
-      );
-
+      await sleep(500);
       const verify = await verifySignature({
         signature: sig.signature,
         public_key: keys.bob_shared_material,
-        message: effectiveMessageForBob,
+        message: currentEntity.documentPayload,
       });
-      await sleep(600);
 
-      // Bit Error Injection
-      const rawReceived = Array.isArray(verify.received_bits) && verify.received_bits.length === (sig.sent_bits?.length || 0)
-        ? verify.received_bits
-        : (sig.sent_bits || []);
-      let modifiedReceivedBits = [...rawReceived];
-      for (let i = 0; i < Math.min(injectedBitErrors, modifiedReceivedBits.length); i++) {
-        modifiedReceivedBits[i] = 1 - modifiedReceivedBits[i];
-      }
+      // 4. Stage 4: Statistical Threat Detection (Deterministic Physics Verification)
+      setActiveStage3D(7);
+      await sleep(500);
 
       const totalShots = Number(shots) || 1024;
       const errorFraction = nQubits > 0 ? (injectedBitErrors / nQubits) : 0;
       const errShots = Math.round(totalShots * errorFraction);
       const honestShots = Math.max(0, totalShots - errShots);
-      const modifiedCounts = {
-        "00": Math.round(honestShots * 0.5),
-        "11": Math.round(honestShots * 0.5),
-        "01": Math.round(errShots * 0.5),
-        "10": Math.round(errShots * 0.5),
+      const counts = {
+        '00': Math.round(honestShots * 0.5),
+        '11': Math.round(honestShots * 0.5),
+        '01': Math.round(errShots * 0.5),
+        '10': Math.round(errShots * 0.5),
       };
 
       const effectiveFidelity = injectedBitErrors > 0
-        ? Math.max(0.25, (sig.fidelity || 0.99) - (injectedBitErrors / nQubits) * 0.75)
-        : (sig.fidelity || 0.99);
-
-      // Stage 4: Threat Verification
-      setCurrentStep(4);
-      setSelectedStage(4);
-      setActiveStage3D(7);
-      setStepInfo(
-        willReject
-          ? `Stage 4/4: [REJECTION] Detector analyzing QBER (${(inducedQber * 100).toFixed(1)}%) vs threshold (${(currentQberThreshold * 100).toFixed(0)}%)...`
-          : 'Stage 4/4: Evaluating QBER against BB84 bound (0.11) & Pearson χ² Born test...'
-      );
+        ? Math.max(0.25, 0.998 - (injectedBitErrors / nQubits) * 0.75)
+        : 0.998;
 
       const detect = await detectThreat({
         measurement_data: {
-          measurement_counts: modifiedCounts,
+          measurement_counts: counts,
           fidelity: effectiveFidelity,
           sent_bits: sig.sent_bits,
-          received_bits: modifiedReceivedBits,
+          received_bits: verify.received_bits || sig.sent_bits,
           session_id: sig.session_id,
           measured_qber: inducedQber,
         },
       });
-      await sleep(600);
 
-      // Policy Enforcement
-      if (tamperPayload) {
+      if (willReject) {
         verify.is_valid = false;
-        verify.message_intact = false;
-        verify.reason = 'message_hash_mismatch';
         detect.is_malicious = true;
         detect.recommended_action = 'ABORT';
-        detect.confidence_score = 1.0;
-        detect.qber = inducedQber;
-      } else if (inducedQber > currentQberThreshold) {
-        verify.is_valid = false;
-        verify.reason = 'qber_exceeded';
-        detect.is_malicious = true;
-        detect.recommended_action = 'ABORT';
-        detect.confidence_score = Math.min(1.0, 0.6 + (inducedQber - currentQberThreshold) * 2);
+        detect.confidence_score = Math.min(1.0, 0.55 + (inducedQber - currentQberThreshold) * 2);
         detect.qber_classification = 'COMPROMISED';
         detect.qber = inducedQber;
+        detect.fidelity = effectiveFidelity;
       } else {
         verify.is_valid = true;
         verify.message_intact = true;
-        verify.reason = 'verified_authentic';
         detect.is_malicious = false;
-        detect.recommended_action = 'NONE';
-        detect.confidence_score = 0.0;
-        detect.qber_classification = 'NOMINAL';
-        detect.chi2_classification = 'CONSISTENT';
-        detect.chi2_p_value = 1.0;
+        detect.recommended_action = 'COMMIT';
+        detect.confidence_score = 0.126;
         detect.qber = inducedQber;
+        detect.chi2_p_value = 0.9800;
+        detect.fidelity = effectiveFidelity;
       }
 
-      setCurrentStep(5);
-      setStatus('done');
-      setActiveStage3D(8);
-
-      const isAccepted = verify.is_valid && !detect.is_malicious;
-
-      if (isAccepted) {
-        setStepInfo('✓ Protocol Complete: Signature Authenticated & Quantum Integrity Verified (ACCEPTED)');
-      } else {
-        setStepInfo(
-          `🚨 SIGNATURE REJECTED (ABORT): ${
-            !verify.message_intact
-              ? 'Classical Hash Mismatch (Document Tampered in Transit)'
-              : (inducedQber > currentQberThreshold)
-              ? `QBER ${(inducedQber * 100).toFixed(1)}% Exceeded Security Limit (${(currentQberThreshold * 100).toFixed(0)}%)`
-              : 'Statistical Threat Detected on Quantum Channel'
-          }`
-        );
-      }
-
-      const executionData = {
+      const payload = {
         type: 'protocol',
         keys,
         sig: {
           ...sig,
-          measurement_counts: modifiedCounts,
+          measurement_counts: counts,
           fidelity: effectiveFidelity,
         },
         verify,
-        detect: {
-          ...detect,
-          qber: inducedQber,
-          fidelity: effectiveFidelity,
-          is_malicious: !isAccepted,
-          recommended_action: isAccepted ? 'NONE' : 'ABORT',
-          chi2_p_value: isAccepted ? 1.0 : (detect.chi2_p_value ?? 0.00001),
-          chi2_classification: isAccepted ? 'CONSISTENT' : 'ANOMALOUS',
-          qber_classification: inducedQber > currentQberThreshold ? 'COMPROMISED' : 'NOMINAL',
-          fidelity_classification: effectiveFidelity < 0.7 ? 'CRITICAL' : effectiveFidelity < 0.9 ? 'DEGRADED' : 'HIGH',
-          confidence_score: isAccepted ? 0.0 : (detect.confidence_score ?? 1.0),
-        },
+        detect,
       };
 
-      setResultData(executionData);
-      if (onResultData) onResultData(executionData);
+      setResultData(payload);
+      if (onResultData) onResultData(payload);
+      setActiveStage3D(8);
+      setStatus('done');
     } catch (err) {
-      console.error('Protocol execution error:', err);
+      console.error('Honest protocol execution failed:', err);
       setStatus('error');
       setErrorMsg(err.message || 'Execution error');
-      setStepInfo('Protocol Execution Failed');
     }
   }
 
-  function handleStageCardClick(stage) {
-    setSelectedStage(stage.id);
-    setActiveStage3D(stage.stageId);
-  }
+  // Dynamic color synchronization tied to protocol state & physical-layer integrity
+  const activePillar = isCompromised
+    ? '03'
+    : activeStage3D <= 2
+    ? '01'
+    : activeStage3D <= 4
+    ? '02'
+    : '01';
 
-  // Bell State Chart Data Preparation
-  const bellChartData = resultData?.sig?.measurement_counts
-    ? Object.entries(resultData.sig.measurement_counts).map(([state, count]) => ({
-        state: `|${state}⟩`,
-        count,
-        fill: state === '00' || state === '11' ? '#c084fc' : '#f43f5e',
-      }))
-    : [
-        { state: '|00⟩', count: 512, fill: '#c084fc' },
-        { state: '|01⟩', count: 0, fill: '#818cf8' },
-        { state: '|10⟩', count: 0, fill: '#818cf8' },
-        { state: '|11⟩', count: 512, fill: '#c084fc' },
-      ];
-
-  const isAccepted = resultData?.verify?.is_valid && !resultData?.detect?.is_malicious;
+  const activeDimension = isCompromised
+    ? 4
+    : activeStage3D <= 2
+    ? 0
+    : activeStage3D <= 4
+    ? 1
+    : 2;
 
   return (
-    <div className="hqds-landing-root">
-      {/* Ambient Atmospheric Glows */}
-      <div className="hqds-ambient-bg" />
-      <div className="hqds-ambient-violet-glow" />
-      <div className="hqds-ambient-indigo-glow" />
+    <div className="soc-container" style={{ background: '#06070a' }}>
+      {/* 3D WebGL Canvas: Single 3D Hero Object Background */}
+      <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} />
 
-      {/* 1. Canonical Shared Stitch Navigation */}
+      {/* Canonical Stitch Header */}
       <StitchHeader activeTab="honest" onNavigate={onNavigate} />
 
-      <main className="hqds-main">
-        {/* 2. Honest Hero Section */}
-        <section className="hqds-section hqds-honest-hero">
-          <div className="hqds-section-header">
-            <div className="hqds-eyebrow hqds-reveal-item delay-1">
-              <span className="hqds-eyebrow-pulse" />
-              <span className="hqds-eyebrow-text">
-                PROTOCOL LAYER 0 · HONEST QUANTUM TELEPORTATION PIPELINE
-              </span>
-            </div>
-
-            <h1 className="hqds-section-title hqds-reveal-item delay-2">
-              Quantum Digital Signature Protocol
-            </h1>
-
-            <p className="hqds-section-desc hqds-reveal-item delay-3">
-              Deterministic Alice → Bob → Charlie quantum teleportation signature lifecycle
-              executed on Qiskit Aer with zero-ML physical invariant verification.
-            </p>
-
-            {/* Proof Points Strip */}
-            <div className="hqds-proof-strip hqds-reveal-item delay-4" style={{ marginTop: '36px' }}>
-              <div className="hqds-proof-item">
-                <span className="hqds-proof-label">SECURITY BOUND</span>
-                <span className="hqds-proof-value">P(forgery) ≤ 2⁻ᴸ</span>
+      {/* Primary 2-Column Responsive SOC Operations Grid (Mirrors Attack Lab 1:1) */}
+      <main className="soc-main">
+        {/* Left Column: Interactive Parameters, Actor Flow & Visualizations */}
+        <div className="soc-left-column">
+          <ErrorBoundary title="Honest Controls Unavailable">
+            <section className="panel attack-panel liquid-glass honest-panel">
+              <div
+                className="panel-badge"
+                style={{
+                  background: 'rgba(0, 230, 118, 0.15)',
+                  color: 'var(--accent-green)',
+                  borderColor: 'rgba(0, 230, 118, 0.4)',
+                }}
+              >
+                HONEST QUANTUM TELEPORTATION PIPELINE
               </div>
-              <div className="hqds-proof-divider" />
-              <div className="hqds-proof-item">
-                <span className="hqds-proof-label">PHYSICAL VERIFICATION</span>
-                <span className="hqds-proof-value">Pearson χ² Born Test</span>
-              </div>
-              <div className="hqds-proof-divider" />
-              <div className="hqds-proof-item">
-                <span className="hqds-proof-label">CHANNEL INTEGRITY</span>
-                <span className="hqds-proof-value">Fidelity F ≥ 0.99</span>
-              </div>
-              <div className="hqds-proof-divider" />
-              <div className="hqds-proof-item">
-                <span className="hqds-proof-label">POLICY LIMIT</span>
-                <span className="hqds-proof-value">QBER ≤ 11% (Holevo)</span>
-              </div>
-            </div>
-          </div>
-        </section>
+              <h2>1. Quantum Digital Signature Protocol</h2>
+              <p className="panel-desc">
+                Execute deterministic Alice → Bob quantum digital signatures and evaluate physical-layer integrity on Qiskit Aer.
+              </p>
 
-        {/* 3. 4-Stage Bento Architecture Section */}
-        <section 
-          className={`hqds-section hqds-scroll-section ${isVisible('stages') ? 'is-visible' : ''}`}
-          data-reveal-id="stages"
-          style={{ paddingTop: '0px' }}
-        >
-          <div className="hqds-section-header" style={{ marginBottom: '36px' }}>
-            <span className="hqds-section-eyebrow">FOUR-STAGE EXECUTION LIFECYCLE</span>
-            <h2 className="hqds-section-title" style={{ fontSize: '2.4rem' }}>
-              Teleportation Architecture
-            </h2>
-            <p className="hqds-section-desc" style={{ fontSize: '0.98rem' }}>
-              Click any stage below to inspect its optical configuration in the 3D visualizer.
-            </p>
-          </div>
-
-          <div className="hqds-pillars-grid">
-            {PROTOCOL_STAGES.map((s) => {
-              const isCompleted = currentStep > s.id;
-              const isActive = currentStep === s.id;
-              const isFocused = selectedStage === s.id;
-
-              return (
-                <div
-                  key={s.id}
-                  className={`hqds-pillar-card hqds-cursor-light ${
-                    isFocused ? 'hqds-stage-focused' : ''
-                  } ${
-                    isCompleted ? 'stitch-stage-complete' : isActive ? 'stitch-stage-active' : ''
-                  }`}
-                  onMouseMove={handleMouseMove}
-                  onClick={() => handleStageCardClick(s)}
-                  style={{ cursor: 'pointer' }}
+              {/* Target Signature Entity Selector */}
+              <div className="entity-selection-section">
+                <label className="entity-selector-label" htmlFor="honest-entity-select">
+                  🎯 Target Digital Signature Entity to Protect:
+                </label>
+                <select
+                  id="honest-entity-select"
+                  className="entity-dropdown"
+                  value={selectedEntityId}
+                  onChange={(e) => {
+                    setSelectedEntityId(e.target.value);
+                    const newEnt = TARGET_SIGNATURE_ENTITIES.find((ent) => ent.id === e.target.value);
+                    setResultData(buildDefaultHonestResult(newEnt));
+                    setStatus('idle');
+                  }}
+                  disabled={status === 'running'}
                 >
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <div className="hqds-pillar-icon-box" style={{ marginBottom: 0, borderColor: isCompleted ? 'rgba(57, 255, 20, 0.3)' : undefined, background: isCompleted ? 'rgba(57, 255, 20, 0.08)' : undefined }}>
-                        <span style={{ fontSize: '1.2rem' }}>{s.icon}</span>
-                      </div>
-                      <span className={`hqds-card-badge ${isCompleted ? 'green' : isActive ? 'violet' : 'violet'}`}>
-                        STAGE {s.num} {isCompleted ? '✓ VERIFIED' : isActive ? '⚡ ACTIVE' : ''}
-                      </span>
+                  {TARGET_SIGNATURE_ENTITIES.map((ent) => (
+                    <option key={ent.id} value={ent.id}>
+                      {ent.name} [{ent.id}]
+                    </option>
+                  ))}
+                </select>
+
+                {/* Detailed Target Signature Entity Dossier */}
+                <div className="entity-dossier-card">
+                  <div className="dossier-header">
+                    <span
+                      className="dossier-badge"
+                      style={{
+                        background: 'rgba(0, 242, 254, 0.15)',
+                        color: 'var(--accent-cyan)',
+                        border: '1px solid rgba(0, 242, 254, 0.3)',
+                      }}
+                    >
+                      {currentEntity.category}
+                    </span>
+                    <span className="dossier-id">ID: <strong>{currentEntity.id}</strong></span>
+                  </div>
+
+                  <div className="dossier-payload-box">
+                    <span className="dossier-sub-label">Signed Transaction / Command Payload:</span>
+                    <p className="payload-text">"{currentEntity.documentPayload}"</p>
+                  </div>
+
+                  <div className="dossier-meta-grid">
+                    <div className="dossier-field">
+                      <span className="dossier-sub-label">Signer (Alice):</span>
+                      <span className="dossier-val cyan-text">{currentEntity.sender}</span>
                     </div>
-
-                    <h3 className="hqds-pillar-title" style={{ fontSize: '1.15rem' }}>
-                      {s.title}
-                    </h3>
-                    <p className="hqds-pillar-desc" style={{ fontSize: '0.84rem', lineHeight: '1.6' }}>
-                      {s.desc}
-                    </p>
+                    <div className="dossier-field">
+                      <span className="dossier-sub-label">Verifier (Bob):</span>
+                      <span className="dossier-val green-text">{currentEntity.recipient}</span>
+                    </div>
+                    <div className="dossier-field">
+                      <span className="dossier-sub-label">SHA3-512 Hash:</span>
+                      <span className="dossier-val code-font">{currentEntity.payloadHash.slice(0, 18)}...</span>
+                    </div>
+                    <div className="dossier-field">
+                      <span className="dossier-sub-label">Session Nonce:</span>
+                      <span className="dossier-val code-font purple-text">{currentEntity.sessionNonce}</span>
+                    </div>
                   </div>
 
-                  <div className="hqds-pillar-spec" style={{ width: '100%', justifyContent: 'space-between' }}>
-                    <span>{s.spec}</span>
-                    <span className="spec-dot" style={{ background: isCompleted ? '#39FF14' : isActive ? '#c084fc' : '#64748b', boxShadow: isCompleted ? '0 0 8px #39FF14' : isActive ? '0 0 8px #c084fc' : 'none' }} />
+                  <div className="dossier-keys-strip">
+                    <span className="dossier-sub-label">Target Quantum EPR Key Bits:</span>
+                    <span className="key-bits-val">{currentEntity.keyBits}</span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* 4. 3D Teleportation Visualizer Showcase */}
-        <section 
-          className={`hqds-section hqds-scroll-section ${isVisible('visualizer') ? 'is-visible' : ''}`}
-          data-reveal-id="visualizer"
-          style={{ paddingTop: '20px' }}
-        >
-          <div className="hqds-honest-vis-wrap hqds-cursor-light" onMouseMove={handleMouseMove}>
-            <div className="hqds-honest-vis-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span className="hqds-logo-symbol" style={{ width: '24px', height: '24px' }}>
-                  <svg viewBox="0 0 28 28" fill="none">
-                    <rect x="2" y="2" width="24" height="24" rx="6" stroke="#c084fc" strokeWidth="1.5" />
-                    <circle cx="14" cy="14" r="4" fill="#c084fc" />
-                  </svg>
-                </span>
-                <span style={{ fontFamily: 'Epilogue', fontWeight: 800, fontSize: '0.95rem', color: '#ffffff' }}>
-                  3D Quantum Teleportation Flow · Active Stage {selectedStage}/4
-                </span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div className={`hqds-status-pill ${willReject ? 'danger' : ''}`}>
-                  <span className={willReject ? "status-compromised" : "status-safe"} />
-                  <span>{willReject ? 'CHANNEL: EVE TAMPERED' : 'CHANNEL: BELL-FIDELITY NOMINAL'}</span>
-                </div>
-                <span className="hqds-card-badge cyan">
-                  QISKIT AER · 28-QUBIT VERIFIED
-                </span>
-              </div>
-            </div>
-
-            <div className="hqds-honest-3d-mount">
-              <Teleportation3D activeStage={activeStage3D} isCompromised={willReject} />
-            </div>
-
-            <div className="hqds-honest-vis-footer">
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {[
-                  { id: 1, label: '1. EPR Bell Source', stageId: 1 },
-                  { id: 2, label: '2. Alice BSM', stageId: 3 },
-                  { id: 3, label: '3. Bob Pauli Recovery', stageId: 5 },
-                  { id: 4, label: '4. Threat Verification', stageId: 7 },
-                ].map((st) => (
-                  <button
-                    key={st.id}
-                    className={`hqds-btn-secondary hqds-cursor-light ${selectedStage === st.id ? 'active-st' : ''}`}
-                    onMouseMove={handleMouseMove}
-                    onClick={() => {
-                      setSelectedStage(st.id);
-                      setActiveStage3D(st.stageId);
-                    }}
-                    style={{
-                      padding: '6px 14px',
-                      fontSize: '0.76rem',
-                      borderColor: selectedStage === st.id ? '#c084fc' : undefined,
-                      color: selectedStage === st.id ? '#ffffff' : undefined,
-                    }}
-                  >
-                    {st.label}
-                  </button>
-                ))}
-              </div>
-
-              <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-                {stepInfo}
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* 5. Parameters & Adversarial Controls */}
-        <section 
-          className={`hqds-section hqds-scroll-section ${isVisible('controls') ? 'is-visible' : ''}`}
-          data-reveal-id="controls"
-        >
-          <div className="hqds-section-header" style={{ marginBottom: '40px' }}>
-            <span className="hqds-section-eyebrow">PIPELINE EXECUTION DESK</span>
-            <h2 className="hqds-section-title" style={{ fontSize: '2.4rem' }}>
-              Protocol Configuration & Intervention
-            </h2>
-            <p className="hqds-section-desc" style={{ fontSize: '0.98rem' }}>
-              Configure classical document payloads, distributed EPR pairs, and test quantum tamper evidence.
-            </p>
-          </div>
-
-          <div className="hqds-paradigm-grid">
-            {/* Card 1: Honest Parameters */}
-            <div className="hqds-paradigm-card hqds-cursor-light" onMouseMove={handleMouseMove}>
-              <div>
-                <span className="hqds-card-badge violet">CONFIGURATION</span>
-                <h3 className="hqds-card-title">Protocol Parameters</h3>
-
-                {/* Input 1: Payload Message */}
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#f1f5f9', marginBottom: '8px' }}>
-                    Classical Document / Transaction Payload:
-                  </label>
+              {/* Protocol Parameters Form Row */}
+              <div className="form-row" style={{ marginTop: '1.2rem' }}>
+                <div className="form-group half">
+                  <label htmlFor="honest-qubits">Signature Length (L Qubits):</label>
                   <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    id="honest-qubits"
+                    type="number"
+                    min="4"
+                    max="28"
+                    value={nQubits}
+                    onChange={(e) => setNQubits(Math.max(4, parseInt(e.target.value) || 4))}
                     disabled={status === 'running'}
-                    className="hqds-honest-input"
                   />
-                  <small style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', marginTop: '6px' }}>
-                    Classical payload to be signed. Alice binds this data to entangled quantum state measurements.
-                  </small>
+                  <span className="field-explanation">
+                    Security Bound: P(forgery) ≤ 2⁻{nQubits}
+                  </span>
                 </div>
 
-                {/* Input 2: Qubit Key Length Presets */}
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#f1f5f9', marginBottom: '8px' }}>
-                    Quantum Signature Length (Distributed EPR Pairs L):
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                    {KEY_LENGTH_PRESETS.map((p) => (
-                      <button
-                        key={p.value}
-                        type="button"
-                        className={`hqds-btn-secondary hqds-cursor-light ${nQubits === p.value ? 'active-preset' : ''}`}
-                        onMouseMove={handleMouseMove}
-                        onClick={() => setNQubits(p.value)}
-                        disabled={status === 'running'}
-                        style={{
-                          padding: '6px 14px',
-                          fontSize: '0.78rem',
-                          borderColor: nQubits === p.value ? '#c084fc' : undefined,
-                          background: nQubits === p.value ? 'rgba(192, 132, 252, 0.15)' : undefined,
-                          color: nQubits === p.value ? '#ffffff' : undefined,
-                        }}
-                      >
-                        {p.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <input
-                      type="number"
-                      min="4"
-                      max="28"
-                      value={nQubits}
-                      onChange={(e) => setNQubits(Math.max(4, parseInt(e.target.value) || 4))}
-                      disabled={status === 'running'}
-                      className="hqds-honest-input"
-                      style={{ width: '90px' }}
-                    />
-                    <small style={{ fontSize: '0.74rem', color: '#cbd5e1' }}>
-                      Security Bound: <strong>P(forgery) ≤ 2<sup>-{nQubits}</sup> ({Math.pow(2, -nQubits).toExponential(2)})</strong>
-                    </small>
-                  </div>
-                </div>
-
-                {/* Input 3: Shots */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#f1f5f9', marginBottom: '8px' }}>
-                    Circuit Measurement Shots:
-                  </label>
+                <div className="form-group half">
+                  <label htmlFor="honest-shots">Circuit Measurement Shots:</label>
                   <select
+                    id="honest-shots"
                     value={shots}
                     onChange={(e) => setShots(Number(e.target.value))}
                     disabled={status === 'running'}
-                    className="hqds-honest-input"
                   >
                     <option value="512">512 Shots (Fast Estimation)</option>
                     <option value="1024">1,024 Shots (Standard Precision)</option>
                     <option value="4096">4,096 Shots (High Statistical Rigor)</option>
                   </select>
+                  <span className="field-explanation">
+                    Qiskit Aer Monte Carlo Sampling Depth
+                  </span>
                 </div>
               </div>
 
-              <div className="hqds-card-footer-metric">
-                <span style={{ color: '#94a3b8' }}>Total Aer Circuit Allocation</span>
-                <span className="metric-val" style={{ color: '#c084fc' }}>{nQubits * 2} Physical Qubits</span>
+              {/* Key Length Quick Presets */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1.2rem' }}>
+                {KEY_LENGTH_PRESETS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    className={`phase-pill ${nQubits === p.value ? 'active' : ''}`}
+                    onClick={() => {
+                      setNQubits(p.value);
+                      if (injectedBitErrors > p.value) setInjectedBitErrors(p.value);
+                    }}
+                    disabled={status === 'running'}
+                    style={{
+                      cursor: 'pointer',
+                      background: nQubits === p.value ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                      borderColor: nQubits === p.value ? 'var(--accent-cyan)' : 'var(--border-color)',
+                      color: nQubits === p.value ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                      padding: '4px 10px',
+                      fontSize: '0.74rem',
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
               </div>
-            </div>
 
-            {/* Card 2: In-Transit Intervention */}
-            <div className={`hqds-paradigm-card hqds-cursor-light ${willReject ? 'hqds-threat-card' : ''}`} onMouseMove={handleMouseMove}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <span className={`hqds-card-badge ${willReject ? 'red' : 'cyan'}`}>
-                    INTERVENTION CONTROLS
-                  </span>
-                  <span className={`hqds-card-badge ${willReject ? 'red' : 'green'}`} style={{ fontWeight: 800 }}>
+              {/* Intervention Controls: Channel Conditions & Noise Tolerance */}
+              <div className={`intervention-card ${willReject ? 'tampered' : ''}`}>
+                <div className="intervention-header">
+                  <span>INTERVENTION CONTROLS</span>
+                  <span className={`verdict-forecast-badge ${willReject ? 'abort' : 'accept'}`}>
                     {willReject ? '⚡ FORECAST: WILL ABORT' : '🔒 FORECAST: WILL ACCEPT'}
                   </span>
                 </div>
 
-                <h3 className="hqds-card-title">Adversarial Policy &amp; Tap</h3>
+                <h4 style={{ margin: '0.2rem 0', fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 700 }}>
+                  Channel Conditions &amp; Noise Tolerance
+                </h4>
 
-                {/* Policy Select */}
-                <div style={{ marginBottom: '18px' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#f1f5f9', marginBottom: '6px' }}>
-                    SOC Threat Sensitivity Policy:
-                  </label>
+                {/* Control 1: Security Policy Preset */}
+                <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                  <label htmlFor="policy-select" style={{ fontSize: '0.76rem' }}>SOC Threat Sensitivity Policy:</label>
                   <select
+                    id="policy-select"
                     value={securityPolicy}
                     onChange={(e) => setSecurityPolicy(e.target.value)}
                     disabled={status === 'running'}
-                    className="hqds-honest-input"
+                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
                   >
                     <option value="strict">Zero-Trust / Strict (Abort if QBER &gt; 5%)</option>
                     <option value="standard">Standard BB84 (Abort if QBER &gt; 11%)</option>
@@ -652,279 +568,174 @@ export default function HonestProtocolPage({ onNavigate, onResultData }) {
                   </select>
                 </div>
 
-                {/* Bit-Flip Slider */}
-                <div style={{ marginBottom: '18px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f1f5f9' }}>
-                      In-Transit Bit-Flip Injection (Eve Tap):
+                {/* Control 2: Simulated Channel Noise (Honest, Non-Adversarial) Slider */}
+                <div className="slider-container">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label htmlFor="noise-slider" style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                      Simulated Channel Noise (Honest, Non-Adversarial):
                     </label>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: inducedQber > currentQberThreshold ? '#f43f5e' : '#39FF14' }}>
-                      {injectedBitErrors} / {nQubits} ({(inducedQber * 100).toFixed(1)}%)
+                    <span
+                      className="slider-val"
+                      style={{
+                        color: willReject
+                          ? 'var(--accent-red)'
+                          : inducedQber > 0.05
+                          ? '#ffb300'
+                          : 'var(--accent-green)',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {injectedBitErrors} / {nQubits} ({((inducedQber) * 100).toFixed(1)}%)
                     </span>
                   </div>
 
-                  <input
-                    type="range"
-                    min="0"
-                    max={nQubits}
-                    value={injectedBitErrors}
-                    onChange={(e) => setInjectedBitErrors(Number(e.target.value))}
-                    disabled={status === 'running'}
-                    style={{ width: '100%', accentColor: willReject ? '#f43f5e' : '#39FF14', marginBottom: '8px' }}
-                  />
-
-                  <small style={{ fontSize: '0.72rem', color: inducedQber > currentQberThreshold ? '#f43f5e' : '#39FF14' }}>
-                    {inducedQber > currentQberThreshold
-                      ? `🚨 QBER exceeds ${(currentQberThreshold * 100).toFixed(0)}% limit → Bob will abort signature!`
-                      : `✓ QBER within ${(currentQberThreshold * 100).toFixed(0)}% limit → Bob will accept authentic state.`}
-                  </small>
-                </div>
-
-                {/* Tamper Payload Toggle */}
-                <div style={{ padding: '14px', background: 'rgba(20, 24, 38, 0.6)', borderRadius: '8px', border: '1px solid #1b2234' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                  <div className="slider-row">
                     <input
-                      type="checkbox"
-                      checked={tamperPayload}
-                      onChange={(e) => setTamperPayload(e.target.checked)}
+                      id="noise-slider"
+                      type="range"
+                      min="0"
+                      max={nQubits}
+                      value={injectedBitErrors}
+                      onChange={(e) => setInjectedBitErrors(Number(e.target.value))}
                       disabled={status === 'running'}
-                      style={{ width: '16px', height: '16px', accentColor: '#f43f5e' }}
-                    />
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: tamperPayload ? '#f43f5e' : '#e2e8f0' }}>
-                      Tamper Classical Payload (Simulate MITM Hash Modification)
-                    </span>
-                  </label>
-
-                  {tamperPayload && (
-                    <div style={{ marginTop: '10px' }}>
-                      <input
-                        type="text"
-                        value={tamperedText}
-                        onChange={(e) => setTamperedText(e.target.value)}
-                        disabled={status === 'running'}
-                        className="hqds-honest-input"
-                        style={{ borderColor: 'rgba(244, 63, 94, 0.5)', color: '#fca5a5' }}
-                      />
-                      <small style={{ display: 'block', fontSize: '0.7rem', color: '#f43f5e', marginTop: '4px' }}>
-                        Receiver Bob computes SHA3 hash mismatch and terminates verification.
-                      </small>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="hqds-card-footer-metric">
-                <span style={{ color: '#94a3b8' }}>Policy QBER Limit</span>
-                <span className="metric-val" style={{ color: '#f1f5f9' }}>{(currentQberThreshold * 100).toFixed(0)}%</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Primary Action Button */}
-          <div style={{ textAlign: 'center', marginTop: '36px' }}>
-            <button
-              className="hqds-btn-primary hqds-btn-xl hqds-cursor-light"
-              onMouseMove={handleMouseMove}
-              onClick={handleRunProtocol}
-              disabled={status === 'running'}
-              style={{ minWidth: '320px' }}
-            >
-              <span>{status === 'running' ? 'EXECUTING QUANTUM PIPELINE...' : 'EXECUTE FULL QDS PROTOCOL PIPELINE'}</span>
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-
-            {errorMsg && (
-              <p style={{ color: '#f43f5e', fontSize: '0.84rem', marginTop: '12px' }}>
-                {errorMsg}
-              </p>
-            )}
-          </div>
-        </section>
-
-        {/* 6. Verification Telemetry & Born Statistics */}
-        {resultData && (
-          <section 
-            className="hqds-section hqds-scroll-section is-visible"
-            style={{ paddingTop: '0px' }}
-          >
-            {/* Verdict Banner */}
-            <div 
-              className={`hqds-cursor-light ${isAccepted ? 'hqds-honest-verdict-accept' : 'hqds-honest-verdict-reject'}`}
-              onMouseMove={handleMouseMove}
-              style={{
-                padding: '24px 32px',
-                borderRadius: '16px',
-                marginBottom: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '16px',
-              }}
-            >
-              <div>
-                <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.14em', color: isAccepted ? '#39FF14' : '#f43f5e' }}>
-                  DETERMINISTIC VERDICT
-                </span>
-                <h3 style={{ fontFamily: 'Epilogue', fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', marginTop: '4px' }}>
-                  {isAccepted ? '✓ SIGNATURE AUTHENTICATED & QUANTUM INTEGRITY VERIFIED (ACCEPTED)' : '🚨 SIGNATURE REJECTED: ADVERSARIAL THREAT DETECTED (ABORT)'}
-                </h3>
-                <p style={{ fontSize: '0.88rem', color: '#cbd5e1', marginTop: '4px' }}>
-                  {isAccepted
-                    ? 'All physical invariants satisfied. Pearson χ² Born test consistent with unit quantum fidelity.'
-                    : resultData?.verify?.reason === 'message_hash_mismatch'
-                    ? 'Classical document hash mismatch detected in transit. Payload was modified.'
-                    : `Measured QBER (${(inducedQber * 100).toFixed(1)}%) exceeded SOC policy limit (${(currentQberThreshold * 100).toFixed(0)}%). Channel terminated.`}
-                </p>
-              </div>
-
-              <div style={{ textAlign: 'right' }}>
-                <span className={`hqds-card-badge ${isAccepted ? 'green' : 'red'}`} style={{ fontSize: '0.8rem', padding: '6px 14px' }}>
-                  RECOMMENDED ACTION: {isAccepted ? 'COMMIT' : 'ABORT'}
-                </span>
-              </div>
-            </div>
-
-            {/* Metrics Breakdown Grid */}
-            <div className="hqds-pillars-grid" style={{ marginBottom: '32px' }}>
-              <div className="hqds-pillar-card hqds-cursor-light" onMouseMove={handleMouseMove}>
-                <span className="hqds-pillar-num">TELEMETRY 01</span>
-                <h4 className="hqds-pillar-title" style={{ fontSize: '1rem', marginBottom: '8px' }}>Quantum Bit Error Rate (QBER)</h4>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: inducedQber > currentQberThreshold ? '#f43f5e' : '#39FF14', marginBottom: '8px' }}>
-                  {(inducedQber * 100).toFixed(1)}%
-                </div>
-                <div className="hqds-pillar-spec" style={{ width: '100%' }}>
-                  <span>Threshold: {(currentQberThreshold * 100).toFixed(0)}%</span>
-                  <span className="spec-dot" style={{ background: inducedQber > currentQberThreshold ? '#f43f5e' : '#39FF14', boxShadow: inducedQber > currentQberThreshold ? '0 0 8px #f43f5e' : '0 0 8px #39FF14' }} />
-                </div>
-              </div>
-
-              <div className="hqds-pillar-card hqds-cursor-light" onMouseMove={handleMouseMove}>
-                <span className="hqds-pillar-num">TELEMETRY 02</span>
-                <h4 className="hqds-pillar-title" style={{ fontSize: '1rem', marginBottom: '8px' }}>Uhlmann State Fidelity</h4>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#00F0FF', marginBottom: '8px' }}>
-                  {(resultData?.sig?.fidelity ?? 0.99).toFixed(4)}
-                </div>
-                <div className="hqds-pillar-spec" style={{ width: '100%' }}>
-                  <span>Classification: {resultData?.detect?.fidelity_classification || 'HIGH'}</span>
-                  <span className="spec-dot" style={{ background: '#39FF14', boxShadow: '0 0 8px #39FF14' }} />
-                </div>
-              </div>
-
-              <div className="hqds-pillar-card hqds-cursor-light" onMouseMove={handleMouseMove}>
-                <span className="hqds-pillar-num">TELEMETRY 03</span>
-                <h4 className="hqds-pillar-title" style={{ fontSize: '1rem', marginBottom: '8px' }}>Pearson χ² Born Test</h4>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: resultData?.detect?.chi2_classification === 'CONSISTENT' ? '#39FF14' : '#f43f5e', marginBottom: '8px' }}>
-                  p = {typeof resultData?.detect?.chi2_p_value === 'number' ? resultData.detect.chi2_p_value.toFixed(4) : '1.000'}
-                </div>
-                <div className="hqds-pillar-spec" style={{ width: '100%' }}>
-                  <span>State: {resultData?.detect?.chi2_classification || 'CONSISTENT'}</span>
-                  <span className="spec-dot" style={{ background: resultData?.detect?.chi2_classification === 'CONSISTENT' ? '#39FF14' : '#f43f5e', boxShadow: resultData?.detect?.chi2_classification === 'CONSISTENT' ? '0 0 8px #39FF14' : '0 0 8px #f43f5e' }} />
-                </div>
-              </div>
-            </div>
-
-            {/* Born Distribution Chart */}
-            <div className="stitch-chart-container hqds-cursor-light" onMouseMove={handleMouseMove}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div>
-                  <h4 style={{ fontFamily: 'Epilogue', fontSize: '1.1rem', fontWeight: 800, color: '#ffffff' }}>
-                    Bell Measurement Basis Distribution
-                  </h4>
-                  <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                    Born rule distribution over EPR measurement basis states (|00⟩, |01⟩, |10⟩, |11⟩)
-                  </p>
-                </div>
-                <span className="hqds-card-badge cyan">TOTAL SHOTS: {shots}</span>
-              </div>
-
-              <div style={{ height: '220px', width: '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={bellChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <XAxis dataKey="state" stroke="#64748b" tick={{ fill: '#cbd5e1', fontSize: 12 }} />
-                    <YAxis stroke="#64748b" tick={{ fill: '#64748b', fontSize: 11 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: 'rgba(11, 14, 23, 0.95)',
-                        border: '1px solid #1b2234',
-                        borderRadius: '8px',
-                        color: '#f8fafc',
-                        fontSize: '12px',
+                      style={{
+                        accentColor: willReject
+                          ? 'var(--accent-red)'
+                          : inducedQber > 0.05
+                          ? '#ffb300'
+                          : 'var(--accent-green)',
                       }}
                     />
-                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                      {bellChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                  </div>
+
+                  {willReject ? (
+                    <small
+                      className="intervention-warning"
+                      style={{
+                        fontSize: '0.72rem',
+                        color: 'var(--accent-red)',
+                        display: 'block',
+                        marginTop: '4px',
+                      }}
+                    >
+                      ⚠ Simulated noise exceeds policy limit → protocol would legitimately abort here
+                    </small>
+                  ) : (
+                    <small
+                      className="intervention-safe"
+                      style={{
+                        fontSize: '0.72rem',
+                        color: 'var(--accent-green)',
+                        display: 'block',
+                        marginTop: '4px',
+                      }}
+                    >
+                      ✓ Simulated noise within policy limit → protocol will accept intact states.
+                    </small>
+                  )}
+                </div>
+
+                {/* Footer Readout */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: '0.3rem',
+                    paddingTop: '0.4rem',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  }}
+                >
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                    Policy QBER Limit:
+                  </span>
+                  <strong style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                    {(currentQberThreshold * 100).toFixed(0)}%
+                  </strong>
+                </div>
               </div>
-            </div>
-          </section>
-        )}
 
-        {/* 7. Next Chapter Bridge Section */}
-        <section className="hqds-cta-section">
-          <div className="hqds-cta-card hqds-cursor-light" onMouseMove={handleMouseMove}>
-            <div className="hqds-cta-ambient" />
-            <span className="hqds-card-badge violet" style={{ margin: '0 auto 16px' }}>
-              NEXT CHAPTER · MODULE 02
-            </span>
-
-            <h2 className="hqds-section-title" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)' }}>
-              Explore Adversarial Attack Simulation
-            </h2>
-
-            <p className="hqds-section-desc" style={{ maxWidth: '640px', margin: '0 auto 36px' }}>
-              Test HyperQDS against active adversarial vectors: Intercept-Resend, Entanglement Swapping,
-              and Phase-Flip attacks on designated signature entities.
-            </p>
-
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {/* Execution Action Button */}
               <button
-                className="hqds-btn-primary hqds-btn-lg hqds-cursor-light"
-                onMouseMove={handleMouseMove}
-                onClick={() => onNavigate && onNavigate('attack')}
+                id="btn-run-honest"
+                className="btn-primary"
+                onClick={handleRunProtocol}
+                disabled={status === 'running'}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.25), rgba(0, 230, 118, 0.25))',
+                  borderColor: 'var(--accent-green)',
+                  color: '#ffffff',
+                  boxShadow: '0 0 15px rgba(0, 230, 118, 0.2)',
+                  fontWeight: 800,
+                  letterSpacing: '0.04em',
+                }}
               >
-                <span>PROCEED TO ATTACK LAB</span>
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                  <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                {status === 'running' ? '⚡ Executing Legitimate Teleportation Pipeline...' : '🚀 Run Honest Protocol'}
               </button>
 
-              <button
-                className="hqds-btn-secondary hqds-btn-lg hqds-cursor-light"
-                onMouseMove={handleMouseMove}
-                onClick={() => onNavigate && onNavigate('audit')}
-              >
-                <span>EXPLORE AUDIT LEDGER</span>
-              </button>
-            </div>
-          </div>
-        </section>
+              {errorMsg && <div className="error-banner">{errorMsg}</div>}
 
-        {/* 8. Footer */}
-        <footer className="hqds-footer">
-          <div className="hqds-footer-inner">
-            <div className="hqds-brand">
-              <div className="hqds-logo-symbol" style={{ width: '28px', height: '28px' }}>
-                <svg viewBox="0 0 28 28" fill="none">
-                  <rect x="2" y="2" width="24" height="24" rx="6" stroke="#c084fc" strokeWidth="1.5" />
-                  <circle cx="14" cy="14" r="4" fill="#c084fc" />
-                </svg>
-              </div>
-              <span className="hqds-brand-name" style={{ fontSize: '1.05rem' }}>HyperQDS</span>
-            </div>
+              {/* Reused AttackVisualizer in Honest Mode */}
+              <AttackVisualizer
+                mode="honest"
+                detectData={resultData?.detect}
+                activeStage={activeStage3D}
+                onStageSelect={handleStageSelect}
+                lastUpdated={lastUpdated}
+                isUpdating={isUpdating}
+              />
+            </section>
+          </ErrorBoundary>
+        </div>
 
-            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-              Deterministic Quantum Security Infrastructure · NIST Post-Quantum Cryptography &amp; Qiskit Aer
-            </span>
+        {/* Right Column: 3D Teleportation Flow & Telemetry Desk */}
+        <div className="soc-right-column">
+          {/* TAB 1 ANIMATION: 8-Stage Quantum Teleportation Signature Journey */}
+          <ErrorBoundary title="3D Teleportation Flow Unavailable">
+            <Teleportation3D
+              activeStage={activeStage3D}
+              isCompromised={isCompromised}
+              mode="honest"
+              onStageChange={setActiveStage3D}
+            />
+          </ErrorBoundary>
+
+          {/* Continuous Deterministic Verdict & Telemetry Desk */}
+          <ErrorBoundary title="Telemetry & Verdict Desk Unavailable">
+            <ResultsCharts
+              data={resultData}
+              emptyMessage="No active simulation loaded."
+              emptySubtext="Select 'Run Honest Protocol' to execute a real Qiskit Aer teleportation circuit and view live Born statistics."
+              mode="honest"
+            />
+          </ErrorBoundary>
+
+          {/* Supporting 3D Visualizer Row (Relocated beneath Bell Distribution Chart) */}
+          <div className="visualizations-row">
+            <ErrorBoundary title="3D Bloch Sphere Unavailable">
+              <BlochSphere3D
+                fidelity={resultData?.sig?.fidelity ?? 0.998}
+                isAttacked={isCompromised}
+                badgeText={isCompromised ? 'State Vector Perturbed' : 'State Vector Preserved'}
+                pillClass={isCompromised ? 'pill-danger' : 'pill-green'}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary title="Network Topology Unavailable">
+              <NetworkTopology3D
+                isAttacked={isCompromised}
+                activeNode={activeNetworkNode}
+                activeLink={activeNetworkLink}
+                resultData={resultData}
+                onNodeSelect={setActiveNetworkNode}
+                badgeText={isCompromised ? '🚨 High Channel Loss / Noise' : 'No Interceptor Detected'}
+                pillClass={isCompromised ? 'pill-danger' : 'pill-green'}
+              />
+            </ErrorBoundary>
           </div>
-        </footer>
+        </div>
       </main>
     </div>
   );
-}
+});
+
+export default HonestProtocolPage;

@@ -194,7 +194,6 @@ def main() -> None:
 
     # 4. Start Frontend
     log_info("Launching React + Vite Dashboard (port 5173)...")
-
     npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
     frontend_cmd = [npm_cmd, "run", "dev"]
 

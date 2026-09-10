@@ -6388,3 +6388,366 @@ input[type=range]::-webkit-slider-runnable-track {
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   LIVE MATH READOUT & 3D CANVAS OVERLAY METRICS
+   ══════════════════════════════════════════════════════════════════════════ */
+.live-math-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  margin: 0.55rem 0 0.2rem;
+  background: rgba(255, 23, 68, 0.06);
+  border: 1px solid rgba(255, 23, 68, 0.18);
+  border-radius: 6px;
+}
+
+.lmr-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 72px;
+}
+
+.lmr-label {
+  font-size: 0.63rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.lmr-val {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.success-text {
+  color: var(--accent-green);
+}
+
+.danger-text {
+  color: #ff6b6b;
+}
+
+.safe-text {
+  color: #4ade80;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   UNIFIED MOUSE-HOVER INTERACTION SYSTEM (ALL 5 DASHBOARD VIEWS)
+   Token-consistent, uniform timing (0.18s ease-in-out), cursor fidelity,
+   and strict protection for static status badges and metric cards.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Global Timing & Base Interactive Transitions ── */
+:root {
+  --hover-duration: 0.18s;
+  --hover-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button,
+select,
+input[type="range"],
+input[type="checkbox"],
+a,
+.hqds-nav-tab,
+.view-btn,
+.stage-step,
+.key-state-card,
+.bounds-header,
+.hud-title-bar,
+.btn-preset,
+.btn-primary,
+.btn-refresh,
+.btn-retry,
+.phase-pill {
+  transition: transform var(--hover-duration) var(--hover-ease),
+              opacity var(--hover-duration) var(--hover-ease),
+              background var(--hover-duration) var(--hover-ease),
+              border-color var(--hover-duration) var(--hover-ease),
+              box-shadow var(--hover-duration) var(--hover-ease),
+              color var(--hover-duration) var(--hover-ease);
+}
+
+/* ── 2. Top Navigation Tabs & View Selectors ── */
+.hqds-nav-tab:hover:not(.active) {
+  color: #f8fafc;
+  background: rgba(192, 132, 252, 0.08);
+  border-color: rgba(192, 132, 252, 0.3);
+  transform: translateY(-1px);
+  cursor: pointer;
+}
+
+.hqds-nav-tab:hover:not(.active) .hqds-nav-tab-tag {
+  color: #d8b4fe;
+  opacity: 1;
+}
+
+.view-btn:hover:not(.active) {
+  color: #ffffff;
+  background: rgba(0, 242, 254, 0.12);
+  border: 1px solid rgba(0, 242, 254, 0.35);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+  cursor: pointer;
+}
+
+.hqds-nav-link:hover {
+  color: #c084fc;
+  text-shadow: 0 0 10px rgba(192, 132, 252, 0.4);
+  cursor: pointer;
+}
+
+.hqds-nav-ghost-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* ── 3. Primary Action Buttons & CTAs ── */
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.015);
+  box-shadow: 0 6px 22px rgba(0, 242, 254, 0.45);
+  cursor: pointer;
+}
+
+.btn-primary.btn-danger:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.015);
+  box-shadow: 0 6px 22px rgba(255, 23, 68, 0.45);
+  cursor: pointer;
+}
+
+#btn-run-honest:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.015);
+  box-shadow: 0 6px 24px rgba(0, 230, 118, 0.38) !important;
+  border-color: #00e676 !important;
+  cursor: pointer;
+}
+
+.btn-preset:hover:not(:disabled):not(.active) {
+  border-color: var(--accent-cyan);
+  color: var(--text-primary);
+  background: rgba(0, 242, 254, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+  cursor: pointer;
+}
+
+.btn-refresh:hover:not(:disabled),
+.btn-retry:hover {
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+  background: rgba(0, 242, 254, 0.12);
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.25);
+  transform: translateY(-1px);
+  cursor: pointer;
+}
+
+.play-btn:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  background: rgba(0, 242, 254, 0.1);
+  transform: scale(1.04);
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+  cursor: pointer;
+}
+
+button:disabled,
+.btn-primary:disabled,
+.btn-preset:disabled,
+.btn-refresh:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── 4. Dropdowns & Selects ── */
+select,
+.form-group select,
+.entity-dropdown {
+  cursor: pointer;
+}
+
+select:hover:not(:disabled),
+.form-group select:hover:not(:disabled),
+.entity-dropdown:hover {
+  border-color: var(--accent-cyan) !important;
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.25) !important;
+  color: #ffffff;
+}
+
+/* ── 5. Sliders & Range Inputs ── */
+input[type="range"] {
+  cursor: pointer;
+}
+
+input[type="range"]:hover::-webkit-slider-thumb {
+  transform: scale(1.24);
+  box-shadow: 0 0 16px var(--accent-cyan);
+}
+
+input[type="range"]:hover::-moz-range-thumb {
+  transform: scale(1.24);
+  box-shadow: 0 0 16px var(--accent-cyan);
+}
+
+input[type="range"]:hover::-webkit-slider-runnable-track {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ── 6. Checkboxes ── */
+input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--accent-cyan);
+}
+
+input[type="checkbox"]:hover {
+  box-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+}
+
+.tamper-toggle-row label:hover,
+.checkbox-label:hover {
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* ── 7. Interactive Cards, Steps & Expandable Headers ── */
+.key-state-card {
+  cursor: pointer;
+}
+
+.key-state-card:hover {
+  border-color: rgba(192, 132, 252, 0.6) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 14px rgba(192, 132, 252, 0.25) !important;
+}
+
+.stage-step:hover:not(.active) {
+  border-color: rgba(0, 242, 254, 0.45);
+  background: rgba(0, 242, 254, 0.08);
+  transform: translateY(-1px);
+  cursor: pointer;
+}
+
+button.phase-pill:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.09) !important;
+  border-color: rgba(0, 242, 254, 0.45) !important;
+  color: #f1f5f9 !important;
+  transform: translateY(-1px);
+  cursor: pointer;
+}
+
+.hud-title-bar {
+  user-select: none;
+  cursor: pointer;
+}
+
+.hud-title-bar:hover {
+  background: rgba(0, 242, 254, 0.08) !important;
+}
+
+.hud-title-bar:hover .hud-heading strong {
+  color: var(--accent-cyan) !important;
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+}
+
+.hud-title-bar:hover .hud-toggle {
+  color: var(--accent-cyan) !important;
+}
+
+.bounds-header {
+  cursor: pointer;
+}
+
+.bounds-header:hover h4 {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(0, 242, 254, 0.45);
+}
+
+.bounds-header:hover .bounds-toggle {
+  color: var(--accent-cyan) !important;
+  border-color: var(--accent-cyan) !important;
+  background: rgba(0, 242, 254, 0.1) !important;
+}
+
+.ledger-table tbody tr {
+  transition: background-color var(--hover-duration) var(--hover-ease);
+}
+
+.ledger-table tbody tr:hover {
+  background: rgba(0, 242, 254, 0.04);
+}
+
+/* ── 8. Network Graph Legend Nodes ── */
+.topology-legend span,
+.arch-node-legend .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: all var(--hover-duration) var(--hover-ease);
+  cursor: pointer;
+}
+
+.topology-legend span:hover,
+.arch-node-legend .legend-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.arch-node-legend .legend-item:hover .dot {
+  transform: scale(1.3);
+  box-shadow: 0 0 10px currentColor;
+}
+
+/* ── 9. Links & Inline References ── */
+a,
+.citation-link {
+  cursor: pointer;
+}
+
+a:hover,
+.citation-link:hover {
+  color: var(--accent-cyan);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── 10. Strict Status Indicator & Informational Badge Exclusions ── */
+/* Ensure non-clickable status indicators NEVER show a misleading pointer or lift cue */
+.outcome-pill,
+.status-badge,
+.pill-tag,
+.signature-target-pill,
+.panel-badge,
+.viz-badge,
+.verdict-stamp,
+span.phase-pill,
+.dossier-card,
+.bound-card,
+.metric-card,
+.stat-card,
+.step-dot,
+.stage-description {
+  cursor: default !important;
+  pointer-events: auto;
+  transform: none !important;
+}
+
+.outcome-pill:hover,
+.status-badge:hover,
+.signature-target-pill:hover,
+.panel-badge:hover,
+.viz-badge:hover,
+.verdict-stamp:hover,
+span.phase-pill:hover,
+.bound-card:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+

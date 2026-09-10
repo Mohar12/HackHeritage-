@@ -15,8 +15,9 @@
  *  - Liquid Glass Design System & Specular Refraction Styling
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import QuantumEntanglementCanvas from './components/QuantumEntanglementCanvas.jsx';
 import StitchLandingPage from './components/StitchLandingPage.jsx';
 import SignInPage from './components/SignInPage.jsx';
 import HonestProtocolPage from './components/HonestProtocolPage.jsx';
@@ -34,8 +35,24 @@ import AuditLedgerPanel from './components/AuditLedgerPanel.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import './index.css';
 
-function AppContent() {
+// Per-tab & per-attack vector color pattern synchronization for QuantumEntanglementCanvas
+const ATTACK_TO_PILLAR = {
+  intercept_resend: '03',
+  depolarizing: '01',
+  forgery: '02',
+  impersonation: '02',
+  replay: '01',
+};
 
+const ATTACK_TO_DIMENSION = {
+  intercept_resend: 4,
+  depolarizing: 0,
+  forgery: 2,
+  impersonation: 3,
+  replay: 1,
+};
+
+function AppContent() {
   const getInitialView = () => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -64,8 +81,20 @@ function AppContent() {
   }); // 'attack' | 'large_scale' | 'audit'
   const [activeStage, setActiveStage] = useState(1);
   const [selectedAttack, setSelectedAttack] = useState('intercept_resend');
+  const handleSelectAttack = useCallback((attackType) => {
+    setSelectedAttack(attackType);
+    setActiveData(null);     // clear stale telemetry from the previous attack type
+    setOperationPhase('IDLE');
+  }, []);
+
   const [selectedEntity, setSelectedEntity] = useState(TARGET_SIGNATURE_ENTITIES[0]);
   const [operationPhase, setOperationPhase] = useState('IDLE');
+  const [largeScaleParams, setLargeScaleParams] = useState({
+    numSamples: 100,
+    attackType: 'none',
+    noiseRate: 0.02,
+    status: 'idle',
+  });
 
   // Handle browser back/forward navigation
   useEffect(() => {
@@ -79,7 +108,35 @@ function AppContent() {
   const isAttacked = Boolean(activeData?.detect?.is_malicious || activeData?.type === 'attack');
   const fidelity = typeof activeData?.detect?.fidelity === 'number' ? activeData.detect.fidelity : 0.99;
 
-  const handleNavigate = (view) => {
+  // Blob threat-alert intensity: ramps up progressively through the attack's
+  // own phase sequence (so the blob visibly reacts to Eve intercepting the
+  // channel in real time, not just at the very end), rather than jumping
+  // from 0 to 1 only once the final detection result lands. This avoids the
+  // abrupt on/off flicker that happens when activeData is briefly stale or
+  // reset between attack launches.
+  const attackPhaseIntensity = {
+    IDLE: 0,
+    DISPATCH: 0.08,
+    IN_TRANSIT: 0.18,
+    INTERCEPT: 0.55,
+    COLLAPSE: 0.85,
+    DEFENSE_ABORT: 1.0,
+  };
+
+  const blobThreatAlert =
+    activeTab === 'attack'
+      ? Math.max(
+          attackPhaseIntensity[operationPhase] || 0,
+          activeData?.detect?.is_malicious ? 0.9 : 0
+        )
+      : 0;
+
+  // Which attack type's color the blob should blend toward. Falls back to
+  // the currently selected attack type even before a result lands, so the
+  // color is correct throughout the whole phase sequence, not just at the end.
+  const blobThreatAttackType = activeTab === 'attack' ? selectedAttack : null;
+
+  const handleNavigate = useCallback((view) => {
     if (view === 'landing') {
       setCurrentView('landing');
       if (typeof window !== 'undefined' && window.history?.pushState) {
@@ -92,6 +149,7 @@ function AppContent() {
       }
     } else if (view === 'honest' || view === 'pipeline') {
       setCurrentView('honest');
+      setActiveData(null);
       if (typeof window !== 'undefined' && window.history?.pushState) {
         window.history.pushState(null, '', '?view=honest');
       }
@@ -102,7 +160,11 @@ function AppContent() {
         window.history.pushState(null, '', `?view=${view}`);
       }
     }
-  };
+  }, []);
+
+  const handleEnterSOC = useCallback(() => {
+    handleNavigate('honest');
+  }, [handleNavigate]);
 
   // View 0: Secure Authentication Page (Stage 13)
   if (currentView === 'sign-in') {
@@ -124,7 +186,7 @@ function AppContent() {
     return (
       <ErrorBoundary title="HyperQDS Landing Page Error">
         <StitchLandingPage 
-          onEnterSOC={() => handleNavigate('honest')}
+          onEnterSOC={handleEnterSOC}
           onNavigate={handleNavigate}
         />
       </ErrorBoundary>
@@ -137,16 +199,27 @@ function AppContent() {
       <ErrorBoundary title="HyperQDS Honest Protocol Error">
         <HonestProtocolPage 
           onNavigate={handleNavigate}
-          onResultData={(data) => setActiveData(data)}
+          onResultData={setActiveData}
         />
       </ErrorBoundary>
     );
   }
 
   // View 3: Operational Command Center (Modules 2, 3, 4)
+  const activePillar = activeTab === 'attack'
+    ? (ATTACK_TO_PILLAR[selectedAttack] || '01')
+    : activeTab === 'large_scale' ? '02' : '01';
+
+  const activeDimension = activeTab === 'attack'
+    ? (ATTACK_TO_DIMENSION[selectedAttack] ?? 0)
+    : activeTab === 'large_scale' ? 3 : 1;
+
   return (
     <ErrorBoundary title="Quantum SOC Global Error">
       <div className="soc-container" style={{ background: '#06070a' }}>
+        {/* 3D WebGL Canvas: Single 3D Hero Object Background */}
+        <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} threatAlert={blobThreatAlert} threatAttackType={blobThreatAttackType} />
+
         {/* Canonical Stitch Header */}
         <StitchHeader activeTab={activeTab} onNavigate={handleNavigate} />
 
@@ -174,7 +247,7 @@ function AppContent() {
                         onResult={setActiveData}
                         onStageUpdate={setActiveStage}
                         selectedAttack={selectedAttack}
-                        onSelectAttack={setSelectedAttack}
+                        onSelectAttack={handleSelectAttack}
                         selectedEntity={selectedEntity}
                         onSelectEntity={setSelectedEntity}
                         onOperationPhase={setOperationPhase}
@@ -183,6 +256,7 @@ function AppContent() {
                     {activeTab === 'large_scale' && (
                       <LargeScaleSimulationPanel
                         onResult={setActiveData}
+                        onParamsChange={setLargeScaleParams}
                       />
                     )}
                   </ErrorBoundary>
@@ -254,10 +328,12 @@ function AppContent() {
                   {activeTab === 'large_scale' && (
                     <ErrorBoundary title="3D Scalable Cluster Unavailable">
                       <ScalableCluster3D
-                        numSamples={activeData?.sim?.num_qubits || 100}
-                        batchesExecuted={activeData?.sim?.batches_executed || 8}
+                        numSamples={largeScaleParams.numSamples}
+                        batchesExecuted={activeData?.sim?.batches_executed || Math.ceil(largeScaleParams.numSamples / 14)}
                         throughput={activeData?.sim?.samples_per_sec || 450}
-                        status={activeData ? 'done' : 'idle'}
+                        attackType={largeScaleParams.attackType}
+                        noiseRate={largeScaleParams.noiseRate}
+                        status={largeScaleParams.status !== 'idle' ? largeScaleParams.status : (activeData ? 'done' : 'idle')}
                       />
                     </ErrorBoundary>
                   )}

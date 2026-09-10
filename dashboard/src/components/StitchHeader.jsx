@@ -39,8 +39,8 @@ export default function StitchHeader({ activeTab = 'landing', onNavigate }) {
           onClick={() => onNavigate && onNavigate('landing')}
           style={{ cursor: 'pointer' }}
         >
-          <div className="hqds-logo-symbol">
-            <svg viewBox="0 0 28 28" fill="none" className="hqds-logo-svg">
+          <div className="hqds-logo-symbol" style={{ width: '28px', height: '28px', flexShrink: 0 }}>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="hqds-logo-svg">
               {/* Outer frame — Violet border matching landing */}
               <rect x="2" y="2" width="24" height="24" rx="6" stroke="#c084fc" strokeWidth="1.5" strokeOpacity="0.85" />
               {/* Inner nucleus — violet core */}

@@ -5,9 +5,8 @@
   "author": "lackeyjb",
   "main": "run.js",
   "scripts": {
-    "setup": "npm install && npx playwright@1.57.0 install chromium",
-    "install-chromium": "npx playwright@1.57.0 install chromium",
-    "install-all-browsers": "npx playwright@1.57.0 install chromium firefox webkit"
+    "setup": "npm install && npx playwright install chromium",
+    "install-all-browsers": "npx playwright install chromium firefox webkit"
   },
   "keywords": [
     "playwright",
@@ -19,7 +18,7 @@
   ],
   "dependencies": {
     "playwright": "1.57.0",
-    "sanitize-filename": "^1.6.3"
+    "sanitize-filename": "^1.6.4"
   },
   "engines": {
     "node": ">=14.0.0"

@@ -137,17 +137,130 @@ app = FastAPI(
 )
 
 
-ALLOWED_ORIGINS: list[str] = [
+# ---------------------------------------------------------------------------
+# CORS Configuration & Environment Separation
+# ---------------------------------------------------------------------------
+
+DEFAULT_DEV_ORIGINS: tuple[str, ...] = (
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+)
+
+DEFAULT_ALLOWED_METHODS: list[str] = [
+    "GET",
+    "POST",
+    "OPTIONS",
+    "HEAD",
 ]
-custom_origins = os.environ.get("QDS_ALLOWED_ORIGINS", "").strip()
-if custom_origins:
-    ALLOWED_ORIGINS.extend([o.strip() for o in custom_origins.split(",") if o.strip()])
+
+DEFAULT_ALLOWED_HEADERS: list[str] = [
+    "Content-Type",
+    "Authorization",
+    "X-API-Key",
+    "Accept",
+    "Origin",
+    "X-Requested-With",
+]
+
+DEFAULT_EXPOSED_HEADERS: list[str] = [
+    "WWW-Authenticate",
+    "X-Content-Type-Options",
+    "X-Frame-Options",
+    "X-XSS-Protection",
+]
+
+
+def resolve_allowed_origins() -> list[str]:
+    """Resolve and validate allowed origins based on execution environment.
+    
+    In production mode (ENVIRONMENT=production or QDS_ENV=production),
+    origins are strictly loaded from configured environment variables
+    (CORS_ALLOWED_ORIGINS, QDS_ALLOWED_ORIGINS, or ALLOWED_ORIGINS) and
+    localhost origins are omitted unless explicitly opted into via
+    QDS_ALLOW_LOCAL_ORIGINS=true.
+    
+    In development mode, standard local dev servers are permitted alongside
+    any configured custom origins. Wildcards ('*') are strictly disallowed
+    to ensure security with credentialed requests.
+    """
+    env_mode = (
+        os.environ.get("ENVIRONMENT")
+        or os.environ.get("QDS_ENV")
+        or os.environ.get("NODE_ENV")
+        or "development"
+    ).strip().lower()
+    is_prod = env_mode in ("production", "prod")
+
+    raw_custom = (
+        os.environ.get("CORS_ALLOWED_ORIGINS")
+        or os.environ.get("QDS_ALLOWED_ORIGINS")
+        or os.environ.get("ALLOWED_ORIGINS")
+        or ""
+    ).strip()
+
+    custom_origins: list[str] = []
+    if raw_custom:
+        for entry in raw_custom.split(","):
+            cleaned = entry.strip().rstrip("/")
+            # Reject empty and wildcard origins to prevent credential-wildcard vulnerabilities
+            if cleaned and cleaned != "*":
+                if cleaned not in custom_origins:
+                    custom_origins.append(cleaned)
+
+    allow_local = os.environ.get("QDS_ALLOW_LOCAL_ORIGINS", "").strip().lower() == "true"
+
+    if is_prod and not allow_local:
+        if not custom_origins:
+            logger.warning(
+                "Running in production mode with no CORS_ALLOWED_ORIGINS configured. "
+                "Cross-origin requests from browsers will be blocked."
+            )
+        return custom_origins
+
+    # Development or explicitly enabled local origins
+    origins: list[str] = list(DEFAULT_DEV_ORIGINS)
+    for o in custom_origins:
+        if o not in origins:
+            origins.append(o)
+    return origins
+
+
+def resolve_allowed_methods() -> list[str]:
+    """Return explicit HTTP methods allowed for CORS, rejecting unsafe methods like TRACE/CONNECT."""
+    env_methods = (
+        os.environ.get("CORS_ALLOWED_METHODS")
+        or os.environ.get("QDS_ALLOWED_METHODS")
+        or ""
+    ).strip()
+    if env_methods:
+        methods = [m.strip().upper() for m in env_methods.split(",") if m.strip()]
+        # Filter dangerous HTTP methods
+        return [m for m in methods if m not in ("TRACE", "CONNECT")]
+    return list(DEFAULT_ALLOWED_METHODS)
+
+
+def resolve_allowed_headers() -> list[str]:
+    """Return explicit request headers permitted during CORS preflight."""
+    env_headers = (
+        os.environ.get("CORS_ALLOWED_HEADERS")
+        or os.environ.get("QDS_ALLOWED_HEADERS")
+        or ""
+    ).strip()
+    if env_headers:
+        headers = [h.strip() for h in env_headers.split(",") if h.strip() and h.strip() != "*"]
+        return headers
+    return list(DEFAULT_ALLOWED_HEADERS)
+
+
+ALLOWED_ORIGINS: list[str] = resolve_allowed_origins()
+ALLOWED_METHODS: list[str] = resolve_allowed_methods()
+ALLOWED_HEADERS: list[str] = resolve_allowed_headers()
+EXPOSED_HEADERS: list[str] = list(DEFAULT_EXPOSED_HEADERS)
+CORS_MAX_AGE: int = int(os.environ.get("CORS_MAX_AGE", "86400"))
 
 from backend.auth import APIKeyAuthMiddleware
 app.add_middleware(APIKeyAuthMiddleware)
@@ -155,8 +268,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=ALLOWED_METHODS,
+    allow_headers=ALLOWED_HEADERS,
+    expose_headers=EXPOSED_HEADERS,
+    max_age=CORS_MAX_AGE,
 )
 
 
