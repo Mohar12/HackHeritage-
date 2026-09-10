@@ -378,7 +378,7 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
     : 2;
 
   return (
-    <div className="soc-container" style={{ background: '#06070a' }}>
+    <div className="soc-container hp-root" style={{ background: '#060c12' }}>
       {/* 3D WebGL Canvas: Single 3D Hero Object Background */}
       <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} isDashboard={true} />
 
@@ -390,15 +390,8 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
         {/* Left Column: Interactive Parameters, Actor Flow & Visualizations */}
         <div className="soc-left-column">
           <ErrorBoundary title="Honest Controls Unavailable">
-            <section className="panel attack-panel liquid-glass honest-panel">
-              <div
-                className="panel-badge"
-                style={{
-                  background: 'rgba(0, 230, 118, 0.15)',
-                  color: 'var(--accent-green)',
-                  borderColor: 'rgba(0, 230, 118, 0.4)',
-                }}
-              >
+            <section className="panel hp-control-panel">
+              <div className="hp-badge">
                 HONEST QUANTUM TELEPORTATION PIPELINE
               </div>
               <h2>1. Quantum Digital Signature Protocol</h2>
@@ -408,12 +401,12 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
 
               {/* Target Signature Entity Selector */}
               <div className="entity-selection-section">
-                <label className="entity-selector-label" htmlFor="honest-entity-select">
+                <label className="hp-entity-label" htmlFor="honest-entity-select">
                   🎯 Target Digital Signature Entity to Protect:
                 </label>
                 <select
                   id="honest-entity-select"
-                  className="entity-dropdown"
+                  className="hp-entity-select"
                   value={selectedEntityId}
                   onChange={(e) => {
                     setSelectedEntityId(e.target.value);
@@ -431,7 +424,7 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
                 </select>
 
                 {/* Detailed Target Signature Entity Dossier */}
-                <div className="entity-dossier-card">
+                <div className="entity-dossier-card hp-dossier">
                   <div className="dossier-header">
                     <span
                       className="dossier-badge"
@@ -514,25 +507,17 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
               </div>
 
               {/* Key Length Quick Presets */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1.2rem' }}>
+              <div className="hp-preset-pills">
                 {KEY_LENGTH_PRESETS.map((p) => (
                   <button
                     key={p.value}
                     type="button"
-                    className={`phase-pill ${nQubits === p.value ? 'active' : ''}`}
+                    className={`hp-preset-pill ${nQubits === p.value ? 'hp-active' : ''}`}
                     onClick={() => {
                       setNQubits(p.value);
                       if (injectedBitErrors > p.value) setInjectedBitErrors(p.value);
                     }}
                     disabled={status === 'running'}
-                    style={{
-                      cursor: 'pointer',
-                      background: nQubits === p.value ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                      borderColor: nQubits === p.value ? 'var(--accent-cyan)' : 'var(--border-color)',
-                      color: nQubits === p.value ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                      padding: '4px 10px',
-                      fontSize: '0.74rem',
-                    }}
                   >
                     {p.label}
                   </button>
@@ -540,10 +525,10 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
               </div>
 
               {/* Intervention Controls: Channel Conditions & Noise Tolerance */}
-              <div className={`intervention-card ${willReject ? 'tampered' : ''}`}>
-                <div className="intervention-header">
+              <div className={`hp-intervention ${willReject ? 'hp-will-abort' : ''}`}>
+                <div className="hp-intervention-header">
                   <span>INTERVENTION CONTROLS</span>
-                  <span className={`verdict-forecast-badge ${willReject ? 'abort' : 'accept'}`}>
+                  <span className={`hp-forecast-badge ${willReject ? 'hp-abort' : 'hp-accept'}`}>
                     {willReject ? '⚡ FORECAST: WILL ABORT' : '🔒 FORECAST: WILL ACCEPT'}
                   </span>
                 </div>
@@ -609,27 +594,11 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
                   </div>
 
                   {willReject ? (
-                    <small
-                      className="intervention-warning"
-                      style={{
-                        fontSize: '0.72rem',
-                        color: 'var(--accent-red)',
-                        display: 'block',
-                        marginTop: '4px',
-                      }}
-                    >
+                    <small className="hp-hint-warn">
                       ⚠ Simulated noise exceeds policy limit → protocol would legitimately abort here
                     </small>
                   ) : (
-                    <small
-                      className="intervention-safe"
-                      style={{
-                        fontSize: '0.72rem',
-                        color: 'var(--accent-green)',
-                        display: 'block',
-                        marginTop: '4px',
-                      }}
-                    >
+                    <small className="hp-hint-safe">
                       ✓ Simulated noise within policy limit → protocol will accept intact states.
                     </small>
                   )}
@@ -658,17 +627,9 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
               {/* Execution Action Button */}
               <button
                 id="btn-run-honest"
-                className="btn-primary"
+                className={`hp-run-btn ${status === 'running' ? 'hp-running' : ''}`}
                 onClick={handleRunProtocol}
                 disabled={status === 'running'}
-                style={{
-                  background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.25), rgba(0, 230, 118, 0.25))',
-                  borderColor: 'var(--accent-green)',
-                  color: '#ffffff',
-                  boxShadow: '0 0 15px rgba(0, 230, 118, 0.2)',
-                  fontWeight: 800,
-                  letterSpacing: '0.04em',
-                }}
               >
                 {status === 'running' ? '⚡ Executing Legitimate Teleportation Pipeline...' : '🚀 Run Honest Protocol'}
               </button>
@@ -711,7 +672,7 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
           </ErrorBoundary>
 
           {/* Supporting 3D Visualizer Row (Relocated beneath Bell Distribution Chart) */}
-          <div className="visualizations-row">
+          <div className="hp-viz-row">
             <ErrorBoundary title="3D Bloch Sphere Unavailable">
               <BlochSphere3D
                 fidelity={resultData?.sig?.fidelity ?? 0.998}

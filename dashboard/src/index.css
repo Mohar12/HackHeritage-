@@ -6777,3 +6777,326 @@ span.phase-pill:hover,
 }
 
 
+/* ==========================================================================
+   HONEST PROTOCOL PAGE — Premium Design System
+   Emerald-teal glassmorphism. Distinct from attack-lab (red) palette.
+   ========================================================================== */
+
+.hp-root {
+  --hp-emerald:        #00d68f;
+  --hp-teal:           #00bcd4;
+  --hp-glow-e:         rgba(0, 214, 143, 0.28);
+  --hp-surface:        rgba(7, 18, 28, 0.78);
+  --hp-surface-raised: rgba(10, 24, 40, 0.88);
+  --hp-border:         rgba(0, 214, 143, 0.18);
+  --hp-border-hi:      rgba(0, 214, 143, 0.42);
+  --hp-text-hi:        #e2fdf5;
+  background: #060c12;
+}
+
+/* ── Section title bar ───────────────────────────────────────────────── */
+.hp-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--hp-emerald);
+  margin-bottom: 0.75rem;
+}
+.hp-section-title::before {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 1.1em;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--hp-emerald), var(--hp-teal));
+  flex-shrink: 0;
+}
+
+/* ── Primary glass control panel ─────────────────────────────────────── */
+.hp-control-panel {
+  background: var(--hp-surface);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--hp-border);
+  border-top: 1px solid rgba(0, 214, 143, 0.32);
+  border-radius: 16px;
+  padding: 1.6rem 1.5rem;
+  box-shadow:
+    inset 0 1px 0 rgba(0, 214, 143, 0.16),
+    0 8px 40px rgba(0, 0, 0, 0.55),
+    0 0 0 0.5px rgba(0, 214, 143, 0.08);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.hp-control-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg,
+    rgba(0, 214, 143, 0.04) 0%,
+    transparent 50%,
+    rgba(0, 188, 212, 0.03) 100%);
+  pointer-events: none;
+}
+.hp-control-panel:hover {
+  border-color: var(--hp-border-hi);
+  box-shadow:
+    inset 0 1px 0 rgba(0, 214, 143, 0.24),
+    0 12px 48px rgba(0, 0, 0, 0.6),
+    0 0 24px rgba(0, 214, 143, 0.08);
+}
+
+/* ── Honest badge ────────────────────────────────────────────────────── */
+.hp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 0.22rem 0.65rem;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 214, 143, 0.45);
+  background: rgba(0, 214, 143, 0.12);
+  color: var(--hp-emerald);
+  margin-bottom: 0.6rem;
+}
+.hp-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hp-emerald);
+  box-shadow: 0 0 6px var(--hp-emerald);
+  animation: hp-pulse-dot 2.4s ease-in-out infinite;
+}
+@keyframes hp-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(0.7); }
+}
+
+/* ── Panel heading ───────────────────────────────────────────────────── */
+.hp-control-panel h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  margin-bottom: 0.25rem;
+  background: linear-gradient(120deg, #e2fdf5 0%, #a7f3d0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hp-control-panel .panel-desc {
+  color: rgba(148, 163, 184, 0.85);
+  font-size: 0.81rem;
+  margin-bottom: 1.2rem;
+  line-height: 1.55;
+}
+
+/* ── Dossier card ────────────────────────────────────────────────────── */
+.hp-dossier {
+  background: rgba(0, 214, 143, 0.04);
+  border: 1px solid rgba(0, 214, 143, 0.14);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  margin-top: 0.75rem;
+  position: relative;
+}
+.hp-dossier::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 2px;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(90deg, var(--hp-emerald), var(--hp-teal), transparent);
+  opacity: 0.55;
+}
+
+/* ── Entity selector ─────────────────────────────────────────────────── */
+.hp-entity-label {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: rgba(148, 163, 184, 0.9);
+  margin-bottom: 0.45rem;
+  letter-spacing: 0.03em;
+}
+.hp-entity-select {
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  background: rgba(7, 14, 26, 0.85);
+  border: 1px solid rgba(0, 214, 143, 0.2);
+  border-radius: 8px;
+  color: var(--hp-text-hi);
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.hp-entity-select:focus {
+  outline: none;
+  border-color: var(--hp-emerald);
+  box-shadow: 0 0 0 3px rgba(0, 214, 143, 0.15);
+}
+.hp-entity-select option {
+  background: #0a1828;
+}
+
+/* ── Intervention card ───────────────────────────────────────────────── */
+.hp-intervention {
+  border: 1px solid rgba(0, 214, 143, 0.16);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  background: rgba(0, 214, 143, 0.03);
+  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+}
+.hp-intervention.hp-will-abort {
+  border-color: rgba(244, 63, 94, 0.35);
+  background: rgba(244, 63, 94, 0.05);
+  box-shadow: inset 0 0 24px rgba(244, 63, 94, 0.06);
+}
+.hp-intervention-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.75);
+  margin-bottom: 0.65rem;
+}
+.hp-forecast-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+}
+.hp-forecast-badge.hp-accept {
+  background: rgba(0, 214, 143, 0.14);
+  color: var(--hp-emerald);
+  border: 1px solid rgba(0, 214, 143, 0.35);
+}
+.hp-forecast-badge.hp-abort {
+  background: rgba(244, 63, 94, 0.14);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+/* ── Run button ──────────────────────────────────────────────────────── */
+.hp-run-btn {
+  width: 100%;
+  padding: 0.85rem 1.4rem;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffffff;
+  border: 1px solid rgba(0, 214, 143, 0.55);
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg,
+    rgba(0, 214, 143, 0.22) 0%,
+    rgba(0, 188, 212, 0.18) 100%);
+  box-shadow:
+    0 0 20px rgba(0, 214, 143, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.22s ease;
+  margin-top: 1.1rem;
+  font-family: var(--font-family);
+}
+.hp-run-btn:hover:not(:disabled) {
+  border-color: rgba(0, 214, 143, 0.8);
+  box-shadow: 0 0 32px rgba(0, 214, 143, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+.hp-run-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+.hp-run-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Hint text ───────────────────────────────────────────────────────── */
+.hp-hint-safe {
+  font-size: 0.71rem;
+  color: #00d68f;
+  display: block;
+  margin-top: 4px;
+}
+.hp-hint-warn {
+  font-size: 0.71rem;
+  color: #f43f5e;
+  display: block;
+  margin-top: 4px;
+}
+
+/* ── Preset pills ────────────────────────────────────────────────────── */
+.hp-preset-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 1rem;
+}
+.hp-preset-pill {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  border: 1px solid rgba(0, 214, 143, 0.2);
+  background: rgba(0, 214, 143, 0.06);
+  color: rgba(148, 163, 184, 0.85);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.hp-preset-pill:hover { border-color: rgba(0, 214, 143, 0.45); color: #00d68f; }
+.hp-preset-pill.hp-active {
+  background: rgba(0, 214, 143, 0.18);
+  border-color: #00d68f;
+  color: #00d68f;
+  box-shadow: 0 0 8px rgba(0, 214, 143, 0.18);
+}
+
+/* ── Viz row ─────────────────────────────────────────────────────────── */
+.hp-viz-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 640px) {
+  .hp-viz-row { grid-template-columns: 1fr; }
+}
+
+/* ── Safe state banner ───────────────────────────────────────────────── */
+.hp-safe-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1rem;
+  background: rgba(0, 214, 143, 0.08);
+  border: 1px solid rgba(0, 214, 143, 0.28);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #00d68f;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.6rem;
+}
+.hp-safe-banner.hp-compromised {
+  background: rgba(244, 63, 94, 0.08);
+  border-color: rgba(244, 63, 94, 0.28);
+  color: #f43f5e;
+}
+
