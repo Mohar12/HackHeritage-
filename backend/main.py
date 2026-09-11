@@ -70,7 +70,7 @@ logger = logging.getLogger(__name__)
 apply_qiskit_compat()
 
 from backend.routes import keys, signatures, attacks, detection, auth_routes
-from backend.db import init_db, check_db_connection
+from backend.db import init_db, check_db_connection, check_db_health
 
 # ---------------------------------------------------------------------------
 # Application factory

@@ -72,7 +72,7 @@ function CustomRechartsTooltip({ active, payload, label }) {
   return null;
 }
 
-const ResultsCharts = React.memo(function ResultsCharts({ data, emptyMessage, emptySubtext, mode }) {
+const ResultsCharts = React.memo(function ResultsCharts({ data, emptyMessage, emptySubtext, mode, hideHistogram = false }) {
   const [showBoundsDetail, setShowBoundsDetail] = useState(false);
 
   if (!data) {
@@ -104,7 +104,7 @@ const ResultsCharts = React.memo(function ResultsCharts({ data, emptyMessage, em
   // Quantum security bounds (from Hoeffding/Helstrom/Dunjko/Gottesman-Chuang/mpmath)
   const secBounds = detect?.quantum_security_bounds || sim?.quantum_security_bounds || {};
   const hoeffdingConf = Number.isFinite(secBounds?.hoeffding_confidence) ? secBounds.hoeffding_confidence : null;
-  const forgeProbGC = Number.isFinite(secBounds?.forgery_probability_bound_gc) ? secBounds.forgery_probability_bound_gc : null;
+  const forgeProbGC = Number.isFinite(secBounds?.forgery_probability_bound_gc) ? secBounds.forgery_probability_bound_gc : (Number.isFinite(secBounds?.forgery_probability_bound) ? secBounds.forgery_probability_bound : null);
   const forgeProb = Number.isFinite(secBounds?.forgery_probability_bound) ? secBounds.forgery_probability_bound : null;
   const nonrepudiate = Number.isFinite(secBounds?.nonrepudiation_probability_bound) ? secBounds.nonrepudiation_probability_bound : null;
   const helstromP = Number.isFinite(secBounds?.helstrom_p_distinguish) ? secBounds.helstrom_p_distinguish : null;
@@ -114,7 +114,7 @@ const ResultsCharts = React.memo(function ResultsCharts({ data, emptyMessage, em
   const hoeffCurve = secBounds?.hoeffding_confidence_curve || {};
 
   const badgeClass = isMalicious ? 'badge-danger' : action === 'ALERT' ? 'badge-warning' : 'badge-secure';
-  const hasSecBounds = hoeffdingConf !== null || forgeProbGC !== null;
+  const hasSecBounds = hoeffdingConf !== null || forgeProbGC !== null || forgeProb !== null || nonrepudiate !== null;
 
   // Prepare Bell Basis Histogram Data for Recharts
   const totalCounts = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -384,7 +384,7 @@ const ResultsCharts = React.memo(function ResultsCharts({ data, emptyMessage, em
       )}
 
       {/* 2-Bit EPR Measurement Distribution (Interactive Recharts BarChart) */}
-      {totalCounts > 0 && (
+      {!hideHistogram && totalCounts > 0 && (
         <div className="counts-breakdown" style={{ marginTop: '16px' }}>
           <div className="hist-header">
             <h4>Observed Bell Measurement Distribution (|00⟩, |01⟩, |10⟩, |11⟩) — Recharts:</h4>

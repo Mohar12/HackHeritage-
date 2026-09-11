@@ -6,11 +6,26 @@ const BACKEND_URL = process.env.VITE_BACKEND_URL || process.env.BACKEND_URL || '
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  envDir: '../',
   server: {
     host: '0.0.0.0',
     port: 5173,
     proxy: {
       // Proxy API calls to the FastAPI backend during development
+      '/auth':          { target: BACKEND_URL, changeOrigin: true },
+      '/api':           { target: BACKEND_URL, changeOrigin: true },
+      '/generate-keys': { target: BACKEND_URL, changeOrigin: true },
+      '/signatures':    { target: BACKEND_URL, changeOrigin: true },
+      '/simulate-attack': { target: BACKEND_URL, changeOrigin: true },
+      '/detect':        { target: BACKEND_URL, changeOrigin: true },
+      '/health':        { target: BACKEND_URL, changeOrigin: true },
+    },
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 5173,
+    proxy: {
+      // Proxy API calls to the FastAPI backend during preview
       '/auth':          { target: BACKEND_URL, changeOrigin: true },
       '/api':           { target: BACKEND_URL, changeOrigin: true },
       '/generate-keys': { target: BACKEND_URL, changeOrigin: true },

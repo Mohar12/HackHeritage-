@@ -252,7 +252,7 @@ class AuditLedger:
 
         try:
             if self._db_path is None or self._db_path == ":memory:":
-                self._db_conn = sqlite3.connect(":memory:", check_same_thread=False)
+                self._db_conn = sqlite3.connect(":memory:", check_same_thread=False, isolation_level=None)
             else:
                 # Sanitize and validate path string against null bytes or URI parameter injection
                 raw_path = str(self._db_path).strip()
@@ -264,7 +264,7 @@ class AuditLedger:
                 db_file = Path(raw_path).resolve()
                 db_file.parent.mkdir(parents=True, exist_ok=True)
                 self._db_conn = sqlite3.connect(
-                    str(db_file), check_same_thread=False, timeout=30.0
+                    str(db_file), check_same_thread=False, timeout=30.0, isolation_level=None
                 )
                 self._db_conn.execute("PRAGMA journal_mode=WAL;")
                 self._db_conn.execute("PRAGMA synchronous=NORMAL;")
@@ -547,6 +547,66 @@ class AuditLedger:
                 self._corruption_error = verify_res["error"]
             # Retain loaded records in memory for forensic inspection
             self._records = loaded
+        else:
+            self._records = []
+
+    def _sync_with_storage(self) -> None:
+        """Synchronize in-memory cache with records newly committed to SQLite across processes."""
+        if self._db_conn is None or self._corrupted:
+            return
+
+        cursor = self._db_conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM audit_records")
+        row = cursor.fetchone()
+        db_count = row[0] if row else 0
+
+        current_count = len(self._records)
+        if db_count < current_count:
+            # Table was truncated or cleared externally
+            self._load_records()
+            return
+        elif db_count == current_count:
+            return
+
+        cursor.execute("""
+            SELECT record_id, timestamp, session_id, event_type, message_hash,
+                   verification_outcome, attack_type, qber, chi2_p_value, fidelity,
+                   confidence_score, threat_classification, recommended_action,
+                   node_id_hash, prev_hash, record_hash, hmac_tag, hash_algorithm,
+                   source_tab, target_entity
+            FROM audit_records
+            WHERE seq > ?
+            ORDER BY seq ASC
+        """, (current_count,))
+        new_rows = cursor.fetchall()
+        if not new_rows or (current_count + len(new_rows) != db_count):
+            self._load_records()
+            return
+
+        for r in new_rows:
+            record = AuditRecord(
+                record_id=r[0],
+                timestamp=r[1],
+                session_id=r[2],
+                event_type=r[3],
+                message_hash=r[4],
+                verification_outcome=r[5],
+                attack_type=r[6],
+                qber=r[7],
+                chi2_p_value=r[8],
+                fidelity=r[9],
+                confidence_score=r[10],
+                threat_classification=r[11],
+                recommended_action=r[12],
+                node_id_hash=r[13],
+                prev_hash=r[14],
+                record_hash=r[15],
+                hmac_tag=r[16],
+                hash_algorithm=r[17],
+                source_tab=r[18],
+                target_entity=r[19],
+            )
+            self._records.append(record)
 
     def _get_async_lock(self) -> asyncio.Lock:
         if self._async_lock is None:
@@ -604,71 +664,146 @@ class AuditLedger:
                     "Refusing to append new records."
                 )
 
-            prev_hash = self._records[-1].record_hash if self._records else "GENESIS_ROOT"
-            rec_id = f"aud-{len(self._records) + 1:06d}"
-
-            payload = _canonical_payload(
-                session_id=session_id,
-                event_type=event_type,
-                timestamp=ts,
-                node_id_hash=node_id_hash,
-                message_hash=message_hash,
-                verification_outcome=verification_outcome,
-                attack_type=attack_type,
-                qber=qber,
-                chi2_p_value=chi2_p_value,
-                fidelity=fidelity,
-                confidence_score=confidence_score,
-                threat_classification=threat_classification,
-                recommended_action=recommended_action,
-                prev_hash=prev_hash,
-                source_tab=source_tab,
-                target_entity=target_entity,
-            )
-
-            # Post-quantum hash chain using SHA3-512
-            rec_hash = self._compute_record_hash(payload)
-            # HMAC-SHA3-512 authentication tag
-            hmac_tag = self._compute_hmac_tag(payload)
-
-            record = AuditRecord(
-                record_id=rec_id,
-                timestamp=ts,
-                session_id=session_id,
-                event_type=event_type,
-                message_hash=message_hash,
-                verification_outcome=verification_outcome,
-                attack_type=attack_type,
-                qber=qber,
-                chi2_p_value=chi2_p_value,
-                fidelity=fidelity,
-                confidence_score=confidence_score,
-                threat_classification=threat_classification,
-                recommended_action=recommended_action,
-                node_id_hash=node_id_hash,
-                prev_hash=prev_hash,
-                record_hash=rec_hash,
-                hmac_tag=hmac_tag,
-                hash_algorithm="sha3-512",
-                source_tab=source_tab,
-                target_entity=target_entity,
-            )
-
-            # Persist using parameterized query
-            if self._use_postgres:
-                from backend.db import get_connection, release_connection
-                conn = get_connection()
+            max_retries = 5
+            for attempt in range(max_retries):
                 try:
-                    with conn.cursor() as cur:
-                        cur.execute(
+                    if self._db_conn is not None:
+                        self._db_conn.execute("BEGIN IMMEDIATE;")
+
+                        # Under IMMEDIATE isolation no other writer can commit;
+                        # MAX(seq) is the authoritative next-sequence source.
+                        cursor = self._db_conn.cursor()
+                        cursor.execute("SELECT COALESCE(MAX(seq), 0) FROM audit_records")
+                        max_seq_db = cursor.fetchone()[0]
+
+                        # Sync in-memory cache to match the DB (no new writer can
+                        # interleave here because we hold the IMMEDIATE lock).
+                        if max_seq_db > len(self._records):
+                            self._sync_with_storage()
+
+                        # Use the DB-authoritative sequence number, NOT memory length.
+                        # This is the only correct source under concurrent or multi-
+                        # restart scenarios; len(self._records) can lag the DB when
+                        # another coroutine committed between the last sync and now.
+                        next_seq = max_seq_db + 1
+                        rec_id = f"aud-{next_seq:06d}"
+
+                        # Defence-in-depth: should be unreachable under IMMEDIATE lock,
+                        # but guard explicitly rather than relying solely on the DB
+                        # UNIQUE constraint raising IntegrityError.
+                        cursor.execute(
+                            "SELECT 1 FROM audit_records WHERE record_id = ?", (rec_id,)
+                        )
+                        if cursor.fetchone() is not None:
+                            # Re-query authoritative max in case of unexpected skew.
+                            cursor.execute(
+                                "SELECT COALESCE(MAX(seq), 0) FROM audit_records"
+                            )
+                            next_seq = cursor.fetchone()[0] + 1
+                            rec_id = f"aud-{next_seq:06d}"
+                    else:
+                        next_seq = len(self._records) + 1
+                        rec_id = f"aud-{next_seq:06d}"
+
+                    prev_hash = self._records[-1].record_hash if self._records else "GENESIS_ROOT"
+
+                    payload = _canonical_payload(
+                        session_id=session_id,
+                        event_type=event_type,
+                        timestamp=ts,
+                        node_id_hash=node_id_hash,
+                        message_hash=message_hash,
+                        verification_outcome=verification_outcome,
+                        attack_type=attack_type,
+                        qber=qber,
+                        chi2_p_value=chi2_p_value,
+                        fidelity=fidelity,
+                        confidence_score=confidence_score,
+                        threat_classification=threat_classification,
+                        recommended_action=recommended_action,
+                        prev_hash=prev_hash,
+                        source_tab=source_tab,
+                        target_entity=target_entity,
+                    )
+
+                    # Post-quantum hash chain using SHA3-512
+                    rec_hash = self._compute_record_hash(payload)
+                    # HMAC-SHA3-512 authentication tag
+                    hmac_tag = self._compute_hmac_tag(payload)
+
+                    record = AuditRecord(
+                        record_id=rec_id,
+                        timestamp=ts,
+                        session_id=session_id,
+                        event_type=event_type,
+                        message_hash=message_hash,
+                        verification_outcome=verification_outcome,
+                        attack_type=attack_type,
+                        qber=qber,
+                        chi2_p_value=chi2_p_value,
+                        fidelity=fidelity,
+                        confidence_score=confidence_score,
+                        threat_classification=threat_classification,
+                        recommended_action=recommended_action,
+                        node_id_hash=node_id_hash,
+                        prev_hash=prev_hash,
+                        record_hash=rec_hash,
+                        hmac_tag=hmac_tag,
+                        hash_algorithm="sha3-512",
+                        source_tab=source_tab,
+                        target_entity=target_entity,
+                    )
+
+                    # Persist using parameterized query
+                    if self._use_postgres:
+                        from backend.db import get_connection, release_connection
+                        conn = get_connection()
+                        try:
+                            with conn.cursor() as cur:
+                                cur.execute(
+                                    """INSERT INTO audit_records (
+                                        record_id, timestamp, session_id, event_type, message_hash,
+                                        verification_outcome, attack_type, qber, chi2_p_value, fidelity,
+                                        confidence_score, threat_classification, recommended_action,
+                                        node_id_hash, prev_hash, record_hash, hmac_tag, hash_algorithm,
+                                        source_tab, target_entity
+                                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                    ON CONFLICT (record_id) DO NOTHING;""",
+                                    (
+                                        record.record_id,
+                                        record.timestamp,
+                                        record.session_id,
+                                        record.event_type,
+                                        record.message_hash,
+                                        record.verification_outcome,
+                                        record.attack_type,
+                                        record.qber,
+                                        record.chi2_p_value,
+                                        record.fidelity,
+                                        record.confidence_score,
+                                        record.threat_classification,
+                                        record.recommended_action,
+                                        record.node_id_hash,
+                                        record.prev_hash,
+                                        record.record_hash,
+                                        record.hmac_tag,
+                                        record.hash_algorithm,
+                                        record.source_tab,
+                                        record.target_entity,
+                                    ),
+                                )
+                                conn.commit()
+                        finally:
+                            release_connection(conn)
+                    elif self._db_conn is not None:
+                        self._db_conn.execute(
                             """INSERT INTO audit_records (
                                 record_id, timestamp, session_id, event_type, message_hash,
                                 verification_outcome, attack_type, qber, chi2_p_value, fidelity,
                                 confidence_score, threat_classification, recommended_action,
                                 node_id_hash, prev_hash, record_hash, hmac_tag, hash_algorithm,
                                 source_tab, target_entity
-                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                            ON CONFLICT (record_id) DO NOTHING;""",
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (
                                 record.record_id,
                                 record.timestamp,
@@ -692,45 +827,21 @@ class AuditLedger:
                                 record.target_entity,
                             ),
                         )
-                        conn.commit()
-                finally:
-                    release_connection(conn)
-            elif self._db_conn is not None:
-                with self._db_conn:
-                    self._db_conn.execute(
-                        """INSERT INTO audit_records (
-                            record_id, timestamp, session_id, event_type, message_hash,
-                            verification_outcome, attack_type, qber, chi2_p_value, fidelity,
-                            confidence_score, threat_classification, recommended_action,
-                            node_id_hash, prev_hash, record_hash, hmac_tag, hash_algorithm,
-                            source_tab, target_entity
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (
-                            record.record_id,
-                            record.timestamp,
-                            record.session_id,
-                            record.event_type,
-                            record.message_hash,
-                            record.verification_outcome,
-                            record.attack_type,
-                            record.qber,
-                            record.chi2_p_value,
-                            record.fidelity,
-                            record.confidence_score,
-                            record.threat_classification,
-                            record.recommended_action,
-                            record.node_id_hash,
-                            record.prev_hash,
-                            record.record_hash,
-                            record.hmac_tag,
-                            record.hash_algorithm,
-                            record.source_tab,
-                            record.target_entity,
-                        ),
-                    )
+                        self._db_conn.execute("COMMIT;")
 
-            self._records.append(record)
-            return record
+                    self._records.append(record)
+                    return record
+                except Exception as exc:
+                    if self._db_conn is not None:
+                        try:
+                            self._db_conn.execute("ROLLBACK;")
+                        except Exception:
+                            pass
+                    if isinstance(exc, sqlite3.IntegrityError) and attempt < max_retries - 1:
+                        self._load_records()
+                        time.sleep(0.01 * (attempt + 1))
+                        continue
+                    raise
 
     async def record_event_async(
         self,
@@ -771,14 +882,17 @@ class AuditLedger:
 
     def get_records(self, limit: int = 50) -> list[AuditRecord]:
         with self._sync_lock:
+            self._sync_with_storage()
             return list(self._records[-limit:])
 
     def get_session_history(self, session_id: str) -> list[AuditRecord]:
         with self._sync_lock:
+            self._sync_with_storage()
             return [r for r in self._records if r.session_id == session_id]
 
     def count(self) -> int:
         with self._sync_lock:
+            self._sync_with_storage()
             return len(self._records)
 
     def clear(self) -> None:
@@ -815,17 +929,37 @@ class AuditLedger:
 
         prev_hash = "GENESIS_ROOT"
         hmac_all_valid = True
+        seen_ids: set[str] = set()
 
         for idx, record in enumerate(records):
-            expected_id = f"aud-{idx + 1:06d}"
-            if record.record_id != expected_id:
+            if record.record_id in seen_ids:
                 return {
                     "valid": False,
                     "records_checked": idx + 1,
-                    "error": f"Sequential ID error at index {idx}: expected '{expected_id}', got '{record.record_id}'.",
+                    "error": f"Duplicate record ID '{record.record_id}' detected at index {idx}.",
                     "hash_algorithm": "sha3-512",
                     "hmac_verified": False,
                 }
+            seen_ids.add(record.record_id)
+
+            expected_id = f"aud-{idx + 1:06d}"
+            if record.record_id != expected_id:
+                if record.record_id.startswith("aud-") and record.record_id[4:].isdigit():
+                    return {
+                        "valid": False,
+                        "records_checked": idx + 1,
+                        "error": f"Sequential ID error at index {idx}: expected '{expected_id}', got '{record.record_id}'.",
+                        "hash_algorithm": "sha3-512",
+                        "hmac_verified": False,
+                    }
+                elif not record.record_id or not record.record_id.strip():
+                    return {
+                        "valid": False,
+                        "records_checked": idx + 1,
+                        "error": f"Invalid empty record ID at index {idx}.",
+                        "hash_algorithm": "sha3-512",
+                        "hmac_verified": False,
+                    }
 
             expected_prev = records[idx - 1].record_hash if idx > 0 else "GENESIS_ROOT"
             if record.prev_hash != expected_prev:
@@ -904,6 +1038,7 @@ class AuditLedger:
                    "hash_algorithm": str, "hmac_verified": bool}
         """
         with self._sync_lock:
+            self._sync_with_storage()
             if self._corrupted:
                 return {
                     "valid": False,

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Challenges &amp; Solutions &mdash; QDS Threat Detection</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 48px 24px;
+      font-family: Georgia, "Times New Roman", Times, serif;
+      color: #000000;
+    }
+    .card {
+      width: 1700px;
+      border: 3px solid #000000;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { border-bottom: 2px solid #000000; }
+    thead th {
+      font-size: 21px;
+      font-weight: bold;
+      text-decoration: underline;
+      text-align: center;
+      padding: 22px 32px 18px;
+      background: #ffffff;
+      letter-spacing: 0.01em;
+    }
+    thead th:first-child { width: 30%; }
+    thead th:last-child  { width: 70%; }
+    tbody tr + tr { border-top: 1.5px solid #d0d0d0; }
+    tbody td {
+      padding: 20px 32px;
+      vertical-align: middle;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+    td.challenge {
+      font-weight: bold;
+      text-align: center;
+      width: 30%;
+      border-right: 1.5px solid #d0d0d0;
+      white-space: pre-line;
+    }
+    td.solution { font-weight: normal; text-align: left; width: 70%; }
+    tbody tr:nth-child(odd) td  { background: #f9f9f9; }
+    tbody tr:nth-child(even) td { background: #ffffff; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Challenges</th>
+          <th>Solution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="challenge">Qiskit 2.x API<br>Breaking Change</td>
+          <td class="solution">The teleportation circuit in <em>qds_core/teleportation.py</em> uses conditional Pauli corrections that relied on <em>InstructionSet.c_if()</em> &mdash; removed entirely in Qiskit&nbsp;2.x. A compatibility adapter in <em>backend/qiskit_compat.py</em> patches <em>c_if()</em> back onto <em>InstructionSet</em> at module import time by rewriting each invocation as a <em>qc.if_test()</em> control-flow block, and installs a pure-NumPy Born-rule statevector simulator as an Aer fallback when <em>qiskit-aer</em> is absent. All circuit files remain unmodified and every module runs identically on any Python&nbsp;/&nbsp;Qiskit version combination across the team.</td>
+        </tr>
+        <tr>
+          <td class="challenge">False Positives in<br>χ² Born-Rule Test</td>
+          <td class="solution">Early builds compared observed Bell-state counts against a fixed 25&nbsp;% uniform prior, flagging clean runs as anomalous because legitimate channels concentrate counts in |00&rang; and |11&rang;. The fix in <em>backend/main.py</em> (<em>_build_expected_distribution()</em>) adapts the baseline to each observed run: when error-bin counts fall below the 2&nbsp;% hardware-noise floor, the actual measured distribution replaces the uniform prior. Simultaneously, the composite confidence score in <em>detection_engine/thresholds.py</em> was replaced from arbitrary sigmoid scale factors (0.03, 0.02, 0.08) with a Hoeffding-inequality-grounded formula, eliminating the false-positive risk at the scoring layer as well.</td>
+        </tr>
+        <tr>
+          <td class="challenge">No Real Quantum<br>Hardware Available</td>
+          <td class="solution">The project simulates teleportation-based QDS with no access to physical quantum hardware and no guaranteed local Qiskit-Aer installation. A full statevector + Born-rule sampling engine was implemented in pure NumPy inside <em>backend/qiskit_compat.py</em>, covering H, X, Y, Z, CX, and U3 gate tensors, depolarising noise injection, and per-qubit classical measurement mapping. It accepts standard <em>QuantumCircuit</em> objects and activates automatically when <em>qiskit-aer</em> fails to import, keeping all four modules (qds_core, attack_sim, detection_engine, backend) behaviourally identical across every developer environment.</td>
+        </tr>
+        <tr>
+          <td class="challenge">WebGL Scroll Progress<br>Jumping on Short Pages</td>
+          <td class="solution">The Three.js background sphere in <em>QuantumEntanglementCanvas.jsx</em> maps scroll position to a normalized value p&nbsp;&isin;&nbsp;[0,&nbsp;1] via <em>scrollY&nbsp;/&nbsp;(scrollHeight&nbsp;&minus;&nbsp;innerHeight)</em>. On short pages (Attack Lab, Audit Ledger) the tiny denominator produced large per-tick jumps and drove p into the closing-dissolve act after minimal scrolling &mdash; causing the sphere to visually vanish. Fixed by clamping the denominator to a minimum virtual height of 4,200&nbsp;px and attaching a <em>ResizeObserver</em> on <em>document.body</em> to refresh the cached height whenever dynamically loaded result panels expand page content, independently of native browser window resize events.</td>
+        </tr>
+        <tr>
+          <td class="challenge">Tamper-Evident Audit<br>Without Raw Quantum Data</td>
+          <td class="solution">Detection verdicts must be independently verifiable by judges without exposing raw quantum state vectors, which would reveal session key material. <em>backend/audit_ledger.py</em> implements an append-only SQLite-backed ledger: every record stores only derived metrics (QBER, &chi;&sup2; p-value, fidelity, threat classification) and is linked into a SHA3-512 hash chain, providing 256-bit post-quantum security vs SHA-256's 128-bit Grover-reduced bound. Each block carries an HMAC-SHA3-512 authentication tag and the genesis block is signed with an Ed25519 keypair, enabling live chain-integrity verification via <em>GET&nbsp;/api/v1/audit-ledger/verify</em> callable by any judge in real time.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

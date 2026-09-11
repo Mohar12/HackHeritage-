@@ -212,9 +212,11 @@ def main() -> None:
     )
 
     # 4. Start Frontend
-    log_info("Launching React + Vite Dashboard (port 5173)...")
+    use_preview = "--preview" in sys.argv or "--prod" in sys.argv
+    mode_name = "Preview (Production Build)" if use_preview else "Vite Dev"
+    log_info(f"Launching React + Vite Dashboard ({mode_name} on port 5173)...")
     npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
-    frontend_cmd = [npm_cmd, "run", "dev"]
+    frontend_cmd = [npm_cmd, "run", "preview" if use_preview else "dev"]
 
     frontend_process = subprocess.Popen(
         frontend_cmd,

@@ -31,4 +31,20 @@ describe('API Client Configuration & URL Resolution', () => {
     const url = resolveBaseUrl(prodEnv);
     assert.equal(url, 'https://backend.hyperqds.io');
   });
+
+  it('uses VITE_API_BASE_URL when provided and trims trailing slashes', () => {
+    const customEnv = { VITE_API_BASE_URL: 'http://127.0.0.1:8000/' };
+    const url = resolveBaseUrl(customEnv);
+    assert.equal(url, 'http://127.0.0.1:8000');
+  });
+
+  it('prefers VITE_API_BASE_URL over VITE_API_URL when both are present', () => {
+    const env = {
+      VITE_API_BASE_URL: 'http://127.0.0.1:8000',
+      VITE_API_URL: 'http://localhost:8000',
+    };
+    const url = resolveBaseUrl(env);
+    assert.equal(url, 'http://127.0.0.1:8000');
+  });
 });
+
