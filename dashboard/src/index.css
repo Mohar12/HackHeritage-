@@ -5535,6 +5535,262 @@ body {
 
 /* ── Google Fonts: Epilogue, Plus Jakarta Sans, JetBrains Mono loaded via index.html ── */
 
+/* ==========================================================================
+   CANONICAL LANDING PAGE HEADER & TOP NAVIGATION
+   Matches Reference: 3-part layout + Fluid Gliding Active Underline Motion
+   ========================================================================== */
+
+@keyframes hqdsHeaderEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hqdsNavStaggerEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hqds-landing-header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 90;
+  background: 
+    radial-gradient(circle at var(--header-mouse-x, 50%) 0%, rgba(45, 212, 191, 0.08) 0%, transparent 60%),
+    rgba(6, 9, 17, 0.88);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.45);
+  height: 64px;
+  min-height: 64px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  animation: hqdsHeaderEnter 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hqds-landing-header-inner {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 32px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  box-sizing: border-box;
+  height: 100%;
+}
+
+/* Left: HyperQDS Brand Identity */
+.hqds-landing-brand {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  z-index: 2;
+  text-decoration: none;
+  animation: hqdsNavStaggerEnter 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+}
+
+.hqds-landing-logo-img {
+  height: 46px;
+  width: auto;
+  max-height: 50px;
+  display: block;
+  object-fit: contain;
+  background: transparent;
+  filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.25));
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease;
+}
+
+.hqds-landing-brand:hover .hqds-landing-logo-img {
+  transform: scale(1.02);
+  filter: drop-shadow(0 0 14px rgba(34, 211, 238, 0.45));
+}
+
+/* Center: 4 Navigation Items with Fluid Gliding Active Underline */
+.hqds-landing-nav-center {
+  justify-self: center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  z-index: 1;
+  padding: 8px 0;
+  animation: hqdsNavStaggerEnter 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+}
+
+.hqds-landing-nav-link {
+  background: transparent;
+  border: none;
+  color: rgba(248, 250, 252, 0.72);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 6px 4px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.25s cubic-bezier(0.16, 1, 0.3, 1), text-shadow 0.25s ease;
+  white-space: nowrap;
+}
+
+.hqds-landing-nav-link:hover,
+.hqds-landing-nav-link.is-active {
+  color: #ffffff;
+  outline: none;
+  text-shadow: 0 0 12px rgba(45, 212, 191, 0.5);
+}
+
+/* Fluid Gliding Active/Hover Underline Indicator Bar (Reference Motion) */
+.hqds-landing-nav-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2.5px;
+  background: linear-gradient(90deg, #00f2fe 0%, #2dd4bf 100%);
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.85), 0 0 20px rgba(45, 212, 191, 0.5);
+  pointer-events: none;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), 
+              width 0.32s cubic-bezier(0.16, 1, 0.3, 1), 
+              opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, width;
+}
+
+/* Right: Sign In button aligned to right */
+.hqds-landing-nav-right {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+  animation: hqdsNavStaggerEnter 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+}
+
+.hqds-landing-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 22px;
+  background: rgba(10, 18, 36, 0.6);
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  border-radius: 9999px;
+  color: #f8fafc;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              background 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              color 0.25s ease,
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  white-space: nowrap;
+  position: relative;
+}
+
+.hqds-landing-btn:hover,
+.hqds-landing-btn:focus-visible {
+  border-color: rgba(45, 212, 191, 0.85);
+  background: rgba(45, 212, 191, 0.12);
+  box-shadow: 0 0 18px rgba(45, 212, 191, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.hqds-landing-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 1100px) {
+  .hqds-landing-header-inner {
+    padding: 0 20px;
+  }
+  .hqds-landing-nav-center {
+    gap: 18px;
+  }
+  .hqds-landing-btn {
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hqds-landing-header {
+    height: 56px;
+    min-height: 56px;
+  }
+  .hqds-landing-header-inner {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 14px;
+    gap: 10px;
+  }
+  .hqds-landing-logo-img {
+    height: 36px;
+    max-height: 38px;
+  }
+  .hqds-landing-nav-center {
+    gap: 12px;
+    overflow-x: auto;
+    max-width: 45vw;
+    scrollbar-width: none;
+    flex-shrink: 1;
+  }
+  .hqds-landing-nav-center::-webkit-scrollbar {
+    display: none;
+  }
+  .hqds-landing-nav-link {
+    font-size: 0.78rem;
+    padding: 4px;
+  }
+  .hqds-landing-nav-right {
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .hqds-landing-btn {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hqds-landing-header,
+  .hqds-landing-brand,
+  .hqds-landing-nav-center,
+  .hqds-landing-nav-right,
+  .hqds-landing-nav-indicator,
+  .hqds-landing-btn,
+  .hqds-landing-nav-link {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
 /* ══════════════════════════════════════════════════════════
    HEADER — Deeper glass (applies to both pages)
    ══════════════════════════════════════════════════════════ */
@@ -5575,6 +5831,24 @@ body {
 @media (max-width: 768px) {
   .hqds-header-logo-img {
     height: 44px !important;
+  }
+  .hidden-mobile {
+    display: none !important;
+  }
+  .hqds-header-inner {
+    padding: 0 12px !important;
+    gap: 8px !important;
+  }
+  .hqds-nav-tab {
+    padding: 6px 8px !important;
+    font-size: 0.78rem !important;
+  }
+  .hqds-nav-tab-tag {
+    display: none !important;
+  }
+  .hqds-nav-pill-btn {
+    padding: 6px 14px !important;
+    font-size: 0.8rem !important;
   }
 }
 

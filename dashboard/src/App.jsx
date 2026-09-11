@@ -65,10 +65,10 @@ function AppContent() {
       if (window.location.hash === '#sign-in' || window.location.hash === '#signin' || window.location.hash === '#login') return 'sign-in';
       if (qView === 'honest' || qView === 'pipeline' || window.location.hash === '#honest' || window.location.hash === '#pipeline') return 'honest';
       if (qView === 'large_scale' || qView === 'scalable' || window.location.hash === '#large_scale' || window.location.hash === '#scalable') return 'large_scale';
-      if (qView === 'attack' || window.location.hash === '#attack') return 'operations';
+      if (qView === 'attack' || qView === 'operations' || window.location.hash === '#attack' || window.location.hash === '#operations') return 'operations';
       if (qView === 'audit') return 'operations';
     }
-    return 'operations';
+    return 'landing';
   };
 
   const [currentView, setCurrentView] = useState(getInitialView); // 'landing' | 'sign-in' | 'honest' | 'large_scale' | 'operations'

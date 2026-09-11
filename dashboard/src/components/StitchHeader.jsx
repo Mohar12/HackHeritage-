@@ -12,8 +12,10 @@
  */
 
 import React from 'react';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function StitchHeader({ activeTab = 'landing', onNavigate }) {
+  const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -94,8 +96,8 @@ export default function StitchHeader({ activeTab = 'landing', onNavigate }) {
           })}
         </nav>
 
-        {/* Action / Status Section — DISPLAY ONCE: SYSTEM: ONLINE */}
-        <div className="hqds-header-action" style={{ display: 'flex', alignItems: 'center' }}>
+        {/* Action / Status Section — DISPLAY ONCE: SYSTEM: ONLINE + AUTH ENTRY */}
+        <div className="hqds-header-action" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
           {/* Status Pill */}
           <div className="hqds-status-pill hidden-mobile" style={{
             display: 'inline-flex',
@@ -117,6 +119,62 @@ export default function StitchHeader({ activeTab = 'landing', onNavigate }) {
               SYSTEM: ONLINE
             </span>
           </div>
+
+          {/* Canonical Sign In / User Auth Entry */}
+          {isAuthLoading ? (
+            <button
+              type="button"
+              className="hqds-nav-pill-btn"
+              disabled
+              aria-label="Checking session"
+              style={{ opacity: 0.6, pointerEvents: 'none' }}
+            >
+              <span>···</span>
+            </button>
+          ) : isAuthenticated ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+              {user?.full_name && (
+                <span className="hidden-mobile" style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '0.72rem',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  maxWidth: '120px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {user.full_name}
+                </span>
+              )}
+              <button
+                type="button"
+                className="hqds-nav-pill-btn"
+                onClick={async () => {
+                  try {
+                    await logout();
+                  } catch (err) {
+                    console.error('Logout error:', err);
+                  }
+                }}
+                title="Sign out of console"
+              >
+                <span>Logout</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="hqds-nav-pill-btn"
+              onClick={() => {
+                if (onNavigate) {
+                  onNavigate('sign-in');
+                }
+              }}
+              title="Sign in to HyperQDS"
+            >
+              <span>Sign In</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

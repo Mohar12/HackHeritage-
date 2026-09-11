@@ -315,7 +315,7 @@ async def logout(response: Response):
 # OAuth Security & Lifecycle Helpers
 # ---------------------------------------------------------------------------
 
-def generate_oauth_state(provider: str) -> tuple[str, str, str]:
+def generate_oauth_state(provider: str, return_to: Optional[str] = None) -> tuple[str, str, str]:
     """Generate CSRF state token and optional PKCE verifier. Returns (state, code_challenge, state_jwt)."""
     state = secrets.token_urlsafe(32)
     code_verifier = secrets.token_urlsafe(64)
@@ -325,6 +325,7 @@ def generate_oauth_state(provider: str) -> tuple[str, str, str]:
         "provider": provider,
         "state": state,
         "verifier": code_verifier,
+        "return_to": return_to,
         "exp": datetime.now(timezone.utc) + timedelta(minutes=10),
     }
     state_jwt = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -359,6 +360,8 @@ def establish_authenticated_session(user: dict[str, Any], redirect_target: Optio
     """Establish the unified HyperQDS session cookie and redirect into the application."""
     token = create_jwt_token(user_id=user["id"], email=user["email"], full_name=user.get("full_name"))
     target = redirect_target or f"{get_dashboard_url()}/"
+    if "?" not in target and not target.endswith("/"):
+        target = f"{target}/"
     response = RedirectResponse(url=target, status_code=302)
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
@@ -377,14 +380,23 @@ def establish_authenticated_session(user: dict[str, Any], redirect_target: Optio
 # Google OAuth 2.0 / OpenID Connect Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/google", summary="Initiate Google OAuth flow (alias)")
 @router.get("/google/login", summary="Initiate Google OAuth flow")
 async def google_login(request: Request, response: Response, format: Optional[str] = Query(None)):
     """Generate state and redirect user to Google OpenID Connect consent screen."""
     client_id, _, redirect_uri = get_google_config()
     if not client_id:
-        raise HTTPException(status_code=500, detail="Google OAuth is not configured on the server.")
+        if format == "json" or "application/json" in request.headers.get("accept", ""):
+            return JSONResponse(
+                status_code=400,
+                content={"status": "error", "message": "Google sign-in is not configured on the server. Please set GOOGLE_CLIENT_ID."},
+            )
+        return build_error_redirect("Google sign-in is not configured on the server. Please check GOOGLE_CLIENT_ID.")
 
-    state, code_challenge, state_jwt = generate_oauth_state("google")
+    referer = request.headers.get("referer") or request.headers.get("origin")
+    return_to = referer if (referer and ("localhost" in referer or "127.0.0.1" in referer)) else None
+
+    state, code_challenge, state_jwt = generate_oauth_state("google", return_to=return_to)
 
     params = {
         "client_id": client_id,
@@ -414,12 +426,13 @@ async def google_callback(
     code: Optional[str] = None,
     state: Optional[str] = None,
     error: Optional[str] = None,
+    error_description: Optional[str] = None,
     hqds_oauth_state: Optional[str] = Cookie(None),
 ):
     """Validate Google callback, exchange code, verify identity, and issue session."""
     if error:
-        logger.info("Google OAuth login cancelled by user: %s", error)
-        return build_error_redirect("Google authentication was cancelled.")
+        logger.info("Google OAuth login cancelled by user: %s (%s)", error, error_description)
+        return build_error_redirect("Google sign-in was cancelled.")
 
     if not code or not state:
         return build_error_redirect("Authentication could not be verified. Please try again.")
@@ -482,21 +495,30 @@ async def google_callback(
         full_name=full_name,
     )
 
-    return establish_authenticated_session(user)
+    return establish_authenticated_session(user, redirect_target=payload.get("return_to"))
 
 
 # ---------------------------------------------------------------------------
 # GitHub OAuth Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/github", summary="Initiate GitHub OAuth flow (alias)")
 @router.get("/github/login", summary="Initiate GitHub OAuth flow")
 async def github_login(request: Request, response: Response, format: Optional[str] = Query(None)):
     """Generate state and redirect user to GitHub authorization page."""
     client_id, _, redirect_uri = get_github_config()
     if not client_id:
-        raise HTTPException(status_code=500, detail="GitHub OAuth is not configured on the server.")
+        if format == "json" or "application/json" in request.headers.get("accept", ""):
+            return JSONResponse(
+                status_code=400,
+                content={"status": "error", "message": "GitHub sign-in is not configured on the server. Please set GITHUB_CLIENT_ID."},
+            )
+        return build_error_redirect("GitHub sign-in is not configured on the server. Please check GITHUB_CLIENT_ID.")
 
-    state, _, state_jwt = generate_oauth_state("github")
+    referer = request.headers.get("referer") or request.headers.get("origin")
+    return_to = referer if (referer and ("localhost" in referer or "127.0.0.1" in referer)) else None
+
+    state, _, state_jwt = generate_oauth_state("github", return_to=return_to)
 
     params = {
         "client_id": client_id,
@@ -521,18 +543,19 @@ async def github_callback(
     code: Optional[str] = None,
     state: Optional[str] = None,
     error: Optional[str] = None,
+    error_description: Optional[str] = None,
     hqds_oauth_state: Optional[str] = Cookie(None),
 ):
     """Validate GitHub callback, exchange code, fetch profile + verified email, and issue session."""
     if error:
-        logger.info("GitHub OAuth login cancelled by user: %s", error)
-        return build_error_redirect("GitHub authentication was cancelled.")
+        logger.info("GitHub OAuth login cancelled by user: %s (%s)", error, error_description)
+        return build_error_redirect("GitHub sign-in was cancelled.")
 
     if not code or not state:
         return build_error_redirect("Authentication could not be verified. Please try again.")
 
     try:
-        validate_oauth_state(state, hqds_oauth_state, "github")
+        payload = validate_oauth_state(state, hqds_oauth_state, "github")
     except ValueError as val_err:
         logger.warning("GitHub OAuth state validation failed: %s", val_err)
         return build_error_redirect("Authentication could not be verified. Please try again.")
@@ -619,21 +642,30 @@ async def github_callback(
         full_name=gh_name,
     )
 
-    return establish_authenticated_session(user)
+    return establish_authenticated_session(user, redirect_target=payload.get("return_to"))
 
 
 # ---------------------------------------------------------------------------
 # Microsoft Entra ID / OpenID Connect Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/microsoft", summary="Initiate Microsoft OAuth flow (alias)")
 @router.get("/microsoft/login", summary="Initiate Microsoft OAuth flow")
 async def microsoft_login(request: Request, response: Response, format: Optional[str] = Query(None)):
     """Generate state and redirect user to Microsoft Entra ID login."""
     client_id, _, redirect_uri, tenant = get_microsoft_config()
     if not client_id:
-        raise HTTPException(status_code=500, detail="Microsoft OAuth is not configured on the server.")
+        if format == "json" or "application/json" in request.headers.get("accept", ""):
+            return JSONResponse(
+                status_code=400,
+                content={"status": "error", "message": "Microsoft sign-in is not configured on the server. Please set MICROSOFT_CLIENT_ID."},
+            )
+        return build_error_redirect("Microsoft sign-in is not configured on the server. Please check MICROSOFT_CLIENT_ID.")
 
-    state, code_challenge, state_jwt = generate_oauth_state("microsoft")
+    referer = request.headers.get("referer") or request.headers.get("origin")
+    return_to = referer if (referer and ("localhost" in referer or "127.0.0.1" in referer)) else None
+
+    state, code_challenge, state_jwt = generate_oauth_state("microsoft", return_to=return_to)
 
     params = {
         "client_id": client_id,
@@ -663,12 +695,13 @@ async def microsoft_callback(
     code: Optional[str] = None,
     state: Optional[str] = None,
     error: Optional[str] = None,
+    error_description: Optional[str] = None,
     hqds_oauth_state: Optional[str] = Cookie(None),
 ):
     """Validate Microsoft callback, exchange code with PKCE, retrieve profile, and issue session."""
     if error:
-        logger.info("Microsoft OAuth login cancelled by user: %s", error)
-        return build_error_redirect("Microsoft authentication was cancelled.")
+        logger.info("Microsoft OAuth login cancelled by user: %s (%s)", error, error_description)
+        return build_error_redirect("Microsoft sign-in was cancelled.")
 
     if not code or not state:
         return build_error_redirect("Authentication could not be verified. Please try again.")
@@ -737,5 +770,6 @@ async def microsoft_callback(
         full_name=ms_name,
     )
 
-    return establish_authenticated_session(user)
+    return establish_authenticated_session(user, redirect_target=payload.get("return_to"))
+
 
