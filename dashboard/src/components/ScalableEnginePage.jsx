@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import StitchHeader from './StitchHeader.jsx';
 import {
   ResponsiveContainer,
   BarChart,
@@ -33,7 +34,6 @@ import NetworkTopology3D from './NetworkTopology3D.jsx';
 import ResultsCharts from './ResultsCharts.jsx';
 import { ErrorBoundary } from './ErrorBoundary.jsx';
 import { runUnifiedSimulation } from '../api/client.js';
-import { useAuth } from '../context/AuthContext.jsx';
 
 /** Custom Glassmorphism Tooltip matching the canonical reference */
 function CustomBellTooltip({ active, payload, label }) {
@@ -167,7 +167,6 @@ function buildCalibratedInitialData(samples = 100) {
 }
 
 export default function ScalableEnginePage({ onNavigate, onResultData, activeData }) {
-  const { user, isAuthenticated, logout } = useAuth();
 
   // Control State
   const [numSamples, setNumSamples] = useState(100);
@@ -175,7 +174,6 @@ export default function ScalableEnginePage({ onNavigate, onResultData, activeDat
   const [noiseRate, setNoiseRate] = useState(0.02);
   const [seed, setSeed] = useState(42);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   // Execution & Telemetry State
   const [status, setStatus] = useState('idle'); // 'idle' | 'running' | 'done' | 'error'
@@ -428,125 +426,8 @@ export default function ScalableEnginePage({ onNavigate, onResultData, activeDat
         isDashboard={true}
       />
 
-      {/* 1. TOP NAVIGATION HEADER */}
-      <header className="scalable-nav-header">
-        <div className="scalable-nav-inner">
-          {/* Brand Identity */}
-          <div
-            className="scalable-brand"
-            onClick={() => onNavigate && onNavigate('landing')}
-            title="Return to Home Overview"
-          >
-            <div className="scalable-logo-symbol">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                <rect x="2" y="2" width="24" height="24" rx="6" stroke="#00f2fe" strokeWidth="1.5" strokeOpacity="0.85" />
-                <circle cx="14" cy="14" r="5" fill="#00354e" fillOpacity="0.8" />
-                <circle cx="14" cy="14" r="2.5" fill="#00f2fe" />
-                <path d="M7 14H10M18 14H21M14 7V10M14 18V21" stroke="#38bdf8" strokeWidth="1.5" strokeLinecap="round" />
-                <circle cx="3.5" cy="3.5" r="1" fill="#00f2fe" fillOpacity="0.6" />
-                <circle cx="24.5" cy="3.5" r="1" fill="#00f2fe" fillOpacity="0.6" />
-              </svg>
-            </div>
-            <div className="scalable-brand-text">
-              <span className="scalable-brand-title">HyperQDS</span>
-              <span className="scalable-brand-sub">QUANTUM CYBER DEFENSE</span>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="scalable-nav-items">
-            <button
-              className="scalable-nav-link"
-              onClick={() => onNavigate && onNavigate('landing')}
-            >
-              Home
-            </button>
-            <button
-              className="scalable-nav-link"
-              onClick={() => onNavigate && onNavigate('honest')}
-            >
-              Honest Protocol
-            </button>
-            <button
-              className="scalable-nav-link"
-              onClick={() => onNavigate && onNavigate('attack')}
-            >
-              Attack Lab
-            </button>
-            <button
-              className="scalable-nav-link active"
-              onClick={() => onNavigate && onNavigate('large_scale')}
-            >
-              Scalable Engine
-              <span className="nav-active-glow" />
-            </button>
-            <button
-              className="scalable-nav-link"
-              onClick={() => onNavigate && onNavigate('audit')}
-            >
-              Audit Ledger
-            </button>
-          </nav>
-
-          {/* Right Status Pill & User Profile */}
-          <div className="scalable-nav-right">
-            <div className="scalable-status-pill">
-              <span className="pulse-dot-green" />
-              <span className="pill-text">SYSTEM ONLINE · 28-QPU</span>
-            </div>
-
-            <div className="scalable-user-menu-wrapper">
-              <button
-                className="scalable-user-btn"
-                onClick={() => setShowProfileMenu((prev) => !prev)}
-                title={isAuthenticated ? user?.email : 'Account'}
-              >
-                <div className="user-avatar-circle">
-                  {isAuthenticated && user?.email
-                    ? user.email.slice(0, 2).toUpperCase()
-                    : 'HQ'}
-                </div>
-              </button>
-
-              {showProfileMenu && (
-                <div className="scalable-user-dropdown">
-                  <div className="user-dropdown-header">
-                    <span className="user-name">
-                      {isAuthenticated ? (user?.full_name || 'Authenticated Operator') : 'Guest Session'}
-                    </span>
-                    <span className="user-email">
-                      {isAuthenticated ? user?.email : 'Local Sandbox Mode'}
-                    </span>
-                  </div>
-                  <div className="user-dropdown-actions">
-                    {isAuthenticated ? (
-                      <button
-                        className="dropdown-item danger"
-                        onClick={async () => {
-                          await logout();
-                          setShowProfileMenu(false);
-                        }}
-                      >
-                        Sign Out
-                      </button>
-                    ) : (
-                      <button
-                        className="dropdown-item"
-                        onClick={() => {
-                          setShowProfileMenu(false);
-                          onNavigate && onNavigate('sign-in');
-                        }}
-                      >
-                        Sign In / Register
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* 1. TOP NAVIGATION HEADER — shared StitchHeader (same as Attack Lab) */}
+      <StitchHeader activeTab="large_scale" onNavigate={onNavigate} />
 
       {/* MAIN CONSOLE BODY */}
       <main className="scalable-console-body">
