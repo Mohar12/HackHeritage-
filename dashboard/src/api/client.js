@@ -5,25 +5,46 @@
  */
 
 /**
+ * Custom error class for QDS API interactions providing structured HTTP status,
+ * response payloads, and clean human-readable error descriptions.
+ */
+export class ApiError extends Error {
+  constructor(message, { status, statusText, url, data, isNetworkError = false } = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.statusText = statusText;
+    this.url = url;
+    this.data = data;
+    this.isNetworkError = isNetworkError;
+  }
+}
+
+/**
  * Resolve the API base URL based on execution environment.
- * - If VITE_API_URL is provided, use it (trimming any trailing slash).
+ * - Prioritizes VITE_API_BASE_URL, then VITE_API_URL (trimming trailing slashes).
  * - In production mode (PROD=true), defaults to '' (same-origin relative URL)
  *   so production builds never accidentally call localhost:8000.
- * - In development mode, defaults to 'http://localhost:8000'.
+ * - In development mode, aligns with current browser host (127.0.0.1 vs localhost)
+ *   and defaults to 'http://localhost:8000' for Node.js / test environments.
  */
 export function resolveBaseUrl(env = (typeof import.meta !== 'undefined' ? import.meta.env : {})) {
-  if (env?.VITE_API_URL) {
-    return env.VITE_API_URL.replace(/\/+$/, '');
+  const customUrl = env?.VITE_API_BASE_URL || env?.VITE_API_URL;
+  if (customUrl) {
+    return customUrl.replace(/\/+$/, '');
   }
   if (env?.PROD) {
     return '';
+  }
+  if (typeof window !== 'undefined' && window.location?.hostname === '127.0.0.1') {
+    return 'http://127.0.0.1:8000';
   }
   return 'http://localhost:8000';
 }
 
 export const BASE_URL = resolveBaseUrl();
 
-/** Generic fetch helper — throws on non-2xx status. */
+/** Generic fetch helper — throws structured ApiError on non-2xx status or network failures. */
 export async function apiFetch(path, options = {}) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const url = `${BASE_URL}${normalizedPath}`;
@@ -33,24 +54,86 @@ export async function apiFetch(path, options = {}) {
     'Accept': 'application/json',
   };
 
-  const apiKey = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY;
+  const apiKey =
+    typeof import.meta !== 'undefined' &&
+    (import.meta.env?.VITE_API_KEY || import.meta.env?.QDS_API_KEY);
   if (apiKey) {
     defaultHeaders['Authorization'] = `Bearer ${apiKey}`;
+    defaultHeaders['X-API-Key'] = apiKey;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: {
+        ...defaultHeaders,
+        ...options.headers,
+      },
+    });
+  } catch (networkErr) {
+    const origin = typeof window !== 'undefined' ? window.location?.origin : '';
+    throw new ApiError(
+      `Backend unreachable. Could not connect to ${url}. Ensure the FastAPI backend is running (python -m uvicorn backend.main:app --reload)${origin ? ` and CORS allows origin ${origin}` : ''}.`,
+      { url, isNetworkError: true }
+    );
+  }
 
   if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`API error ${response.status} for ${url}: ${errorBody}`);
+    let errorData = null;
+    let detailMsg = '';
+    try {
+      errorData = await response.json();
+      if (typeof errorData?.detail === 'string') {
+        detailMsg = errorData.detail;
+      } else if (Array.isArray(errorData?.detail)) {
+        detailMsg = errorData.detail
+          .map((d) => `${d.loc ? d.loc.slice(1).join('.') : 'parameter'}: ${d.msg}`)
+          .join('; ');
+      } else if (errorData?.message) {
+        detailMsg = errorData.message;
+      } else if (errorData?.error) {
+        detailMsg = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
+      }
+    } catch {
+      try {
+        detailMsg = await response.text();
+      } catch {
+        detailMsg = response.statusText;
+      }
+    }
+
+    let userFriendlyMsg = '';
+    if (response.status === 401) {
+      userFriendlyMsg = `Authentication failure (HTTP 401): ${detailMsg || 'Valid API key or Bearer token required.'}`;
+    } else if (response.status === 403) {
+      userFriendlyMsg = `Access forbidden (HTTP 403): ${detailMsg || 'Request not authorized.'}`;
+    } else if (response.status === 404) {
+      userFriendlyMsg = `Endpoint not found (HTTP 404): ${url}`;
+    } else if (response.status === 422) {
+      userFriendlyMsg = `Validation failure (HTTP 422): ${detailMsg || 'Simulation parameters rejected by backend schema.'}`;
+    } else if (response.status >= 500) {
+      userFriendlyMsg = `Backend error (HTTP ${response.status}): ${detailMsg || 'An error occurred during quantum simulation.'}`;
+    } else {
+      userFriendlyMsg = `API request failed (HTTP ${response.status}): ${detailMsg || response.statusText}`;
+    }
+
+    throw new ApiError(userFriendlyMsg, {
+      status: response.status,
+      statusText: response.statusText,
+      url,
+      data: errorData,
+    });
   }
-  return response.json();
+
+  try {
+    return await response.json();
+  } catch (jsonErr) {
+    throw new ApiError(
+      `Malformed response from backend (HTTP ${response.status}): Received invalid JSON.`,
+      { status: response.status, statusText: response.statusText, url }
+    );
+  }
 }
 
 /** Check backend health */

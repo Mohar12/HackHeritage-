@@ -1,0 +1,50 @@
+# Environment Variable Reference
+# ================================
+# Copy this file to `.env` and fill in any values before running with Docker.
+# DO NOT commit `.env` to version control.
+
+# --- Backend ---
+# Override the default Uvicorn host/port if needed
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=8000
+
+# PostgreSQL Database Configuration (Local verified instance)
+DATABASE_URL=postgresql://postgres:12345678@127.0.0.1:5432/hyperqds
+
+# JWT Authentication Secret Key
+JWT_SECRET=quantum_secure_jwt_secret_hyperqds_auth_environment_2026_key
+
+# Number of Qiskit Aer simulation shots (default used by key_distribution)
+QDS_DEFAULT_SHOTS=1024
+
+# Aer backend name (options: aer_simulator, statevector_simulator, qasm_simulator)
+QDS_AER_BACKEND=aer_simulator
+
+# --- Dashboard ---
+# URL the React app uses to reach the FastAPI backend
+# In Docker Compose this resolves to the backend service name
+VITE_API_URL=http://localhost:8000
+
+# --- Detection Engine ---
+# Override default security thresholds (optional)
+# QBER_SECURITY_THRESHOLD=0.11
+# QBER_WARNING_THRESHOLD=0.05
+# CHI2_P_VALUE_THRESHOLD=0.05
+# FIDELITY_LOWER_BOUND=0.90
+
+# --- OAuth 2.0 / OpenID Connect Providers ---
+DASHBOARD_URL=http://localhost:5173
+
+GOOGLE_CLIENT_ID=1034620524134-78ul9cuhtbn6326b0kehcvqgrgj8pshn.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
+
+GITHUB_CLIENT_ID=fc3206f89d6bd5c30ceff2b3779f42b248921e66
+GITHUB_CLIENT_SECRET=fc3206f89d6bd5c30ceff2b3779f42b248921e66
+GITHUB_REDIRECT_URI=http://localhost:8000/auth/github/callback
+
+MICROSOFT_CLIENT_ID=bc953d3f-11a0-4151-9fa2-8d6230b97025
+MICROSOFT_CLIENT_SECRET=
+MICROSOFT_REDIRECT_URI=http://localhost:8000/auth/microsoft/callback
+MICROSOFT_TENANT_ID=common
+

@@ -31,6 +31,7 @@ import Teleportation3D from './components/Teleportation3D.jsx';
 import NetworkTopology3D from './components/NetworkTopology3D.jsx';
 import AttackArchitecture3D from './components/AttackArchitecture3D.jsx';
 import ScalableCluster3D from './components/ScalableCluster3D.jsx';
+import ScalableEnginePage from './components/ScalableEnginePage.jsx';
 import AuditLedgerPanel from './components/AuditLedgerPanel.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import './index.css';
@@ -61,14 +62,16 @@ function AppContent() {
       if (window.location.pathname === '/sign-in' || window.location.pathname === '/login') return 'sign-in';
       if (window.location.hash === '#sign-in' || window.location.hash === '#signin' || window.location.hash === '#login') return 'sign-in';
       if (qView === 'honest' || qView === 'pipeline') return 'honest';
-      if (qView === 'attack' || qView === 'large_scale' || qView === 'audit') return 'operations';
+      if (qView === 'large_scale' || qView === 'scalable') return 'large_scale';
+      if (qView === 'attack' || qView === 'audit') return 'operations';
       if (window.location.hash === '#honest' || window.location.hash === '#pipeline') return 'honest';
+      if (window.location.hash === '#large_scale' || window.location.hash === '#scalable') return 'large_scale';
       if (window.location.hash === '#attack') return 'operations';
     }
     return 'landing';
   };
 
-  const [currentView, setCurrentView] = useState(getInitialView); // 'landing' | 'sign-in' | 'honest' | 'operations'
+  const [currentView, setCurrentView] = useState(getInitialView); // 'landing' | 'sign-in' | 'honest' | 'large_scale' | 'operations'
   const [currentUser, setCurrentUser] = useState(null);
   const [activeData, setActiveData] = useState(null);
   const [activeTab, setActiveTab] = useState(() => {
@@ -153,6 +156,12 @@ function AppContent() {
       if (typeof window !== 'undefined' && window.history?.pushState) {
         window.history.pushState(null, '', '?view=honest');
       }
+    } else if (view === 'large_scale' || view === 'scalable') {
+      setCurrentView('large_scale');
+      setActiveTab('large_scale');
+      if (typeof window !== 'undefined' && window.history?.pushState) {
+        window.history.pushState(null, '', '?view=large_scale');
+      }
     } else {
       setCurrentView('operations');
       setActiveTab(view);
@@ -200,6 +209,19 @@ function AppContent() {
         <HonestProtocolPage 
           onNavigate={handleNavigate}
           onResultData={setActiveData}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  // View 2.5: Canonical Scalable Engine Page (Dedicated High-Density Quantum Console)
+  if (currentView === 'large_scale') {
+    return (
+      <ErrorBoundary title="HyperQDS Scalable Engine Error">
+        <ScalableEnginePage 
+          onNavigate={handleNavigate}
+          onResultData={setActiveData}
+          activeData={activeData}
         />
       </ErrorBoundary>
     );
