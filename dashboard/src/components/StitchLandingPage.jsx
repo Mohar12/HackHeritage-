@@ -22,6 +22,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 import TabCrossFade from './TabCrossFade.jsx';
+import StitchHeader from './StitchHeader.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 
@@ -731,80 +732,8 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         </div>
       </div>
 
-      {/* Minimal Top Navigation (Liquid Brokers Reference Architecture) */}
-      <nav className="hqds-top-nav" aria-label="Main Navigation">
-        <div className="hqds-nav-ambient-light" aria-hidden="true" />
-        <div className="hqds-nav-inner">
-          <div className="hqds-brand-wrap" onClick={() => scrollToAct('hero')}>
-            <span className="hqds-brand-title">HYPERQDS</span>
-          </div>
-
-          <div className="hqds-nav-center">
-            <button type="button" className="hqds-nav-link" onClick={() => scrollToAct('problem')}>
-              Physical Layer
-            </button>
-            <button type="button" className="hqds-nav-link" onClick={() => scrollToAct('pillars')}>
-              Pillars
-            </button>
-            <button type="button" className="hqds-nav-link" onClick={() => scrollToAct('comparison')}>
-              Verification
-            </button>
-            <button type="button" className="hqds-nav-link" onClick={() => handleNavigateTab('audit')}>
-              Audit Ledger
-            </button>
-          </div>
-
-          <div className="hqds-nav-right">
-            <button
-              type="button"
-              className="hqds-nav-ghost-btn"
-              onClick={() => handleNavigateTab('operations')}
-            >
-              <span>Console</span>
-            </button>
-            {isAuthLoading ? (
-              <button
-                type="button"
-                className="hqds-nav-pill-btn"
-                disabled
-                aria-label="Checking session"
-                style={{ opacity: 0.6, pointerEvents: 'none' }}
-              >
-                <span>···</span>
-              </button>
-            ) : isAuthenticated ? (
-              <button
-                type="button"
-                className="hqds-nav-pill-btn"
-                onClick={async () => {
-                  try {
-                    await logout();
-                  } catch (err) {
-                    console.error('Logout error:', err);
-                  }
-                }}
-              >
-                <span>Logout</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="hqds-nav-pill-btn"
-                onClick={() => {
-                  if (onNavigate) {
-                    onNavigate('sign-in');
-                  } else {
-                    handleLaunchHonest();
-                  }
-                }}
-              >
-                <span>Sign In</span>
-              </button>
-            )}
-          </div>
-
-        </div>
-      </nav>
+      {/* Canonical Shared Stitch Navigation Header */}
+      <StitchHeader activeTab="landing" onNavigate={onNavigate || handleNavigateTab} />
 
       {/* Main Narrative Flow */}
       <main className="hqds-flow-stream">

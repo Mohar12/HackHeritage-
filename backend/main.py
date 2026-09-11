@@ -70,7 +70,7 @@ logger = logging.getLogger(__name__)
 apply_qiskit_compat()
 
 from backend.routes import keys, signatures, attacks, detection, auth_routes
-from backend.db import init_db
+from backend.db import init_db, check_db_connection
 
 # ---------------------------------------------------------------------------
 # Application factory
@@ -345,8 +345,13 @@ def _build_expected_distribution(counts: dict[str, int]) -> dict[str, float]:
 
 
 @app.get("/health", tags=["Health"], summary="Root service health check probe")
-async def root_health() -> dict[str, str]:
-    return {"status": "ok", "service": "qds-threat-detection-backend"}
+async def root_health() -> dict[str, Any]:
+    db_status = check_db_connection()
+    return {
+        "status": "ok",
+        "service": "qds-threat-detection-backend",
+        "database": db_status,
+    }
 
 
 router = APIRouter(prefix="/api/v1")
@@ -364,6 +369,7 @@ async def health_check() -> HealthResponse:
         and CHI2_P_ABORT_MAX < CHI2_P_NORMAL_MIN
         and FIDELITY_CRITICAL_MAX < FIDELITY_HIGH_MIN
     )
+    db_status = check_db_connection()
 
     return HealthResponse(
         status="ok" if engine_ok else "degraded",
@@ -371,6 +377,7 @@ async def health_check() -> HealthResponse:
         version="1.0.0",
         engine_status="operational" if engine_ok else "degraded",
         thresholds=_THRESHOLD_CONSTANTS,
+        database=db_status,
     )
 
 

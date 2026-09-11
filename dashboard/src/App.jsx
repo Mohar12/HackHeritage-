@@ -24,6 +24,7 @@ import HonestProtocolPage from './components/HonestProtocolPage.jsx';
 import StitchHeader from './components/StitchHeader.jsx';
 import ProtocolRunPanel from './components/ProtocolRunPanel.jsx';
 import AttackSelectionPanel, { TARGET_SIGNATURE_ENTITIES } from './components/AttackSelectionPanel.jsx';
+import AttackLab from './pages/AttackLab.jsx';
 import LargeScaleSimulationPanel from './components/LargeScaleSimulationPanel.jsx';
 import ResultsCharts from './components/ResultsCharts.jsx';
 import BlochSphere3D from './components/BlochSphere3D.jsx';
@@ -57,15 +58,15 @@ function AppContent() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const qView = params.get('view');
+      if (qView === 'overview' || qView === 'landing' || window.location.hash === '#overview' || window.location.hash === '#landing') return 'landing';
       if (qView === 'sign-in' || qView === 'signin' || qView === 'login') return 'sign-in';
       if (window.location.pathname === '/sign-in' || window.location.pathname === '/login') return 'sign-in';
       if (window.location.hash === '#sign-in' || window.location.hash === '#signin' || window.location.hash === '#login') return 'sign-in';
-      if (qView === 'honest' || qView === 'pipeline') return 'honest';
-      if (qView === 'attack' || qView === 'large_scale' || qView === 'audit') return 'operations';
-      if (window.location.hash === '#honest' || window.location.hash === '#pipeline') return 'honest';
-      if (window.location.hash === '#attack') return 'operations';
+      if (qView === 'honest' || qView === 'pipeline' || window.location.hash === '#honest' || window.location.hash === '#pipeline') return 'honest';
+      if (qView === 'large_scale' || qView === 'audit') return 'operations';
+      if (qView === 'attack' || window.location.hash === '#attack') return 'operations';
     }
-    return 'landing';
+    return 'operations';
   };
 
   const [currentView, setCurrentView] = useState(getInitialView); // 'landing' | 'sign-in' | 'honest' | 'operations'
@@ -83,7 +84,6 @@ function AppContent() {
   const [selectedAttack, setSelectedAttack] = useState('intercept_resend');
   const handleSelectAttack = useCallback((attackType) => {
     setSelectedAttack(attackType);
-    setActiveData(null);     // clear stale telemetry from the previous attack type
     setOperationPhase('IDLE');
   }, []);
 
@@ -206,13 +206,27 @@ function AppContent() {
   }
 
   // View 3: Operational Command Center (Modules 2, 3, 4)
-  const activePillar = activeTab === 'attack'
-    ? (ATTACK_TO_PILLAR[selectedAttack] || '01')
-    : activeTab === 'large_scale' ? '02' : '01';
 
-  const activeDimension = activeTab === 'attack'
-    ? (ATTACK_TO_DIMENSION[selectedAttack] ?? 0)
-    : activeTab === 'large_scale' ? 3 : 1;
+  // ── Attack Lab: Full-page standalone (replaces split-column layout for tab 02) ──
+  if (activeTab === 'attack') {
+    return (
+      <ErrorBoundary title="Attack Lab Error">
+        <AttackLab
+          onNavigate={handleNavigate}
+          onResult={setActiveData}
+          onOperationPhase={setOperationPhase}
+          externalAttack={selectedAttack}
+          externalEntity={selectedEntity}
+          onSelectAttack={handleSelectAttack}
+          onSelectEntity={setSelectedEntity}
+          activeDataProp={activeData}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  const activePillar = activeTab === 'large_scale' ? '02' : '01';
+  const activeDimension = activeTab === 'large_scale' ? 3 : 1;
 
   return (
     <ErrorBoundary title="Quantum SOC Global Error">
@@ -242,17 +256,6 @@ function AppContent() {
                         onStageUpdate={setActiveStage}
                       />
                     )}
-                    {activeTab === 'attack' && (
-                      <AttackSelectionPanel
-                        onResult={setActiveData}
-                        onStageUpdate={setActiveStage}
-                        selectedAttack={selectedAttack}
-                        onSelectAttack={handleSelectAttack}
-                        selectedEntity={selectedEntity}
-                        onSelectEntity={setSelectedEntity}
-                        onOperationPhase={setOperationPhase}
-                      />
-                    )}
                     {activeTab === 'large_scale' && (
                       <LargeScaleSimulationPanel
                         onResult={setActiveData}
@@ -270,17 +273,6 @@ function AppContent() {
                         </ErrorBoundary>
                         <ErrorBoundary title="Network Topology Unavailable">
                           <NetworkTopology3D isAttacked={false} />
-                        </ErrorBoundary>
-                      </>
-                    )}
-
-                    {activeTab === 'attack' && (
-                      <>
-                        <ErrorBoundary title="3D Bloch Sphere Unavailable">
-                          <BlochSphere3D fidelity={fidelity} isAttacked={true} />
-                        </ErrorBoundary>
-                        <ErrorBoundary title="Network Topology Unavailable">
-                          <NetworkTopology3D isAttacked={true} />
                         </ErrorBoundary>
                       </>
                     )}
@@ -306,20 +298,6 @@ function AppContent() {
                       <Teleportation3D
                         activeStage={activeStage}
                         isCompromised={isAttacked}
-                      />
-                    </ErrorBoundary>
-                  )}
-
-                  {/* TAB 2 ANIMATION: Targeted Adversarial Architecture & Wiretap Probe */}
-                  {activeTab === 'attack' && (
-                    <ErrorBoundary title="3D Attack Architecture Unavailable">
-                      <AttackArchitecture3D
-                        attackType={selectedAttack}
-                        isAttacked={isAttacked}
-                        targetEntity={selectedEntity}
-                        operationPhase={operationPhase}
-                        attackData={activeData?.attack}
-                        detectData={activeData?.detect}
                       />
                     </ErrorBoundary>
                   )}

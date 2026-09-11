@@ -5432,6 +5432,34 @@ body {
   box-shadow: 0 4px 30px rgba(0,0,0,0.55) !important;
 }
 
+/* Official Header SVG Logo Lockup */
+.hqds-header-logo-img {
+  height: 64px;
+  width: auto;
+  max-height: 68px;
+  display: block;
+  object-fit: contain;
+  background: transparent;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease;
+}
+
+.hqds-brand:hover .hqds-header-logo-img {
+  transform: scale(1.03);
+  filter: drop-shadow(0 0 16px rgba(34, 211, 238, 0.45));
+}
+
+@media (max-width: 1024px) {
+  .hqds-header-logo-img {
+    height: 52px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .hqds-header-logo-img {
+    height: 44px !important;
+  }
+}
+
 /* ==========================================================================
    SOC Dashboard Ambient Background 3D Blob Scoping & Stacking Context
    ========================================================================== */

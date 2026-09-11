@@ -412,6 +412,7 @@ class HealthResponse(BaseModel):
     version: str
     engine_status: str
     thresholds: dict[str, float]
+    database: dict[str, Any] | None = None
 
 
 class ErrorDetail(BaseModel):

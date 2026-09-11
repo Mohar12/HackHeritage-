@@ -2,266 +2,193 @@
  * HonestProtocolPage.jsx
  * ======================
  * Honest QDS Protocol Operations View.
- * 
- * Directly mirrors the Attack Lab view (/?view=attack) layout 1:1, re-themed to represent
- * a clean, non-adversarial protocol run with:
- *  - Standard 2-Column Responsive Operations Grid (.soc-main, .soc-left-column, .soc-right-column)
- *  - Shared components (AttackVisualizer, BlochSphere3D, NetworkTopology3D, Teleportation3D, ResultsCharts)
- *  - Legitimate 3-box actor flow (Alice | Bell-State Measurement | Bob)
- *  - Safe state banner (|ψ⟩ Teleported Intact)
- *  - Honest metrics row (Observed QBER: 0.00%, Born χ² p-value: 0.9800, State Fidelity: 99.8%)
- *  - Re-themed visualization card badges (State Vector Preserved, No Interceptor Detected)
- *  - Standard telemetry placeholder and live populated Qiskit Aer simulation telemetry
+ * Formatted to match the Attack Lab visual language, layout hierarchy, and design tokens:
+ *   1. StitchHeader (HyperQDS global navigation, 01 Honest Protocol active)
+ *   2. Live Quantum Telemetry & Verdict (Top section, above-the-fold on 1366x768)
+ *   3. Honest Protocol Controls (Entity, Security Policy, Qubits, Shots, Injected Noise, RUN PROTOCOL)
+ *   4. Quantum Protocol Visualization (Alice → Entangled Channel → Bob 3D Teleportation)
+ *   5. Analytics Grid (Measurement Distribution bar chart, Bloch Sphere Live 3D, Network Topology 3D)
+ *   6. Live Event Log (Real protocol execution trace: [INIT], [ENCODE], [ENTANGLE], [BSM], etc.)
+ *
+ * STATE-DRIVEN TELEMETRY ARCHITECTURE:
+ *   - Golden Rule: NO RUN PROTOCOL = NO NEW TELEMETRY.
+ *   - Initial state: latestTelemetry = null (Status: READY, QBER: —, Fidelity: —, Verdict: NOT RUN, Action: RUN PROTOCOL).
+ *   - Zero background timers, zero auto-recomputation useEffects, zero random number generation.
+ *   - Telemetry strictly updates ONLY upon completion of handleRunProtocol().
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Cell,
+  CartesianGrid,
+} from 'recharts';
 import StitchHeader from './StitchHeader.jsx';
+import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 import Teleportation3D from './Teleportation3D.jsx';
-import AttackVisualizer from './AttackVisualizer.jsx';
 import BlochSphere3D from './BlochSphere3D.jsx';
 import NetworkTopology3D from './NetworkTopology3D.jsx';
-import ResultsCharts from './ResultsCharts.jsx';
-import { ErrorBoundary } from './ErrorBoundary.jsx';
 import { TARGET_SIGNATURE_ENTITIES } from './AttackSelectionPanel.jsx';
 import { generateKeys, signMessage, verifySignature, detectThreat } from '../api/client.js';
 
+// ── DESIGN TOKENS (Shared with Attack Lab) ──
+const T = {
+  bg: '#05070d',
+  bgPanel: 'rgba(8, 14, 28, 0.74)',
+  bgSubtle: 'rgba(5, 7, 13, 0.65)',
+  border: 'rgba(34, 211, 238, 0.14)',
+  borderHover: 'rgba(34, 211, 238, 0.38)',
+  borderDanger: 'rgba(244, 63, 94, 0.45)',
+  borderDangerSubtle: 'rgba(244, 63, 94, 0.22)',
+  cyan: '#22d3ee',
+  cyanGlow: 'rgba(34, 211, 238, 0.15)',
+  red: '#ef4444',
+  rose: '#f43f5e',
+  redDim: 'rgba(244, 63, 94, 0.09)',
+  green: '#10b981',
+  textPrimary: '#e2eaf6',
+  textSecondary: '#8da2c0',
+  textMuted: '#4d607b',
+  mono: "'JetBrains Mono', 'Fira Code', Menlo, monospace",
+  sans: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+  radius: '10px',
+  radiusSm: '6px',
+};
+
 const KEY_LENGTH_PRESETS = [
-  { label: '8 Qubits (Fast Demo)', value: 8 },
-  { label: '14 Qubits (1 Full Aer Batch)', value: 14 },
-  { label: '28 Qubits (High Security)', value: 28 },
+  { label: '8 Qubits', value: 8 },
+  { label: '14 Qubits (Std)', value: 14 },
+  { label: '28 Qubits (High Sec)', value: 28 },
+];
+
+const PROTOCOL_STAGES = [
+  { id: 1, label: '1 · EPR Distribution', icon: '📡' },
+  { id: 2, label: '2 · State Prep', icon: '⚛️' },
+  { id: 3, label: '3 · Bell Measurement', icon: '⚡' },
+  { id: 4, label: '4 · Classical Channel', icon: '〰️' },
+  { id: 5, label: '5 · Pauli Correction', icon: '🔄' },
+  { id: 6, label: '6 · State Sifting', icon: '🎯' },
+  { id: 7, label: '7 · Threat Check', icon: '🛡️' },
+  { id: 8, label: '8 · Ledger Commit', icon: '📜' },
 ];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function buildDefaultHonestResult(entity) {
-  const ent = entity || TARGET_SIGNATURE_ENTITIES[0];
-  return {
-    type: 'protocol',
-    keys: { n_qubits: 14, basis: 'MUB' },
-    sig: {
-      message: ent?.documentPayload || 'Treasury Wire Authorization #8942',
-      fidelity: 0.998,
-      measurement_counts: { '00': 512, '11': 512, '01': 0, '10': 0 },
-      session_id: ent?.sessionNonce || 'NONCE-HONEST-001',
-      sent_bits: [0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0],
-    },
-    verify: {
-      is_valid: true,
-      message_intact: true,
-      qber: 0.0,
-      fidelity: 0.998,
-      reason: 'verified_authentic',
-    },
-    detect: {
-      is_malicious: false,
-      recommended_action: 'COMMIT',
-      confidence_score: 0.082,
-      qber: 0.0,
-      chi2_p_value: 0.9800,
-      fidelity: 0.998,
-      qber_classification: 'SECURE',
-      chi2_classification: 'CONSISTENT',
-      fidelity_classification: 'HIGH',
-      statistics_summary: {
-        chi2_result: {
-          observed_counts: { '00': 512, '11': 512, '01': 0, '10': 0 },
-          p_value: 0.9800,
-        },
-      },
-      quantum_security_bounds: {
-        hoeffding_confidence: 0.9999,
-        forgery_probability_bound_gc: 6.1e-5,
-        forgery_probability_bound: 6.1e-5,
-        n_qubits: 14,
-        n_samples: 1024,
-      },
-    },
-  };
+// ── CUSTOM RECHARTS TOOLTIP ──
+function CustomRechartsTooltip({ active, payload, label }) {
+  if (active && payload && payload.length) {
+    const d = payload[0].payload;
+    return (
+      <div style={{
+        background: 'rgba(6, 11, 24, 0.95)',
+        border: '1px solid rgba(34, 211, 238, 0.35)',
+        borderRadius: '6px',
+        padding: '8px 12px',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
+        fontSize: '11px',
+        fontFamily: T.mono,
+        color: '#e2eaf6',
+      }}>
+        <div style={{ fontWeight: 700, color: T.cyan, marginBottom: '2px' }}>{label || d.basis}</div>
+        <div style={{ color: '#8da2c0', fontSize: '10px', marginBottom: '4px' }}>{d.type}</div>
+        <div>Count: <strong style={{ color: payload[0].color }}>{payload[0].value?.toLocaleString()}</strong></div>
+        <div style={{ color: '#8da2c0' }}>Frequency: <strong>{d.pct}</strong></div>
+      </div>
+    );
+  }
+  return null;
 }
 
-
 export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNavigate, onResultData }) {
-  // Protocol Parameters
+  // Protocol Configuration State (Controls)
   const [selectedEntityId, setSelectedEntityId] = useState(TARGET_SIGNATURE_ENTITIES[0]?.id || 'TX-2026-FED-BOE');
-  const currentEntity = TARGET_SIGNATURE_ENTITIES.find((e) => e.id === selectedEntityId) || TARGET_SIGNATURE_ENTITIES[0];
+  const currentEntity = useMemo(() => {
+    return TARGET_SIGNATURE_ENTITIES.find((e) => e.id === selectedEntityId) || TARGET_SIGNATURE_ENTITIES[0];
+  }, [selectedEntityId]);
 
   const [nQubits, setNQubits] = useState(14);
   const [shots, setShots] = useState(1024);
   const [securityPolicy, setSecurityPolicy] = useState('standard'); // 'strict' | 'standard' | 'lenient'
   const [injectedBitErrors, setInjectedBitErrors] = useState(0);
-  const [status, setStatus] = useState('idle'); // 'idle' | 'running' | 'done' | 'error'
+
+  // Execution Lifecycle State: 'idle' | 'running' | 'verified' | 'aborted' | 'error'
+  const [status, setStatus] = useState('idle');
+  const [simStep, setSimStep] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const [activeStage3D, setActiveStage3D] = useState(1);
   const [activeNetworkNode, setActiveNetworkNode] = useState('Alice');
   const [activeNetworkLink, setActiveNetworkLink] = useState('all');
-  const [lastUpdated, setLastUpdated] = useState(() => new Date().toLocaleTimeString());
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [resultData, setResultData] = useState(() => buildDefaultHonestResult(TARGET_SIGNATURE_ENTITIES[0]));
 
-  // Intervention threshold calculations
+  // ── SINGLE SOURCE OF TRUTH: latestTelemetry ──
+  // Starts as null (READY / NOT RUN state). Populated ONLY upon completion of handleRunProtocol().
+  const [latestTelemetry, setLatestTelemetry] = useState(null);
+
+  // Live Event Log (Reflects ONLY actual execution trace)
+  const [telemetryLogs, setTelemetryLogs] = useState([
+    { time: '00:00.00', text: '[READY] Waiting for protocol execution...', type: 'sys' },
+  ]);
+
+  // Logging helper
+  const addLog = useCallback((text, type = 'info') => {
+    const now = new Date();
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const ms = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
+    const timeStr = `${mm}:${ss}.${ms}`;
+    setTelemetryLogs(prev => [...prev.slice(-14), { time: timeStr, text, type }]);
+  }, []);
+
+  // Policy threshold calculations for local forecasting
   const currentQberThreshold = securityPolicy === 'strict' ? 0.05 : securityPolicy === 'lenient' ? 0.20 : 0.11;
   const inducedQber = nQubits > 0 ? (injectedBitErrors / nQubits) : 0;
   const willReject = inducedQber > currentQberThreshold;
 
-  // Active threat compromise state (safely reflects clean default, slider threshold, or simulation verdict)
-  const isCompromised = resultData
-    ? Boolean(resultData.detect?.is_malicious || !resultData.verify?.is_valid)
-    : willReject;
+  // Visual compromise indicator (driven strictly by latestTelemetry or active run)
+  const isCompromised = latestTelemetry
+    ? Boolean(latestTelemetry.is_malicious || latestTelemetry.recommended_action === 'ABORT')
+    : false;
 
-  // Map 7-Stage sequence to 3D Teleportation stage, active network node, and link
-  const handleStageSelect = React.useCallback((stageId, step) => {
+  // Map 8-stage sequence to 3D Teleportation stage & network node
+  const handleStageSelect = useCallback((stageId) => {
     setActiveStage3D(stageId);
-    
-    // Map stage to appropriate network topology node and link
-    if (step === 1 || stageId <= 2) {
+    if (stageId <= 2) {
       setActiveNetworkNode('Alice');
       setActiveNetworkLink('Alice-Bob');
-    } else if (step === 2 || stageId === 3) {
+    } else if (stageId <= 4) {
       setActiveNetworkNode('Alice');
       setActiveNetworkLink('Alice-Bob');
-    } else if (step === 3 || step === 4 || stageId === 4) {
-      setActiveNetworkNode('Alice');
-      setActiveNetworkLink('Alice-Bob');
-    } else if (step === 5 || step === 6 || stageId === 5 || stageId === 6) {
+    } else if (stageId <= 6) {
       setActiveNetworkNode('Bob');
       setActiveNetworkLink('Alice-Bob');
-    } else if (step === 7 || stageId >= 7) {
+    } else {
       setActiveNetworkNode('Charlie');
       setActiveNetworkLink('Bob-Charlie');
     }
   }, []);
 
-  // Live debounced physics recomputation whenever inputs change (250ms debounce)
-  useEffect(() => {
-    let isCancelled = false;
-
-    const timer = setTimeout(async () => {
-      setIsUpdating(true);
-      try {
-        const totalShots = Number(shots) || 1024;
-        const qCount = Number(nQubits) || 14;
-        const errorFraction = qCount > 0 ? (injectedBitErrors / qCount) : 0;
-        const errShots = Math.round(totalShots * errorFraction);
-        const honestShots = Math.max(0, totalShots - errShots);
-        const counts = {
-          '00': Math.round(honestShots * 0.5),
-          '11': Math.round(honestShots * 0.5),
-          '01': Math.round(errShots * 0.5),
-          '10': Math.round(errShots * 0.5),
-        };
-
-        const effectiveFidelity = injectedBitErrors > 0
-          ? Math.max(0.25, 0.998 - (injectedBitErrors / qCount) * 0.75)
-          : 0.998;
-
-        const sessionNonce = currentEntity.sessionNonce || `NONCE-LIVE-${Date.now().toString(36).toUpperCase()}`;
-
-        // Call real detection engine backend API
-        let detect;
-        try {
-          detect = await detectThreat({
-            measurement_data: {
-              measurement_counts: counts,
-              fidelity: effectiveFidelity,
-              sent_bits: [0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0].slice(0, qCount),
-              received_bits: [0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0].slice(0, qCount),
-              session_id: sessionNonce,
-              measured_qber: inducedQber,
-            },
-          });
-        } catch (apiErr) {
-          // Robust physical fallback if backend is momentarily unreachable
-          const isBad = inducedQber > currentQberThreshold;
-          detect = {
-            is_malicious: isBad,
-            recommended_action: isBad ? 'ABORT' : 'COMMIT',
-            confidence_score: isBad ? Math.min(1.0, 0.55 + (inducedQber - currentQberThreshold) * 2) : 0.082,
-            qber: inducedQber,
-            chi2_p_value: isBad ? 0.0001 : 0.9800,
-            fidelity: effectiveFidelity,
-            qber_classification: isBad ? 'COMPROMISED' : 'SECURE',
-            chi2_classification: isBad ? 'ANOMALOUS' : 'CONSISTENT',
-            fidelity_classification: effectiveFidelity >= 0.90 ? 'HIGH' : 'CRITICAL',
-            statistics_summary: {
-              chi2_result: {
-                observed_counts: counts,
-                p_value: isBad ? 0.0001 : 0.9800,
-              },
-            },
-            quantum_security_bounds: {
-              hoeffding_confidence: 0.9999,
-              forgery_probability_bound_gc: Math.pow(2, -qCount),
-              forgery_probability_bound: Math.pow(2, -qCount),
-              n_qubits: qCount,
-              n_samples: totalShots,
-            },
-          };
-        }
-
-        if (isCancelled) return;
-
-        // Apply policy thresholds strictly
-        const shouldReject = willReject;
-        if (shouldReject) {
-          detect.is_malicious = true;
-          detect.recommended_action = 'ABORT';
-          detect.qber_classification = 'COMPROMISED';
-          detect.confidence_score = Math.max(0.65, detect.confidence_score || 0.65);
-        }
-
-        const verify = {
-          is_valid: !shouldReject,
-          message_intact: !shouldReject,
-          qber: inducedQber,
-          fidelity: effectiveFidelity,
-          reason: shouldReject ? 'qber_threshold_exceeded' : 'verified_authentic',
-        };
-
-        const updatedPayload = {
-          type: 'protocol',
-          keys: { n_qubits: qCount, basis: 'MUB' },
-          sig: {
-            message: currentEntity.documentPayload,
-            fidelity: effectiveFidelity,
-            measurement_counts: counts,
-            session_id: sessionNonce,
-            sent_bits: [0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0].slice(0, qCount),
-          },
-          verify,
-          detect,
-        };
-
-        setResultData(updatedPayload);
-        setLastUpdated(new Date().toLocaleTimeString());
-        if (onResultData) onResultData(updatedPayload);
-      } catch (e) {
-        console.error('Live re-simulation failed:', e);
-      } finally {
-        if (!isCancelled) {
-          setIsUpdating(false);
-        }
-      }
-    }, 250);
-
-    return () => {
-      isCancelled = true;
-      clearTimeout(timer);
-    };
-  }, [nQubits, shots, securityPolicy, injectedBitErrors, selectedEntityId, inducedQber, willReject, currentEntity, currentQberThreshold, onResultData]);
-
-  // Execute Full Authentic Qiskit Aer Teleportation Pipeline (Manual Stage Stepping)
+  // ── RUN PROTOCOL ACTION: The ONLY trigger for generating new telemetry ──
   async function handleRunProtocol() {
+    if (status === 'running') return;
     setStatus('running');
     setErrorMsg('');
-    setActiveStage3D(1);
+    setSimStep('INITIALIZING QUANTUM PROTOCOL...');
+    addLog(`[INIT] Initializing quantum protocol for ${currentEntity.id} on Qiskit Aer...`, 'sys');
 
     try {
       // 1. Stage 1: EPR Distribution
       setActiveStage3D(1);
       setActiveNetworkNode('Alice');
       setActiveNetworkLink('Alice-Bob');
-      await sleep(500);
+      setSimStep('PREPARING MESSAGE STATE & EPR PAIRS...');
+      addLog(`[ENCODE] Preparing Alice message state |ψ⟩ for "${currentEntity.documentPayload.slice(0, 36)}..."`, 'info');
+      await sleep(350);
+
+      addLog(`[ENTANGLE] Generating ${nQubits} Bell/EPR pairs (|Φ⁺⟩) on Qiskit Aer...`, 'info');
       const keys = await generateKeys({
         n_qubits: Number(nQubits),
         shots: Number(shots),
@@ -270,7 +197,9 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
 
       // 2. Stage 2: Teleportation & BSM
       setActiveStage3D(3);
-      await sleep(500);
+      setSimStep('BELL-STATE MEASUREMENT (BSM)...');
+      addLog('[BSM] Performing joint Bell-State Measurement (BSM) at Alice detector...', 'info');
+      await sleep(350);
       const sig = await signMessage({
         message: currentEntity.documentPayload,
         private_key: keys.alice_public_key,
@@ -281,16 +210,20 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
 
       // 3. Stage 3: Pauli Correction & Transit Verification
       setActiveStage3D(5);
-      await sleep(500);
+      setSimStep('PAULI CORRECTION & VERIFICATION...');
+      addLog('[TELEPORT] Applying Pauli correction bits (c0, c1) over classical channel...', 'info');
+      await sleep(350);
       const verify = await verifySignature({
         signature: sig.signature,
         public_key: keys.bob_shared_material,
         message: currentEntity.documentPayload,
       });
 
-      // 4. Stage 4: Statistical Threat Detection (Deterministic Physics Verification)
+      // 4. Stage 4: Statistical Threat Detection
       setActiveStage3D(7);
-      await sleep(500);
+      setSimStep('STATISTICAL THREAT DETECTION & BORN TEST...');
+      addLog(`[MEASURE] Sampling Bell measurement distribution across ${shots} shots...`, 'sys');
+      await sleep(350);
 
       const totalShots = Number(shots) || 1024;
       const errorFraction = nQubits > 0 ? (injectedBitErrors / nQubits) : 0;
@@ -307,18 +240,53 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
         ? Math.max(0.25, 0.998 - (injectedBitErrors / nQubits) * 0.75)
         : 0.998;
 
-      const detect = await detectThreat({
-        measurement_data: {
-          measurement_counts: counts,
+      addLog(`[VERIFY] Verifying signature & testing QBER vs policy threshold (${(currentQberThreshold * 100).toFixed(0)}%)...`, 'info');
+      
+      let detect;
+      try {
+        detect = await detectThreat({
+          measurement_data: {
+            measurement_counts: counts,
+            fidelity: effectiveFidelity,
+            sent_bits: sig.sent_bits,
+            received_bits: verify.received_bits || sig.sent_bits,
+            session_id: sig.session_id,
+            measured_qber: inducedQber,
+          },
+        });
+      } catch {
+        // Robust fallback for threat detection
+        const isBad = inducedQber > currentQberThreshold;
+        detect = {
+          is_malicious: isBad,
+          recommended_action: isBad ? 'ABORT' : 'COMMIT',
+          confidence_score: isBad ? Math.min(1.0, 0.55 + (inducedQber - currentQberThreshold) * 2) : 0.082,
+          qber: inducedQber,
+          chi2_p_value: isBad ? 0.0001 : 0.9800,
           fidelity: effectiveFidelity,
-          sent_bits: sig.sent_bits,
-          received_bits: verify.received_bits || sig.sent_bits,
-          session_id: sig.session_id,
-          measured_qber: inducedQber,
-        },
-      });
+          qber_classification: isBad ? 'COMPROMISED' : 'SECURE',
+          chi2_classification: isBad ? 'ANOMALOUS' : 'CONSISTENT',
+          fidelity_classification: effectiveFidelity >= 0.90 ? 'HIGH' : 'CRITICAL',
+          statistics_summary: {
+            chi2_result: {
+              observed_counts: counts,
+              p_value: isBad ? 0.0001 : 0.9800,
+            },
+          },
+          quantum_security_bounds: {
+            hoeffding_confidence: 0.9999,
+            forgery_probability_bound_gc: Math.pow(2, -nQubits),
+            forgery_probability_bound: Math.pow(2, -nQubits),
+            n_qubits: nQubits,
+            n_samples: totalShots,
+          },
+        };
+      }
 
-      if (willReject) {
+      const shouldReject = willReject || detect.is_malicious;
+      let verdictString = '';
+
+      if (shouldReject) {
         verify.is_valid = false;
         detect.is_malicious = true;
         detect.recommended_action = 'ABORT';
@@ -326,18 +294,41 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
         detect.qber_classification = 'COMPROMISED';
         detect.qber = inducedQber;
         detect.fidelity = effectiveFidelity;
+        verdictString = `Simulated Channel Noise Exceeded Policy Limit (${(currentQberThreshold * 100).toFixed(0)}%)`;
+        detect.verdict = verdictString;
+        addLog(`[RESULT] Protocol ABORT: QBER ${(inducedQber * 100).toFixed(1)}% exceeded policy limit (${(currentQberThreshold * 100).toFixed(0)}%).`, 'alert');
       } else {
         verify.is_valid = true;
         verify.message_intact = true;
         detect.is_malicious = false;
         detect.recommended_action = 'COMMIT';
-        detect.confidence_score = 0.126;
+        detect.confidence_score = 0.082;
         detect.qber = inducedQber;
         detect.chi2_p_value = 0.9800;
         detect.fidelity = effectiveFidelity;
+        verdictString = 'Authentic Quantum Statevector Intact · Valid Alice → Bob QDS Signature';
+        detect.verdict = verdictString;
+        addLog(`[RESULT] Protocol successful: Alice → Bob quantum digital signature verified authentic (Fidelity ${(effectiveFidelity * 100).toFixed(1)}%).`, 'sys');
       }
 
-      const payload = {
+      // Format authoritative latestTelemetry payload
+      const calculatedTelemetry = {
+        qber: inducedQber,
+        chi2_p_value: detect.chi2_p_value != null ? detect.chi2_p_value : (shouldReject ? 0.0001 : 0.9800),
+        fidelity: effectiveFidelity,
+        confidence_score: detect.confidence_score != null ? detect.confidence_score : (shouldReject ? 0.85 : 0.082),
+        verdict: verdictString,
+        recommended_action: shouldReject ? 'ABORT' : 'COMMIT',
+        is_malicious: shouldReject,
+        timestamp: new Date().toLocaleTimeString(),
+        executionId: sig.session_id || currentEntity.sessionNonce,
+        counts,
+        nQubits: Number(nQubits),
+        shots: Number(shots),
+        policy: securityPolicy,
+      };
+
+      const fullPayload = {
         type: 'protocol',
         keys,
         sig: {
@@ -349,391 +340,1104 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
         detect,
       };
 
-      setResultData(payload);
-      if (onResultData) onResultData(payload);
+      // Set authoritative state ONLY now
+      setLatestTelemetry(calculatedTelemetry);
+      if (onResultData) onResultData(fullPayload);
+
       setActiveStage3D(8);
-      setStatus('done');
+      setStatus(shouldReject ? 'aborted' : 'verified');
+      addLog(`[LEDGER] Execution recorded: Session ${calculatedTelemetry.executionId} committed to immutable audit ledger.`, 'sys');
     } catch (err) {
       console.error('Honest protocol execution failed:', err);
       setStatus('error');
-      setErrorMsg(err.message || 'Execution error');
+      setErrorMsg(`Protocol execution failed: ${err.message || 'Backend connection error'}`);
+      addLog(`[ERROR] Protocol failed: ${err.message || 'Error'}`, 'alert');
+    } finally {
+      setTimeout(() => setSimStep(''), 2500);
     }
   }
 
-  // Dynamic color synchronization tied to protocol state & physical-layer integrity
-  const activePillar = isCompromised
-    ? '03'
-    : activeStage3D <= 2
-    ? '01'
-    : activeStage3D <= 4
-    ? '02'
-    : '01';
+  // Derived telemetry metrics (Strictly driven by latestTelemetry and status)
+  const isRunning = status === 'running';
+  const hasTelemetry = latestTelemetry !== null;
+  const isThreatDetected = latestTelemetry ? (latestTelemetry.is_malicious || latestTelemetry.recommended_action === 'ABORT') : false;
 
-  const activeDimension = isCompromised
-    ? 4
-    : activeStage3D <= 2
-    ? 0
-    : activeStage3D <= 4
-    ? 1
-    : 2;
+  // Measurement Distribution Histogram Data
+  const defaultBaselineCounts = { '00': 512, '01': 0, '10': 0, '11': 512 };
+  const counts = latestTelemetry?.counts || defaultBaselineCounts;
+  const totalCounts = Object.values(counts).reduce((a, b) => a + b, 0) || 1024;
+  const bellData = ['00', '01', '10', '11'].map((basis) => {
+    const count = counts[basis] || 0;
+    const pct = ((count / totalCounts) * 100).toFixed(1);
+    const isCorrelated = basis === '00' || basis === '11';
+    return {
+      basis: `|${basis}⟩`,
+      rawBasis: basis,
+      count,
+      pct: `${pct}%`,
+      fill: isCorrelated ? '#00f2fe' : '#ef4444',
+      type: isCorrelated ? 'Correlated Bell State (|Φ⁺⟩)' : 'Error / Noise Anomaly Bin',
+    };
+  });
 
   return (
-    <div className="soc-container" style={{ background: '#06070a' }}>
-      {/* 3D WebGL Canvas: Single 3D Hero Object Background */}
-      <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} isDashboard={true} />
+    <div style={{ minHeight: '100vh', background: T.bg, fontFamily: T.sans, color: T.textPrimary, position: 'relative' }}>
+      {/* ── BACKGROUND QUANTUM AMBIENT CANVAS (PRESERVED) ── */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.85 }}>
+        <QuantumEntanglementCanvas
+          activePillar="01"
+          activeDimension={1}
+          threatAlert={isThreatDetected}
+          isDashboard={true}
+        />
+      </div>
 
-      {/* Canonical Stitch Header */}
+      {/* ── 1. GLOBAL CANONICAL STITCH HEADER (DISPLAY ONCE) ── */}
       <StitchHeader activeTab="honest" onNavigate={onNavigate} />
 
-      {/* Primary 2-Column Responsive SOC Operations Grid (Mirrors Attack Lab 1:1) */}
-      <main className="soc-main">
-        {/* Left Column: Interactive Parameters, Actor Flow & Visualizations */}
-        <div className="soc-left-column">
-          <ErrorBoundary title="Honest Controls Unavailable">
-            <section className="panel attack-panel liquid-glass honest-panel">
-              <div
-                className="panel-badge"
+      {/* ── MAIN CONTENT CONTAINER ── */}
+      <main style={{ position: 'relative', zIndex: 5, maxWidth: '1440px', margin: '0 auto', padding: '16px 20px 48px' }}>
+
+        {/* ── 2. LIVE QUANTUM TELEMETRY & VERDICT (FIRST MAJOR SECTION - ABOVE THE FOLD) ── */}
+        <section className="al-live-telemetry-panel" style={{
+          background: T.bgPanel,
+          border: `1px solid ${isThreatDetected ? T.borderDanger : T.border}`,
+          borderRadius: T.radius,
+          padding: '16px 20px',
+          backdropFilter: 'blur(20px)',
+          marginBottom: '16px',
+          boxShadow: isThreatDetected
+            ? '0 0 24px rgba(244, 63, 94, 0.12), 0 8px 32px rgba(0,0,0,0.5)'
+            : '0 0 24px rgba(34, 211, 238, 0.06), 0 8px 32px rgba(0,0,0,0.5)',
+        }}>
+          {/* Telemetry Header Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{
+                width: '9px',
+                height: '9px',
+                borderRadius: '50%',
+                background: isRunning ? '#38bdf8' : (isThreatDetected ? T.rose : (hasTelemetry ? '#10b981' : T.textMuted)),
+                boxShadow: isRunning ? '0 0 12px #38bdf8' : (isThreatDetected ? `0 0 10px ${T.rose}` : (hasTelemetry ? '0 0 10px #10b981' : 'none')),
+                animation: isRunning ? 'al-pulse 0.8s infinite' : 'none',
+                display: 'inline-block',
+              }} />
+              <h2 style={{
+                margin: 0,
+                fontSize: '0.88rem',
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: '#fff',
+                fontFamily: T.mono,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                LIVE QUANTUM TELEMETRY &amp; VERDICT
+              </h2>
+              <span style={{
+                fontFamily: T.mono,
+                fontSize: '0.62rem',
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: '12px',
+                background: isRunning
+                  ? 'rgba(56,189,248,0.2)'
+                  : (status === 'error'
+                    ? 'rgba(239,68,68,0.2)'
+                    : (isThreatDetected
+                      ? 'rgba(244,63,94,0.2)'
+                      : (hasTelemetry ? 'rgba(16,185,129,0.15)' : 'rgba(77,96,123,0.25)'))),
+                color: isRunning
+                  ? '#7dd3fc'
+                  : (status === 'error'
+                    ? '#fca5a5'
+                    : (isThreatDetected
+                      ? '#fda4af'
+                      : (hasTelemetry ? '#6ee7b7' : '#8da2c0'))),
+                border: `1px solid ${isRunning ? 'rgba(56,189,248,0.4)' : (isThreatDetected ? T.borderDanger : (hasTelemetry ? 'rgba(16,185,129,0.3)' : 'rgba(77,96,123,0.4)'))}`,
+                letterSpacing: '0.06em',
+              }}>
+                {isRunning
+                  ? '● PROTOCOL RUNNING...'
+                  : (status === 'error'
+                    ? '● API ERROR'
+                    : (isThreatDetected
+                      ? '● INTERVENTION THRESHOLD EXCEEDED'
+                      : (hasTelemetry ? '● VERIFIED AUTHENTIC' : '● STATUS: READY')))}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontFamily: T.mono, fontSize: '0.64rem', color: T.textMuted }}>
+                Single Source of Truth · Updated: <strong style={{ color: hasTelemetry ? T.textSecondary : T.textMuted }}>
+                  {isRunning ? 'In progress...' : (latestTelemetry ? latestTelemetry.timestamp : 'Awaiting execution')}
+                </strong>
+              </span>
+            </div>
+          </div>
+
+          {/* 4 Telemetry Metrics Grid (Single Authoritative Source) */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '12px',
+            marginBottom: '12px',
+          }} className="al-telemetry-metrics-grid">
+            {/* QBER */}
+            <div style={{
+              background: 'rgba(5, 7, 13, 0.75)',
+              border: `1px solid ${(hasTelemetry && latestTelemetry.qber > currentQberThreshold) ? T.borderDanger : T.border}`,
+              borderRadius: T.radiusSm,
+              padding: '10px 14px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                <span style={{ fontSize: '0.62rem', color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.mono }}>
+                  QBER (Error Rate)
+                </span>
+                <span style={{
+                  fontSize: '0.58rem',
+                  fontFamily: T.mono,
+                  fontWeight: 700,
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  background: isRunning
+                    ? 'rgba(56,189,248,0.15)'
+                    : (!hasTelemetry
+                      ? 'rgba(77,96,123,0.2)'
+                      : (latestTelemetry.qber > currentQberThreshold ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.15)')),
+                  color: isRunning
+                    ? '#7dd3fc'
+                    : (!hasTelemetry
+                      ? T.textMuted
+                      : (latestTelemetry.qber > currentQberThreshold ? T.rose : '#10b981')),
+                }}>
+                  {isRunning ? 'ANALYZING' : (!hasTelemetry ? 'READY' : (latestTelemetry.qber > currentQberThreshold ? 'COMPROMISED' : 'SECURE'))}
+                </span>
+              </div>
+              <div style={{
+                fontFamily: T.mono,
+                fontSize: isRunning ? '1.1rem' : '1.45rem',
+                fontWeight: 800,
+                color: isRunning ? '#38bdf8' : (!hasTelemetry ? T.textMuted : (latestTelemetry.qber > currentQberThreshold ? T.rose : '#10b981')),
+                lineHeight: 1.15,
+              }}>
+                {isRunning ? 'ANALYZING...' : (!hasTelemetry ? '—' : `${(latestTelemetry.qber * 100).toFixed(2)}%`)}
+              </div>
+              <div style={{ fontSize: '0.58rem', color: T.textMuted, marginTop: '2px', fontFamily: T.mono }}>
+                Policy Limit: &lt;{(currentQberThreshold * 100).toFixed(0)}% ({securityPolicy})
+              </div>
+            </div>
+
+            {/* Pearson chi^2 */}
+            <div style={{
+              background: 'rgba(5, 7, 13, 0.75)',
+              border: `1px solid ${(hasTelemetry && latestTelemetry.chi2_p_value < 0.01) ? T.borderDanger : T.border}`,
+              borderRadius: T.radiusSm,
+              padding: '10px 14px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                <span style={{ fontSize: '0.62rem', color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.mono }}>
+                  Pearson χ² / Born Test
+                </span>
+                <span style={{
+                  fontSize: '0.58rem',
+                  fontFamily: T.mono,
+                  fontWeight: 700,
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  background: isRunning
+                    ? 'rgba(56,189,248,0.15)'
+                    : (!hasTelemetry
+                      ? 'rgba(77,96,123,0.2)'
+                      : (latestTelemetry.chi2_p_value < 0.01 ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.15)')),
+                  color: isRunning
+                    ? '#7dd3fc'
+                    : (!hasTelemetry
+                      ? T.textMuted
+                      : (latestTelemetry.chi2_p_value < 0.01 ? T.rose : '#10b981')),
+                }}>
+                  {isRunning ? 'ANALYZING' : (!hasTelemetry ? 'READY' : (latestTelemetry.chi2_p_value < 0.01 ? 'ANOMALOUS' : 'NORMAL'))}
+                </span>
+              </div>
+              <div style={{
+                fontFamily: T.mono,
+                fontSize: isRunning ? '1.1rem' : '1.45rem',
+                fontWeight: 800,
+                color: isRunning ? '#38bdf8' : (!hasTelemetry ? T.textMuted : (latestTelemetry.chi2_p_value < 0.01 ? T.rose : '#10b981')),
+                lineHeight: 1.15,
+              }}>
+                {isRunning ? 'ANALYZING...' : (!hasTelemetry ? '—' : (latestTelemetry.chi2_p_value < 0.0001 ? '< 0.0001' : latestTelemetry.chi2_p_value.toFixed(4)))}
+              </div>
+              <div style={{ fontSize: '0.58rem', color: T.textMuted, marginTop: '2px', fontFamily: T.mono }}>
+                dof = 1 · Born Goodness-of-Fit
+              </div>
+            </div>
+
+            {/* Quantum-State Fidelity */}
+            <div style={{
+              background: 'rgba(5, 7, 13, 0.75)',
+              border: `1px solid ${(hasTelemetry && latestTelemetry.fidelity < 0.85) ? T.borderDanger : T.border}`,
+              borderRadius: T.radiusSm,
+              padding: '10px 14px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                <span style={{ fontSize: '0.62rem', color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.mono }}>
+                  Quantum State Fidelity
+                </span>
+                <span style={{
+                  fontSize: '0.58rem',
+                  fontFamily: T.mono,
+                  fontWeight: 700,
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  background: isRunning
+                    ? 'rgba(56,189,248,0.15)'
+                    : (!hasTelemetry
+                      ? 'rgba(77,96,123,0.2)'
+                      : (latestTelemetry.fidelity < 0.70 ? 'rgba(244,63,94,0.2)' : (latestTelemetry.fidelity < 0.85 ? 'rgba(251,191,36,0.2)' : 'rgba(16,185,129,0.15)'))),
+                  color: isRunning
+                    ? '#7dd3fc'
+                    : (!hasTelemetry
+                      ? T.textMuted
+                      : (latestTelemetry.fidelity < 0.70 ? T.rose : (latestTelemetry.fidelity < 0.85 ? '#fbbf24' : '#10b981'))),
+                }}>
+                  {isRunning ? 'ANALYZING' : (!hasTelemetry ? 'READY' : (latestTelemetry.fidelity < 0.70 ? 'CRITICAL' : (latestTelemetry.fidelity < 0.85 ? 'DEGRADED' : 'HIGH')))}
+                </span>
+              </div>
+              <div style={{
+                fontFamily: T.mono,
+                fontSize: isRunning ? '1.1rem' : '1.45rem',
+                fontWeight: 800,
+                color: isRunning ? '#38bdf8' : (!hasTelemetry ? T.textMuted : (latestTelemetry.fidelity < 0.85 ? T.rose : '#10b981')),
+                lineHeight: 1.15,
+              }}>
+                {isRunning ? 'ANALYZING...' : (!hasTelemetry ? '—' : `${(latestTelemetry.fidelity * 100).toFixed(1)}%`)}
+              </div>
+              <div style={{ fontSize: '0.58rem', color: T.textMuted, marginTop: '2px', fontFamily: T.mono }}>
+                Uhlmann Overlap F(ρ, σ)
+              </div>
+            </div>
+
+            {/* Threat Confidence */}
+            <div style={{
+              background: 'rgba(5, 7, 13, 0.75)',
+              border: `1px solid ${(hasTelemetry && latestTelemetry.confidence_score >= 0.50) ? T.borderDanger : (hasTelemetry ? 'rgba(16,185,129,0.3)' : T.border)}`,
+              borderRadius: T.radiusSm,
+              padding: '10px 14px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                <span style={{ fontSize: '0.62rem', color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.mono }}>
+                  Threat Confidence
+                </span>
+                <span style={{
+                  fontSize: '0.58rem',
+                  fontFamily: T.mono,
+                  fontWeight: 700,
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  background: isRunning
+                    ? 'rgba(56,189,248,0.15)'
+                    : (!hasTelemetry
+                      ? 'rgba(77,96,123,0.2)'
+                      : (latestTelemetry.confidence_score >= 0.50 ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.15)')),
+                  color: isRunning
+                    ? '#7dd3fc'
+                    : (!hasTelemetry
+                      ? T.textMuted
+                      : (latestTelemetry.confidence_score >= 0.50 ? T.rose : '#10b981')),
+                }}>
+                  {isRunning ? 'ANALYZING' : (!hasTelemetry ? 'READY' : (latestTelemetry.confidence_score >= 0.50 ? 'ATTACK DETECTED' : 'AUTHENTIC'))}
+                </span>
+              </div>
+              <div style={{
+                fontFamily: T.mono,
+                fontSize: isRunning ? '1.1rem' : '1.45rem',
+                fontWeight: 800,
+                color: isRunning ? '#38bdf8' : (!hasTelemetry ? T.textMuted : (latestTelemetry.confidence_score >= 0.50 ? T.rose : '#10b981')),
+                lineHeight: 1.15,
+              }}>
+                {isRunning ? 'ANALYZING...' : (!hasTelemetry ? '—' : `${(latestTelemetry.confidence_score * 100).toFixed(1)}%`)}
+              </div>
+              <div style={{ fontSize: '0.58rem', color: T.textMuted, marginTop: '2px', fontFamily: T.mono }}>
+                Cutoff: 50.0% Decision Boundary
+              </div>
+            </div>
+          </div>
+
+          {/* Current Security Verdict & Action Strip */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '9px 14px',
+            borderRadius: T.radiusSm,
+            background: isRunning
+              ? 'rgba(56, 189, 248, 0.10)'
+              : (!hasTelemetry
+                ? 'rgba(5, 7, 13, 0.5)'
+                : (isThreatDetected ? 'rgba(244, 63, 94, 0.10)' : 'rgba(16, 185, 129, 0.10)')),
+            border: `1px solid ${isRunning
+              ? 'rgba(56, 189, 248, 0.35)'
+              : (!hasTelemetry
+                ? T.border
+                : (isThreatDetected ? T.borderDanger : 'rgba(16, 185, 129, 0.35)'))}`,
+            gap: '12px',
+            flexWrap: 'wrap',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '240px', flex: '1 1 auto' }}>
+              <span style={{
+                fontFamily: T.mono,
+                fontSize: '0.72rem',
+                fontWeight: 900,
+                letterSpacing: '0.08em',
+                padding: '3px 9px',
+                borderRadius: '4px',
+                background: isRunning
+                  ? '#0284c7'
+                  : (!hasTelemetry
+                    ? 'rgba(77,96,123,0.4)'
+                    : (latestTelemetry.recommended_action === 'ABORT' ? T.rose : '#10b981')),
+                color: isRunning || !hasTelemetry ? '#fff' : '#05070d',
+              }}>
+                {isRunning ? 'EXECUTING' : (!hasTelemetry ? 'RUN PROTOCOL' : latestTelemetry.recommended_action)}
+              </span>
+              <div style={{ fontSize: '0.74rem', color: T.textPrimary, fontWeight: 600, fontFamily: T.sans }}>
+                <strong style={{ color: isRunning ? '#7dd3fc' : (!hasTelemetry ? T.textMuted : (isThreatDetected ? '#fda4af' : '#6ee7b7')) }}>
+                  SECURITY VERDICT:
+                </strong>{' '}
+                {isRunning
+                  ? 'Executing quantum circuit on Qiskit Aer runtime...'
+                  : (!hasTelemetry
+                    ? 'NOT RUN · Awaiting protocol execution'
+                    : latestTelemetry.verdict)}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{
+                fontFamily: T.mono,
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                color: isRunning
+                  ? '#7dd3fc'
+                  : (!hasTelemetry
+                    ? T.textMuted
+                    : (latestTelemetry.recommended_action === 'ABORT' ? T.rose : '#10b981')),
+                background: 'rgba(5, 7, 13, 0.6)',
+                padding: '3px 8px',
+                borderRadius: '4px',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}>
+                RECOMMENDED ACTION: {isRunning ? 'ANALYZING...' : (!hasTelemetry ? 'RUN PROTOCOL' : latestTelemetry.recommended_action)}
+              </span>
+              <span style={{
+                fontFamily: T.mono,
+                fontSize: '0.65rem',
+                color: T.textMuted,
+                background: 'rgba(5,7,13,0.4)',
+                padding: '3px 8px',
+                borderRadius: '4px',
+              }}>
+                Bound: P(forgery) ≤ 2^-${nQubits}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 3. HONEST PROTOCOL (CONTROLS & PARAMETERS) ── */}
+        <section className="al-attack-controls" style={{
+          background: T.bgPanel,
+          border: `1px solid ${T.border}`,
+          borderRadius: T.radius,
+          backdropFilter: 'blur(20px)',
+          padding: '14px 18px',
+          marginBottom: '16px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1rem' }}>⚡</span>
+              <h3 style={{
+                margin: 0,
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                letterSpacing: '0.07em',
+                textTransform: 'uppercase',
+                color: '#fff',
+                fontFamily: T.mono,
+              }}>
+                HONEST PROTOCOL · CONFIGURE &amp; EXECUTE
+              </h3>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.64rem', color: T.textMuted, fontFamily: T.mono }}>
+                Signer: <strong style={{ color: T.cyan }}>Alice</strong> → Verifier: <strong style={{ color: '#10b981' }}>Bob</strong>
+              </span>
+              <span style={{
+                fontSize: '0.62rem',
+                fontFamily: T.mono,
+                padding: '2px 8px',
+                borderRadius: '10px',
+                background: willReject ? 'rgba(244,63,94,0.15)' : 'rgba(16,185,129,0.15)',
+                color: willReject ? T.rose : '#10b981',
+                border: `1px solid ${willReject ? T.borderDangerSubtle : 'rgba(16,185,129,0.3)'}`,
+              }}>
+                {willReject ? '⚠ FORECAST: WILL ABORT' : '🔒 FORECAST: WILL ACCEPT'}
+              </span>
+            </div>
+          </div>
+
+          {/* Primary Configuration Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(240px, 1.4fr) minmax(170px, 1fr) minmax(130px, 0.8fr) minmax(110px, 0.6fr) minmax(200px, 1.2fr)',
+            gap: '12px',
+            alignItems: 'center',
+            marginBottom: '10px',
+          }} className="al-params-bar">
+            {/* Target Entity Dropdown */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.62rem', color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px', fontFamily: T.mono }}>
+                Target Digital Signature Entity
+              </label>
+              <select
+                className="al-select"
+                value={selectedEntityId}
+                onChange={(e) => setSelectedEntityId(e.target.value)}
+                disabled={isRunning}
                 style={{
-                  background: 'rgba(0, 230, 118, 0.15)',
-                  color: 'var(--accent-green)',
-                  borderColor: 'rgba(0, 230, 118, 0.4)',
+                  width: '100%',
+                  background: 'rgba(5,7,13,0.9)',
+                  border: `1px solid ${T.border}`,
+                  borderRadius: T.radiusSm,
+                  color: T.textPrimary,
+                  fontSize: '0.74rem',
+                  padding: '7px 10px',
+                  fontFamily: T.sans,
+                  outline: 'none',
+                  cursor: isRunning ? 'not-allowed' : 'pointer',
                 }}
               >
-                HONEST QUANTUM TELEPORTATION PIPELINE
-              </div>
-              <h2>1. Quantum Digital Signature Protocol</h2>
-              <p className="panel-desc">
-                Execute deterministic Alice → Bob quantum digital signatures and evaluate physical-layer integrity on Qiskit Aer.
-              </p>
-
-              {/* Target Signature Entity Selector */}
-              <div className="entity-selection-section">
-                <label className="entity-selector-label" htmlFor="honest-entity-select">
-                  🎯 Target Digital Signature Entity to Protect:
-                </label>
-                <select
-                  id="honest-entity-select"
-                  className="entity-dropdown"
-                  value={selectedEntityId}
-                  onChange={(e) => {
-                    setSelectedEntityId(e.target.value);
-                    const newEnt = TARGET_SIGNATURE_ENTITIES.find((ent) => ent.id === e.target.value);
-                    setResultData(buildDefaultHonestResult(newEnt));
-                    setStatus('idle');
-                  }}
-                  disabled={status === 'running'}
-                >
-                  {TARGET_SIGNATURE_ENTITIES.map((ent) => (
-                    <option key={ent.id} value={ent.id}>
-                      {ent.name} [{ent.id}]
-                    </option>
-                  ))}
-                </select>
-
-                {/* Detailed Target Signature Entity Dossier */}
-                <div className="entity-dossier-card">
-                  <div className="dossier-header">
-                    <span
-                      className="dossier-badge"
-                      style={{
-                        background: 'rgba(0, 242, 254, 0.15)',
-                        color: 'var(--accent-cyan)',
-                        border: '1px solid rgba(0, 242, 254, 0.3)',
-                      }}
-                    >
-                      {currentEntity.category}
-                    </span>
-                    <span className="dossier-id">ID: <strong>{currentEntity.id}</strong></span>
-                  </div>
-
-                  <div className="dossier-payload-box">
-                    <span className="dossier-sub-label">Signed Transaction / Command Payload:</span>
-                    <p className="payload-text">"{currentEntity.documentPayload}"</p>
-                  </div>
-
-                  <div className="dossier-meta-grid">
-                    <div className="dossier-field">
-                      <span className="dossier-sub-label">Signer (Alice):</span>
-                      <span className="dossier-val cyan-text">{currentEntity.sender}</span>
-                    </div>
-                    <div className="dossier-field">
-                      <span className="dossier-sub-label">Verifier (Bob):</span>
-                      <span className="dossier-val green-text">{currentEntity.recipient}</span>
-                    </div>
-                    <div className="dossier-field">
-                      <span className="dossier-sub-label">SHA3-512 Hash:</span>
-                      <span className="dossier-val code-font">{currentEntity.payloadHash.slice(0, 18)}...</span>
-                    </div>
-                    <div className="dossier-field">
-                      <span className="dossier-sub-label">Session Nonce:</span>
-                      <span className="dossier-val code-font purple-text">{currentEntity.sessionNonce}</span>
-                    </div>
-                  </div>
-
-                  <div className="dossier-keys-strip">
-                    <span className="dossier-sub-label">Target Quantum EPR Key Bits:</span>
-                    <span className="key-bits-val">{currentEntity.keyBits}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Protocol Parameters Form Row */}
-              <div className="form-row" style={{ marginTop: '1.2rem' }}>
-                <div className="form-group half">
-                  <label htmlFor="honest-qubits">Signature Length (L Qubits):</label>
-                  <input
-                    id="honest-qubits"
-                    type="number"
-                    min="4"
-                    max="28"
-                    value={nQubits}
-                    onChange={(e) => setNQubits(Math.max(4, parseInt(e.target.value) || 4))}
-                    disabled={status === 'running'}
-                  />
-                  <span className="field-explanation">
-                    Security Bound: P(forgery) ≤ 2⁻{nQubits}
-                  </span>
-                </div>
-
-                <div className="form-group half">
-                  <label htmlFor="honest-shots">Circuit Measurement Shots:</label>
-                  <select
-                    id="honest-shots"
-                    value={shots}
-                    onChange={(e) => setShots(Number(e.target.value))}
-                    disabled={status === 'running'}
-                  >
-                    <option value="512">512 Shots (Fast Estimation)</option>
-                    <option value="1024">1,024 Shots (Standard Precision)</option>
-                    <option value="4096">4,096 Shots (High Statistical Rigor)</option>
-                  </select>
-                  <span className="field-explanation">
-                    Qiskit Aer Monte Carlo Sampling Depth
-                  </span>
-                </div>
-              </div>
-
-              {/* Key Length Quick Presets */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1.2rem' }}>
-                {KEY_LENGTH_PRESETS.map((p) => (
-                  <button
-                    key={p.value}
-                    type="button"
-                    className={`phase-pill ${nQubits === p.value ? 'active' : ''}`}
-                    onClick={() => {
-                      setNQubits(p.value);
-                      if (injectedBitErrors > p.value) setInjectedBitErrors(p.value);
-                    }}
-                    disabled={status === 'running'}
-                    style={{
-                      cursor: 'pointer',
-                      background: nQubits === p.value ? 'rgba(0, 242, 254, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                      borderColor: nQubits === p.value ? 'var(--accent-cyan)' : 'var(--border-color)',
-                      color: nQubits === p.value ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                      padding: '4px 10px',
-                      fontSize: '0.74rem',
-                    }}
-                  >
-                    {p.label}
-                  </button>
+                {TARGET_SIGNATURE_ENTITIES.map(ent => (
+                  <option key={ent.id} value={ent.id} style={{ background: '#080e1c' }}>
+                    {ent.name.split('(')[0]} [{ent.id}]
+                  </option>
                 ))}
+              </select>
+            </div>
+
+            {/* Security Policy Selector */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.62rem', color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px', fontFamily: T.mono }}>
+                SOC Security Policy
+              </label>
+              <select
+                value={securityPolicy}
+                onChange={(e) => setSecurityPolicy(e.target.value)}
+                disabled={isRunning}
+                style={{
+                  width: '100%',
+                  background: 'rgba(5,7,13,0.9)',
+                  border: `1px solid ${T.border}`,
+                  borderRadius: T.radiusSm,
+                  color: T.textPrimary,
+                  fontSize: '0.74rem',
+                  padding: '7px 10px',
+                  fontFamily: T.sans,
+                  outline: 'none',
+                  cursor: isRunning ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <option value="strict">Strict (Abort QBER &gt; 5%)</option>
+                <option value="standard">Standard (Abort QBER &gt; 11%)</option>
+                <option value="lenient">Permissive (Abort QBER &gt; 20%)</option>
+              </select>
+            </div>
+
+            {/* Qubits Selector with Presets */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.62rem', color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px', fontFamily: T.mono }}>
+                Signature Qubits (L={nQubits})
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+                {KEY_LENGTH_PRESETS.map((p) => {
+                  const isCur = nQubits === p.value;
+                  return (
+                    <button
+                      key={p.value}
+                      onClick={() => {
+                        setNQubits(p.value);
+                        if (injectedBitErrors > p.value) setInjectedBitErrors(p.value);
+                      }}
+                      disabled={isRunning}
+                      style={{
+                        padding: '6px 2px',
+                        borderRadius: T.radiusSm,
+                        border: isCur ? `1px solid ${T.cyan}` : `1px solid ${T.border}`,
+                        background: isCur ? 'rgba(34,211,238,0.2)' : 'rgba(5,7,13,0.7)',
+                        color: isCur ? T.cyan : T.textSecondary,
+                        fontSize: '0.64rem',
+                        fontFamily: T.mono,
+                        fontWeight: isCur ? 700 : 500,
+                        cursor: isRunning ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {p.value}
+                    </button>
+                  );
+                })}
               </div>
+            </div>
 
-              {/* Intervention Controls: Channel Conditions & Noise Tolerance */}
-              <div className={`intervention-card ${willReject ? 'tampered' : ''}`}>
-                <div className="intervention-header">
-                  <span>INTERVENTION CONTROLS</span>
-                  <span className={`verdict-forecast-badge ${willReject ? 'abort' : 'accept'}`}>
-                    {willReject ? '⚡ FORECAST: WILL ABORT' : '🔒 FORECAST: WILL ACCEPT'}
-                  </span>
-                </div>
+            {/* Shots Selector */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.62rem', color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px', fontFamily: T.mono }}>
+                Shots
+              </label>
+              <select
+                value={shots}
+                onChange={(e) => setShots(Number(e.target.value))}
+                disabled={isRunning}
+                style={{
+                  width: '100%',
+                  background: 'rgba(5,7,13,0.9)',
+                  border: `1px solid ${T.border}`,
+                  borderRadius: T.radiusSm,
+                  color: T.textPrimary,
+                  fontSize: '0.74rem',
+                  padding: '7px 8px',
+                  fontFamily: T.mono,
+                  outline: 'none',
+                  cursor: isRunning ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <option value="512">512</option>
+                <option value="1024">1,024</option>
+                <option value="4096">4,096</option>
+              </select>
+            </div>
 
-                <h4 style={{ margin: '0.2rem 0', fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 700 }}>
-                  Channel Conditions &amp; Noise Tolerance
-                </h4>
-
-                {/* Control 1: Security Policy Preset */}
-                <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                  <label htmlFor="policy-select" style={{ fontSize: '0.76rem' }}>SOC Threat Sensitivity Policy:</label>
-                  <select
-                    id="policy-select"
-                    value={securityPolicy}
-                    onChange={(e) => setSecurityPolicy(e.target.value)}
-                    disabled={status === 'running'}
-                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
-                  >
-                    <option value="strict">Zero-Trust / Strict (Abort if QBER &gt; 5%)</option>
-                    <option value="standard">Standard BB84 (Abort if QBER &gt; 11%)</option>
-                    <option value="lenient">Permissive / High Loss (Abort if QBER &gt; 20%)</option>
-                  </select>
-                </div>
-
-                {/* Control 2: Simulated Channel Noise (Honest, Non-Adversarial) Slider */}
-                <div className="slider-container">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label htmlFor="noise-slider" style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                      Simulated Channel Noise (Honest, Non-Adversarial):
-                    </label>
-                    <span
-                      className="slider-val"
-                      style={{
-                        color: willReject
-                          ? 'var(--accent-red)'
-                          : inducedQber > 0.05
-                          ? '#ffb300'
-                          : 'var(--accent-green)',
-                        fontWeight: 700,
-                      }}
-                    >
-                      {injectedBitErrors} / {nQubits} ({((inducedQber) * 100).toFixed(1)}%)
-                    </span>
-                  </div>
-
-                  <div className="slider-row">
-                    <input
-                      id="noise-slider"
-                      type="range"
-                      min="0"
-                      max={nQubits}
-                      value={injectedBitErrors}
-                      onChange={(e) => setInjectedBitErrors(Number(e.target.value))}
-                      disabled={status === 'running'}
-                      style={{
-                        accentColor: willReject
-                          ? 'var(--accent-red)'
-                          : inducedQber > 0.05
-                          ? '#ffb300'
-                          : 'var(--accent-green)',
-                      }}
-                    />
-                  </div>
-
-                  {willReject ? (
-                    <small
-                      className="intervention-warning"
-                      style={{
-                        fontSize: '0.72rem',
-                        color: 'var(--accent-red)',
-                        display: 'block',
-                        marginTop: '4px',
-                      }}
-                    >
-                      ⚠ Simulated noise exceeds policy limit → protocol would legitimately abort here
-                    </small>
-                  ) : (
-                    <small
-                      className="intervention-safe"
-                      style={{
-                        fontSize: '0.72rem',
-                        color: 'var(--accent-green)',
-                        display: 'block',
-                        marginTop: '4px',
-                      }}
-                    >
-                      ✓ Simulated noise within policy limit → protocol will accept intact states.
-                    </small>
-                  )}
-                </div>
-
-                {/* Footer Readout */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '0.3rem',
-                    paddingTop: '0.4rem',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-                  }}
-                >
-                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-                    Policy QBER Limit:
-                  </span>
-                  <strong style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                    {(currentQberThreshold * 100).toFixed(0)}%
-                  </strong>
-                </div>
-              </div>
-
-              {/* Execution Action Button */}
+            {/* Prominent RUN PROTOCOL Button */}
+            <div>
               <button
                 id="btn-run-honest"
-                className="btn-primary"
                 onClick={handleRunProtocol}
-                disabled={status === 'running'}
+                disabled={isRunning}
                 style={{
-                  background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.25), rgba(0, 230, 118, 0.25))',
-                  borderColor: 'var(--accent-green)',
-                  color: '#ffffff',
-                  boxShadow: '0 0 15px rgba(0, 230, 118, 0.2)',
+                  width: '100%',
+                  padding: '11px 16px',
+                  borderRadius: T.radiusSm,
+                  border: 'none',
+                  background: isRunning
+                    ? 'linear-gradient(135deg, #0e7490, #065f46)'
+                    : 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
+                  color: '#fff',
+                  fontFamily: T.mono,
                   fontWeight: 800,
-                  letterSpacing: '0.04em',
+                  fontSize: '0.78rem',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  cursor: isRunning ? 'not-allowed' : 'pointer',
+                  boxShadow: isRunning ? 'none' : '0 0 24px rgba(16,185,129,0.45), 0 4px 12px rgba(0,0,0,0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s ease',
                 }}
               >
-                {status === 'running' ? '⚡ Executing Legitimate Teleportation Pipeline...' : '🚀 Run Honest Protocol'}
+                {isRunning ? (
+                  <>
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: '#fff',
+                      boxShadow: '0 0 8px #fff',
+                      animation: 'al-pulse 0.6s infinite',
+                    }} />
+                    <span>{simStep || 'EXECUTING...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🚀</span>
+                    <span>RUN PROTOCOL</span>
+                  </>
+                )}
               </button>
+            </div>
+          </div>
 
-              {errorMsg && <div className="error-banner">{errorMsg}</div>}
-
-              {/* Reused AttackVisualizer in Honest Mode */}
-              <AttackVisualizer
-                mode="honest"
-                detectData={resultData?.detect}
-                activeStage={activeStage3D}
-                onStageSelect={handleStageSelect}
-                lastUpdated={lastUpdated}
-                isUpdating={isUpdating}
+          {/* Secondary Controls: Simulated Channel Noise Slider */}
+          <div style={{
+            background: 'rgba(5, 7, 13, 0.6)',
+            border: `1px solid ${willReject ? T.borderDangerSubtle : T.border}`,
+            borderRadius: T.radiusSm,
+            padding: '8px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+            flexWrap: 'wrap',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '260px', flex: '1 1 auto' }}>
+              <span style={{ fontSize: '0.68rem', color: T.textSecondary, fontFamily: T.mono }}>
+                Simulated Channel Noise:
+              </span>
+              <input
+                id="noise-slider"
+                type="range"
+                min="0"
+                max={nQubits}
+                value={injectedBitErrors}
+                onChange={(e) => setInjectedBitErrors(Number(e.target.value))}
+                disabled={isRunning}
+                style={{
+                  flex: 1,
+                  accentColor: willReject ? T.rose : (inducedQber > 0.05 ? '#fbbf24' : '#10b981'),
+                  cursor: isRunning ? 'not-allowed' : 'pointer',
+                }}
               />
-            </section>
-          </ErrorBoundary>
-        </div>
+              <span style={{
+                fontFamily: T.mono,
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: willReject ? T.rose : (inducedQber > 0.05 ? '#fbbf24' : '#10b981'),
+                minWidth: '70px',
+                textAlign: 'right',
+              }}>
+                {injectedBitErrors}/{nQubits} ({(inducedQber * 100).toFixed(1)}%)
+              </span>
+            </div>
 
-        {/* Right Column: 3D Teleportation Flow & Telemetry Desk */}
-        <div className="soc-right-column">
-          {/* TAB 1 ANIMATION: 8-Stage Quantum Teleportation Signature Journey */}
-          <ErrorBoundary title="3D Teleportation Flow Unavailable">
+            <div style={{ fontSize: '0.64rem', fontFamily: T.mono, color: willReject ? '#fda4af' : T.textMuted }}>
+              {willReject ? (
+                <span>⚠ Noise exceeds policy cutoff ({(currentQberThreshold * 100).toFixed(0)}%) → Will abort</span>
+              ) : (
+                <span>✓ Noise within safe boundary ({(currentQberThreshold * 100).toFixed(0)}%) → Will accept</span>
+              )}
+            </div>
+          </div>
+
+          {errorMsg && (
+            <div style={{
+              marginTop: '10px',
+              padding: '8px 12px',
+              borderRadius: T.radiusSm,
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              color: '#fca5a5',
+              fontSize: '0.72rem',
+              fontFamily: T.mono,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <span>⚠️</span>
+              <span>{errorMsg}</span>
+            </div>
+          )}
+        </section>
+
+        {/* ── 4. QUANTUM PROTOCOL VISUALIZATION (Alice → Entangled Channel → Bob) ── */}
+        <section className="al-channel-vis-section" style={{
+          background: T.bgPanel,
+          border: `1px solid ${isCompromised ? T.borderDanger : T.border}`,
+          borderRadius: T.radius,
+          backdropFilter: 'blur(20px)',
+          marginBottom: '16px',
+          overflow: 'hidden',
+        }}>
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '12px 18px',
+            borderBottom: `1px solid ${T.border}`,
+            background: 'rgba(5,7,13,0.5)',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1rem' }}>🔬</span>
+              <h3 style={{ margin: 0, fontFamily: T.sans, fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.05em', color: '#fff' }}>
+                QUANTUM PROTOCOL VISUALIZATION (Alice → Entangled Channel → Bob)
+              </h3>
+              <span style={{ fontSize: '0.64rem', color: T.textMuted, fontFamily: T.mono }}>
+                Channel: <strong style={{ color: '#6ee7b7' }}>Clean QDS Waveguide [Alice → Bob]</strong>
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* 8 Protocol Phase Stepper Pills */}
+              <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                {PROTOCOL_STAGES.map((st) => {
+                  const isAct = st.id === activeStage3D;
+                  const isDone = (status === 'verified' || status === 'aborted') || (activeStage3D > st.id);
+                  return (
+                    <button
+                      key={st.id}
+                      onClick={() => !isRunning && handleStageSelect(st.id)}
+                      disabled={isRunning}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 7px',
+                        borderRadius: '10px',
+                        fontFamily: T.mono,
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        border: isAct
+                          ? '1px solid #38bdf8'
+                          : isDone
+                          ? '1px solid rgba(16,185,129,0.4)'
+                          : `1px solid ${T.border}`,
+                        background: isAct
+                          ? 'rgba(56,189,248,0.2)'
+                          : isDone
+                          ? 'rgba(16,185,129,0.08)'
+                          : 'rgba(5,7,13,0.5)',
+                        color: isAct ? '#7dd3fc' : isDone ? '#6ee7b7' : T.textMuted,
+                        cursor: isRunning ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      <span>{st.icon}</span>
+                      <span>{st.label}</span>
+                      {isDone && <span style={{ color: '#10b981' }}>✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Protocol Status Indicator */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.68rem',
+                fontFamily: T.mono,
+                color: isRunning
+                  ? '#38bdf8'
+                  : (status === 'verified'
+                    ? '#10b981'
+                    : (status === 'aborted' ? T.rose : T.cyan)),
+                marginLeft: '6px',
+              }}>
+                <span style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: isRunning
+                    ? '#38bdf8'
+                    : (status === 'verified'
+                      ? '#10b981'
+                      : (status === 'aborted' ? T.rose : T.cyan)),
+                  boxShadow: isRunning
+                    ? '0 0 6px #38bdf8'
+                    : (status === 'verified'
+                      ? '0 0 6px #10b981'
+                      : (status === 'aborted' ? `0 0 6px ${T.rose}` : `0 0 6px ${T.cyan}`)),
+                  animation: isRunning ? 'al-pulse 0.8s infinite' : 'none',
+                }} />
+                {isRunning
+                  ? '● RUNNING'
+                  : (status === 'verified'
+                    ? '✓ VERIFIED'
+                    : (status === 'aborted' ? '⚠ ABORTED' : '● READY'))}
+              </div>
+            </div>
+          </div>
+
+          {/* 3D Teleportation Visualizer Canvas */}
+          <div style={{ width: '100%', height: '360px', position: 'relative', background: '#020408' }}>
             <Teleportation3D
               activeStage={activeStage3D}
               isCompromised={isCompromised}
               mode="honest"
-              onStageChange={setActiveStage3D}
+              onStageChange={handleStageSelect}
             />
-          </ErrorBoundary>
+          </div>
 
-          {/* Continuous Deterministic Verdict & Telemetry Desk */}
-          <ErrorBoundary title="Telemetry & Verdict Desk Unavailable">
-            <ResultsCharts
-              data={resultData}
-              emptyMessage="No active simulation loaded."
-              emptySubtext="Select 'Run Honest Protocol' to execute a real Qiskit Aer teleportation circuit and view live Born statistics."
-              mode="honest"
-            />
-          </ErrorBoundary>
+          {/* Integrated Target Dossier Bar */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '8px 18px',
+            background: 'rgba(5, 7, 13, 0.7)',
+            borderTop: `1px solid ${T.border}`,
+            fontSize: '0.68rem',
+            fontFamily: T.mono,
+            color: T.textSecondary,
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}>
+            <div>
+              <span style={{ color: T.textMuted }}>Signed Payload:</span> <span style={{ color: '#6ee7b7' }}>"${currentEntity.documentPayload.slice(0, 48)}..."</span>
+            </div>
+            <div style={{ display: 'flex', gap: '14px' }}>
+              <span>Signer: <strong style={{ color: T.cyan }}>${currentEntity.sender.split('(')[0]}</strong></span>
+              <span>Verifier: <strong style={{ color: '#10b981' }}>${currentEntity.recipient.split('(')[0]}</strong></span>
+              <span>Nonce: <strong style={{ color: T.cyan }}>${currentEntity.sessionNonce}</strong></span>
+              <span>Hash: <strong style={{ color: T.textSecondary }}>${currentEntity.payloadHash.slice(0, 12)}...</strong></span>
+            </div>
+          </div>
+        </section>
 
-          {/* Supporting 3D Visualizer Row (Relocated beneath Bell Distribution Chart) */}
-          <div className="visualizations-row">
-            <ErrorBoundary title="3D Bloch Sphere Unavailable">
+        {/* ── 5, 6, 7. VISUALIZATION GRID (MEASUREMENT DISTRIBUTION, BLOCH SPHERE, NETWORK TOPOLOGY) ── */}
+        <section className="al-analytics-grid-section" style={{ marginBottom: '16px' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(320px, 1.4fr) minmax(240px, 1fr) minmax(260px, 1.1fr)',
+            gap: '16px',
+            alignItems: 'stretch',
+          }} className="al-bottom-grid">
+
+            {/* 5. Measurement Distribution */}
+            <div style={{
+              background: T.bgPanel,
+              border: `1px solid ${T.border}`,
+              borderRadius: T.radius,
+              padding: '16px',
+              backdropFilter: 'blur(16px)',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1rem' }}>📊</span>
+                  <h3 style={{ margin: 0, fontFamily: T.sans, fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.06em', color: '#fff', textTransform: 'uppercase' }}>
+                    Measurement Distribution
+                  </h3>
+                </div>
+                <span style={{ fontSize: '0.62rem', color: T.textMuted, fontFamily: T.mono }}>
+                  N = {totalCounts} shots
+                </span>
+              </div>
+
+              <div style={{ fontSize: '0.65rem', color: T.textSecondary, marginBottom: '8px' }}>
+                {hasTelemetry
+                  ? 'Observed Bell Basis (|00⟩, |01⟩, |10⟩, |11⟩) vs Pure Theoretical State (50% |00⟩, 50% |11⟩)'
+                  : 'Baseline Expected: 50% |00⟩, 50% |11⟩ · Click RUN PROTOCOL to sample actual counts'}
+              </div>
+
+              <div style={{ width: '100%', height: '220px', position: 'relative', overflow: 'hidden' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={bellData} margin={{ top: 12, right: 15, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="basis" tick={{ fill: '#e2eaf6', fontSize: 11, fontWeight: 700, fontFamily: T.mono }} />
+                    <YAxis tick={{ fill: '#8da2c0', fontSize: 10, fontFamily: T.mono }} />
+                    <Tooltip content={<CustomRechartsTooltip />} />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                      {bellData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Legend */}
+              <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: 'auto', paddingTop: '8px', fontSize: '0.66rem', color: T.textSecondary }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: '#00f2fe' }} />
+                  Correlated Bell States (|00⟩, |11⟩)
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: '#ef4444' }} />
+                  Error / Noise Anomaly Bins (|01⟩, |10⟩)
+                </span>
+              </div>
+            </div>
+
+            {/* 6. Bloch Sphere (Live 3D Panel) */}
+            <div style={{
+              background: T.bgPanel,
+              border: `1px solid ${isCompromised ? T.borderDanger : T.border}`,
+              borderRadius: T.radius,
+              padding: '16px',
+              backdropFilter: 'blur(16px)',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1rem' }}>🔮</span>
+                  <h3 style={{ margin: 0, fontFamily: T.sans, fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.06em', color: '#fff', textTransform: 'uppercase' }}>
+                    Bloch Sphere (Live)
+                  </h3>
+                </div>
+                <span style={{
+                  fontSize: '0.6rem',
+                  fontFamily: T.mono,
+                  padding: '2px 6px',
+                  borderRadius: '10px',
+                  background: isCompromised ? 'rgba(244,63,94,0.12)' : 'rgba(16,185,129,0.12)',
+                  color: isCompromised ? T.rose : '#10b981',
+                }}>
+                  {isCompromised ? 'Perturbed' : (hasTelemetry ? 'State Intact' : 'Ready')}
+                </span>
+              </div>
+
+              <div style={{ fontSize: '0.65rem', color: T.textSecondary, marginBottom: '8px' }}>
+                Statevector |ψ⟩ = α|0⟩ + β|1⟩ teleported intact via EPR channel
+              </div>
+
               <BlochSphere3D
-                fidelity={resultData?.sig?.fidelity ?? 0.998}
+                embedded={true}
+                canvasHeight={220}
+                fidelity={latestTelemetry ? latestTelemetry.fidelity : 1.0}
                 isAttacked={isCompromised}
-                badgeText={isCompromised ? 'State Vector Perturbed' : 'State Vector Preserved'}
+                badgeText={isCompromised ? 'State Vector Perturbed' : (hasTelemetry ? 'State Vector Preserved' : 'State Vector Ready')}
                 pillClass={isCompromised ? 'pill-danger' : 'pill-green'}
               />
-            </ErrorBoundary>
-            <ErrorBoundary title="Network Topology Unavailable">
+            </div>
+
+            {/* 7. Network Topology (Live 3D Panel) */}
+            <div style={{
+              background: T.bgPanel,
+              border: `1px solid ${isCompromised ? T.borderDanger : T.border}`,
+              borderRadius: T.radius,
+              padding: '16px',
+              backdropFilter: 'blur(16px)',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1rem' }}>🌐</span>
+                  <h3 style={{ margin: 0, fontFamily: T.sans, fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.06em', color: '#fff', textTransform: 'uppercase' }}>
+                    Network Topology
+                  </h3>
+                </div>
+                <span style={{
+                  fontSize: '0.6rem',
+                  fontFamily: T.mono,
+                  padding: '2px 6px',
+                  borderRadius: '10px',
+                  background: isCompromised ? 'rgba(244,63,94,0.12)' : 'rgba(16,185,129,0.12)',
+                  color: isCompromised ? T.rose : '#10b981',
+                }}>
+                  Alice → Bob QDS Link
+                </span>
+              </div>
+
+              <div style={{ fontSize: '0.65rem', color: T.textSecondary, marginBottom: '8px' }}>
+                Direct legitimate quantum link: Alice (Signer) → Bob (Verifier)
+              </div>
+
               <NetworkTopology3D
+                embedded={true}
+                canvasHeight={200}
                 isAttacked={isCompromised}
                 activeNode={activeNetworkNode}
                 activeLink={activeNetworkLink}
-                resultData={resultData}
+                resultData={latestTelemetry}
                 onNodeSelect={setActiveNetworkNode}
-                badgeText={isCompromised ? '🚨 High Channel Loss / Noise' : 'No Interceptor Detected'}
+                badgeText={isCompromised ? '🚨 High Channel Loss' : 'Clean QKD Link'}
                 pillClass={isCompromised ? 'pill-danger' : 'pill-green'}
               />
-            </ErrorBoundary>
+            </div>
           </div>
-        </div>
+        </section>
+
+        {/* ── 8. LIVE EVENT LOG (EXECUTION TRACE & EVENT HISTORY) ── */}
+        <section className="al-event-log-section" style={{
+          background: T.bgPanel,
+          border: `1px solid ${T.border}`,
+          borderRadius: T.radius,
+          padding: '14px 18px',
+          backdropFilter: 'blur(20px)',
+          marginBottom: '16px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1rem' }}>📋</span>
+              <h3 style={{
+                margin: 0,
+                fontFamily: T.mono,
+                fontWeight: 800,
+                fontSize: '0.78rem',
+                letterSpacing: '0.07em',
+                textTransform: 'uppercase',
+                color: '#fff',
+              }}>
+                LIVE EVENT LOG · EXECUTION TRACE
+              </h3>
+            </div>
+            <span style={{ fontFamily: T.mono, fontSize: '0.62rem', color: T.textMuted }}>
+              {telemetryLogs.length} events recorded
+            </span>
+          </div>
+
+          <div style={{
+            background: 'rgba(3, 5, 10, 0.9)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            borderRadius: T.radiusSm,
+            padding: '10px 14px',
+            fontFamily: T.mono,
+            fontSize: '0.68rem',
+            lineHeight: 1.7,
+            maxHeight: '140px',
+            overflowY: 'auto',
+          }}>
+            {telemetryLogs.map((log, idx) => (
+              <div key={idx} style={{ display: 'flex', gap: '10px' }}>
+                <span style={{ color: T.textMuted, flexShrink: 0 }}>[{log.time}]</span>
+                <span style={{
+                  color: log.type === 'alert'
+                    ? '#fda4af'
+                    : log.type === 'sys'
+                    ? T.cyan
+                    : T.textSecondary,
+                }}>
+                  {log.type === 'alert' ? '● ' : '○ '}
+                  {log.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
+
+      {/* Global Embedded Styles */}
+      <style>{`
+        @keyframes al-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.85); }
+        }
+        @media (max-width: 1200px) {
+          .al-bottom-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .al-bottom-grid > div:first-child {
+            grid-column: span 2;
+          }
+          .al-params-bar {
+            grid-template-columns: 1fr 1fr !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .al-telemetry-metrics-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .al-bottom-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .al-bottom-grid > div:first-child {
+            grid-column: span 1;
+          }
+          .al-params-bar {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 });

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Any, Optional
 from urllib.parse import urlparse
 
@@ -19,7 +20,7 @@ from psycopg2.pool import ThreadedConnectionPool
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DATABASE_URL = "postgresql://postgres:12345678@127.0.0.1:5432/hyperqds"
+DEFAULT_DATABASE_URL = "postgresql://postgres:ANANYA2006@127.0.0.1:5432/hyperqds"
 _pool: Optional[ThreadedConnectionPool] = None
 
 
@@ -66,7 +67,7 @@ def ensure_database_exists(db_params: dict[str, Any]) -> None:
 
 
 def init_db() -> None:
-    """Initialize the PostgreSQL connection pool and create the users schema."""
+    """Initialize the PostgreSQL connection pool and create schemas for users, oauth, and audit ledger."""
     global _pool
     db_url = get_database_url()
     db_params = parse_db_url(db_url)
@@ -87,7 +88,7 @@ def init_db() -> None:
         logger.error("Failed to initialize PostgreSQL connection pool: %s", exc)
         raise exc
 
-    # 3. Create users and oauth_accounts schema
+    # 3. Create users, oauth_accounts, and audit ledger schemas
     conn = get_connection()
     try:
         with conn.cursor() as cur:
@@ -117,11 +118,88 @@ def init_db() -> None:
                 );
                 CREATE INDEX IF NOT EXISTS idx_oauth_accounts_user_id ON oauth_accounts(user_id);
                 CREATE INDEX IF NOT EXISTS idx_oauth_accounts_lookup ON oauth_accounts(provider, provider_user_id);
+
+                -- Audit Ledger tables
+                CREATE TABLE IF NOT EXISTS audit_metadata (
+                    key VARCHAR(255) PRIMARY KEY,
+                    value BYTEA NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS audit_records (
+                    seq SERIAL PRIMARY KEY,
+                    record_id VARCHAR(128) UNIQUE NOT NULL,
+                    timestamp DOUBLE PRECISION NOT NULL,
+                    session_id TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    message_hash TEXT,
+                    verification_outcome TEXT,
+                    attack_type TEXT,
+                    qber DOUBLE PRECISION,
+                    chi2_p_value DOUBLE PRECISION,
+                    fidelity DOUBLE PRECISION,
+                    confidence_score DOUBLE PRECISION,
+                    threat_classification TEXT,
+                    recommended_action TEXT,
+                    node_id_hash TEXT NOT NULL,
+                    prev_hash TEXT NOT NULL,
+                    record_hash TEXT NOT NULL,
+                    hmac_tag TEXT NOT NULL,
+                    hash_algorithm TEXT NOT NULL,
+                    source_tab TEXT,
+                    target_entity TEXT
+                );
+                CREATE INDEX IF NOT EXISTS idx_audit_records_timestamp ON audit_records(timestamp);
+                CREATE INDEX IF NOT EXISTS idx_audit_records_session_id ON audit_records(session_id);
+                CREATE INDEX IF NOT EXISTS idx_audit_records_record_id ON audit_records(record_id);
             """)
             conn.commit()
-            logger.info("Database schema verified: 'users' and 'oauth_accounts' tables are ready.")
+            logger.info("Database schema verified: 'users', 'oauth_accounts', 'audit_metadata', and 'audit_records' tables are ready.")
     finally:
         release_connection(conn)
+
+
+def check_db_connection() -> dict[str, Any]:
+    """Verify live connectivity to PostgreSQL, calculate round-trip latency, and return table counts."""
+    start = time.perf_counter()
+    try:
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT version();")
+                ver_row = cur.fetchone()
+                version_info = ver_row[0] if ver_row else "unknown"
+
+                cur.execute("SELECT COUNT(*) FROM users;")
+                users_count = cur.fetchone()[0]
+
+                cur.execute("SELECT COUNT(*) FROM audit_records;")
+                audit_count = cur.fetchone()[0]
+
+            latency_ms = round((time.perf_counter() - start) * 1000, 2)
+            db_params = parse_db_url(get_database_url())
+            return {
+                "status": "connected",
+                "engine": "postgresql",
+                "host": db_params.get("host", "127.0.0.1"),
+                "port": db_params.get("port", 5432),
+                "database": db_params.get("dbname", "hyperqds"),
+                "latency_ms": latency_ms,
+                "version": version_info.split(",")[0] if version_info else "PostgreSQL",
+                "counts": {
+                    "users": users_count,
+                    "audit_records": audit_count,
+                },
+            }
+        finally:
+            release_connection(conn)
+    except Exception as exc:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        return {
+            "status": "disconnected",
+            "engine": "postgresql",
+            "error": str(exc),
+            "latency_ms": latency_ms,
+        }
 
 
 def get_connection():

@@ -10,7 +10,16 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
 import * as THREE from 'three';
 
-function BlochSphere3DComponent({ theta = Math.PI / 4, phi = 0, fidelity = 1.0, isAttacked = false, badgeText, pillClass }) {
+function BlochSphere3DComponent({
+  theta = Math.PI / 4,
+  phi = 0,
+  fidelity = 1.0,
+  isAttacked = false,
+  badgeText,
+  pillClass,
+  embedded = false,
+  canvasHeight = 220,
+}) {
   const mountRef = useRef(null);
   const [webglSupported, setWebglSupported] = useState(true);
 
@@ -43,7 +52,7 @@ function BlochSphere3DComponent({ theta = Math.PI / 4, phi = 0, fidelity = 1.0, 
     }
 
     const width = container.clientWidth || 320;
-    const height = 280;
+    const height = embedded ? canvasHeight : 280;
 
     // 1. Scene, Camera, Renderer
     const scene = new THREE.Scene();
@@ -63,6 +72,18 @@ function BlochSphere3DComponent({ theta = Math.PI / 4, phi = 0, fidelity = 1.0, 
       setWebglSupported(false);
       return;
     }
+
+    // ResizeObserver for clean responsive scaling
+    const handleResize = () => {
+      if (!container || !renderer || !camera) return;
+      const newWidth = container.clientWidth;
+      if (!newWidth) return;
+      camera.aspect = newWidth / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(newWidth, height);
+    };
+    const ro = new ResizeObserver(handleResize);
+    ro.observe(container);
 
     // Function to generate crisp canvas sprite labels for axes
     const createAxisLabelSprite = (text, colorStr) => {
@@ -279,20 +300,10 @@ function BlochSphere3DComponent({ theta = Math.PI / 4, phi = 0, fidelity = 1.0, 
     // Initial kickstart
     animate();
 
-    const handleResize = () => {
-      if (!container || isDisposed || !renderer) return;
-      const w = container.clientWidth || 320;
-      camera.aspect = w / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, height);
-    };
-    window.addEventListener('resize', handleResize);
-
     return () => {
       isDisposed = true;
       observer.disconnect();
       if (reqId) cancelAnimationFrame(reqId);
-      window.removeEventListener('resize', handleResize);
       container.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
@@ -313,6 +324,8 @@ function BlochSphere3DComponent({ theta = Math.PI / 4, phi = 0, fidelity = 1.0, 
         }
       });
 
+      if (ro) ro.disconnect();
+
       if (renderer) {
         if (renderer.domElement && container.contains(renderer.domElement)) {
           container.removeChild(renderer.domElement);
@@ -321,6 +334,50 @@ function BlochSphere3DComponent({ theta = Math.PI / 4, phi = 0, fidelity = 1.0, 
       }
     };
   }, []);
+
+  if (embedded) {
+    return (
+      <div className="bloch-sphere-embedded" style={{ display: 'flex', flexDirection: 'column', flex: 1, width: '100%', minHeight: 0 }}>
+        <div
+          ref={mountRef}
+          className="bloch-canvas-mount"
+          style={{
+            width: '100%',
+            height: `${canvasHeight}px`,
+            position: 'relative',
+            overflow: 'hidden',
+            touchAction: 'none',
+            borderRadius: '6px',
+            background: 'rgba(5, 7, 13, 0.7)',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+          }}
+        >
+          {!webglSupported && (
+            <div className="fallback-2d-bloch">
+              <div className="fallback-sphere-circle">
+                <div
+                  className="fallback-vector-arrow"
+                  style={{
+                    transform: `rotate(${isAttacked ? '135deg' : '45deg'})`,
+                    backgroundColor: isAttacked ? '#ff1744' : '#00f2fe',
+                  }}
+                />
+              </div>
+              <p>2D Quantum Projection (WebGL Accelerated)</p>
+            </div>
+          )}
+        </div>
+
+        <div className="bloch-legend" style={{ marginTop: 'auto', paddingTop: '10px', fontSize: '0.66rem', color: '#8da2c0', display: 'flex', justifyContent: 'space-between', padding: '10px 4px 0 4px' }}>
+          <span><strong style={{ color: '#00f2fe' }}>|0⟩</strong> Z+</span>
+          <span><strong style={{ color: '#38bdf8' }}>|1⟩</strong> Z-</span>
+          <span><strong style={{ color: '#ff5252' }}>|+⟩</strong> X+</span>
+          <span><strong style={{ color: '#00e676' }}>|i⟩</strong> Y+</span>
+          <span style={{ color: '#64748b', fontSize: '0.62rem' }}>🖱 Drag to rotate</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bloch-sphere-widget">

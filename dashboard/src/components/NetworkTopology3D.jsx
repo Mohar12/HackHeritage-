@@ -9,6 +9,8 @@ function NetworkTopology3DComponent({
   onNodeSelect,
   badgeText,
   pillClass,
+  embedded = false,
+  canvasHeight = 200,
 }) {
   const mountRef = useRef(null);
   const [hoveredNode, setHoveredNode] = useState(null);
@@ -58,25 +60,25 @@ function NetworkTopology3DComponent({
       metrics: [
         { label: 'EPR Key Material', value: `${nQubits} Qubits Distributed` },
         { label: 'Signature State', value: '|ψ⟩ Pure Bell Pair (|Φ⁺⟩)' },
-        { label: 'Correction Bits', value: '(c₀, c₁) Parity Encoded' },
+        { label: 'Teleportation Fidelity', value: `${(fidelity * 100).toFixed(1)}% (Uhlmann)` },
       ],
       color: '#00f2fe',
     },
     Bob: {
       name: 'Bob',
-      title: 'Recipient & Unitary Reconstruction Engine',
-      role: 'Ingests classical bits (c₀, c₁) and applies conditional Pauli corrections U_corr = σ_z^(c₀)·σ_x^(c₁)',
+      title: 'Signature Recipient & Verification Node',
+      role: 'Receives teleported state, measures in randomly chosen Pauli basis, verifies Born distribution',
       metrics: [
+        { label: 'Measurement Basis', value: 'Z & X Sifting' },
         { label: 'Observed QBER', value: `${(qber * 100).toFixed(2)}%`, alert: qber > 0.11 },
-        { label: 'State Fidelity', value: `${(fidelity * 100).toFixed(1)}%`, alert: fidelity < 0.70 },
-        { label: 'Local Verdict', value: isMalicious ? 'ABORT (Anomaly)' : 'ACCEPT (Intact)' },
+        { label: 'Verdict', value: isMalicious ? 'ABORT (Compromised)' : 'ACCEPT (Verified)' },
       ],
       color: '#00e676',
     },
     Charlie: {
       name: 'Charlie',
-      title: 'Independent Quantum Auditor & Verifier',
-      role: 'Evaluates Pearson χ² Born test, non-repudiation bound, and issues immutable ledger commit',
+      title: 'Arbitration Authority & Consensus Sifter',
+      role: 'Resolves disputed signatures; performs public Hoeffding & Gottesman-Chuang security bound tests',
       metrics: [
         { label: 'Born χ² p-value', value: pVal.toFixed(4), alert: pVal < 0.01 },
         { label: 'G-C Forgery Bound', value: `≤ 2⁻${nQubits}` },
@@ -104,7 +106,7 @@ function NetworkTopology3DComponent({
     if (!container) return;
 
     const width = container.clientWidth || 320;
-    const height = 240;
+    const height = embedded ? canvasHeight : 240;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
@@ -117,6 +119,22 @@ function NetworkTopology3DComponent({
       renderer.setSize(width, height);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       container.appendChild(renderer.domElement);
+    } catch (e) {
+      return;
+    }
+
+    // ResizeObserver for clean responsive scaling
+    const handleResize = () => {
+      if (!container || !renderer || !camera) return;
+      const newWidth = container.clientWidth;
+      if (!newWidth) return;
+      camera.aspect = newWidth / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(newWidth, height);
+    };
+    const ro = new ResizeObserver(handleResize);
+    try {
+      ro.observe(container);
     } catch (e) {
       return;
     }
@@ -308,20 +326,10 @@ function NetworkTopology3DComponent({
 
     animate();
 
-    const handleResize = () => {
-      if (!container || isDisposed || !renderer) return;
-      const w = container.clientWidth || 320;
-      camera.aspect = w / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, height);
-    };
-    window.addEventListener('resize', handleResize);
-
     return () => {
       isDisposed = true;
       observer.disconnect();
       if (reqId) cancelAnimationFrame(reqId);
-      window.removeEventListener('resize', handleResize);
       if (renderer?.domElement) {
         renderer.domElement.removeEventListener('pointermove', handlePointerMove);
         renderer.domElement.removeEventListener('click', handleClick);
@@ -346,11 +354,81 @@ function NetworkTopology3DComponent({
         }
       });
 
+      if (ro) ro.disconnect();
+
       if (renderer) {
+        if (renderer.domElement && container.contains(renderer.domElement)) {
+          container.removeChild(renderer.domElement);
+        }
         renderer.dispose();
       }
     };
   }, []);
+
+  if (embedded) {
+    return (
+      <div className="network-topology-embedded" style={{ display: 'flex', flexDirection: 'column', flex: 1, width: '100%', minHeight: 0 }}>
+        <div
+          ref={mountRef}
+          className="topology-canvas-mount"
+          style={{
+            width: '100%',
+            height: `${canvasHeight}px`,
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: '6px',
+            background: 'rgba(5, 7, 13, 0.7)',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+          }}
+        />
+
+        {/* Compact Active Node Callout */}
+        <div
+          style={{
+            marginTop: '8px',
+            padding: '6px 10px',
+            borderRadius: '6px',
+            background: 'rgba(5, 7, 13, 0.65)',
+            border: `1px solid ${activeDetail.color}44`,
+            fontSize: '0.68rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div>
+            <strong style={{ color: activeDetail.color, fontSize: '0.74rem' }}>{activeDetail.name}</strong>
+            <span style={{ color: '#94a3b8', marginLeft: '6px', fontSize: '0.64rem' }}>({activeDetail.title.split(' ')[0]})</span>
+          </div>
+          <div style={{ color: activeDetail.metrics[0]?.alert ? '#f43f5e' : '#10b981', fontFamily: 'var(--font-mono, monospace)', fontSize: '0.64rem', fontWeight: 700 }}>
+            {activeDetail.metrics[0]?.value}
+          </div>
+        </div>
+
+        {/* Interactive Node Selector Buttons */}
+        <div className="topology-legend" style={{ marginTop: 'auto', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', padding: '8px 4px 0 4px' }}>
+          <span
+            onClick={() => { setSelectedNode('Alice'); if (onNodeSelect) onNodeSelect('Alice'); }}
+            style={{ cursor: 'pointer', opacity: selectedNode === 'Alice' ? 1 : 0.6, color: selectedNode === 'Alice' ? '#00f2fe' : '#94a3b8', fontWeight: selectedNode === 'Alice' ? 700 : 400 }}
+          >
+            ● Alice (Signer)
+          </span>
+          <span
+            onClick={() => { setSelectedNode('Bob'); if (onNodeSelect) onNodeSelect('Bob'); }}
+            style={{ cursor: 'pointer', opacity: selectedNode === 'Bob' ? 1 : 0.6, color: selectedNode === 'Bob' ? '#00e676' : '#94a3b8', fontWeight: selectedNode === 'Bob' ? 700 : 400 }}
+          >
+            ● Bob (Recipient)
+          </span>
+          <span
+            onClick={() => { setSelectedNode('Charlie'); if (onNodeSelect) onNodeSelect('Charlie'); }}
+            style={{ cursor: 'pointer', opacity: selectedNode === 'Charlie' ? 1 : 0.6, color: selectedNode === 'Charlie' ? '#ffd600' : '#94a3b8', fontWeight: selectedNode === 'Charlie' ? 700 : 400 }}
+          >
+            ● Charlie (Verifier)
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="network-topology-widget">

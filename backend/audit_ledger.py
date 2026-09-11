@@ -34,10 +34,9 @@ References
 - PyCA cryptography: https://cryptography.io/en/latest/
 """
 
-from __future__ import annotations
-
 import asyncio
 import json
+import logging
 import os
 from pathlib import Path
 import sqlite3
@@ -45,6 +44,15 @@ import threading
 import time
 from typing import Any
 from pydantic import BaseModel
+
+import backend.env_loader
+
+try:
+    import psycopg2
+except ImportError:
+    psycopg2 = None
+
+logger = logging.getLogger(__name__)
 
 # PyCA cryptography — post-quantum resistant primitives
 from cryptography.hazmat.primitives import hashes, hmac as crypto_hmac
@@ -191,13 +199,33 @@ class AuditLedger:
 
     DEFAULT_DB_PATH = DEFAULT_DB_PATH
 
-    def __init__(self, db_path: str | Path | None = None) -> None:
+    def __init__(
+        self,
+        db_path: str | Path | None = None,
+        use_postgres: bool | None = None,
+    ) -> None:
         self._records: list[AuditRecord] = []
         self._sync_lock = threading.Lock()
         self._lock = self._sync_lock  # alias for backwards compatibility
         self._async_lock: asyncio.Lock | None = None
         self._corrupted: bool = False
         self._corruption_error: str | None = None
+
+        if use_postgres is not None:
+            self._use_postgres = bool(use_postgres)
+        elif db_path is not None and str(db_path) == str(DEFAULT_DB_PATH):
+            # Default persistent ledger singleton
+            backend_env = os.environ.get("QDS_AUDIT_BACKEND", "").strip().lower()
+            if backend_env == "sqlite":
+                self._use_postgres = False
+            elif "DATABASE_URL" in os.environ:
+                self._use_postgres = True
+            else:
+                self._use_postgres = False
+        else:
+            # None (in-memory test isolation) or custom path (file-based test isolation)
+            backend_env = os.environ.get("QDS_AUDIT_BACKEND", "").strip().lower()
+            self._use_postgres = (backend_env == "postgres" and db_path is None)
 
         if db_path is not None:
             self._db_path: str | None = str(db_path)
@@ -210,7 +238,18 @@ class AuditLedger:
         self._init_storage()
 
     def _init_storage(self) -> None:
-        """Initialize SQLite storage connection, schema, and keys."""
+        """Initialize storage connection (PostgreSQL or SQLite), schema, and keys."""
+        if self._use_postgres:
+            try:
+                from backend.db import init_db
+                init_db()
+                self._init_or_load_keys_postgres()
+                self._load_records_postgres()
+                return
+            except Exception as exc:
+                logger.warning("Could not initialize PostgreSQL audit storage: %s. Falling back to SQLite.", exc)
+                self._use_postgres = False
+
         try:
             if self._db_path is None or self._db_path == ":memory:":
                 self._db_conn = sqlite3.connect(":memory:", check_same_thread=False)
@@ -242,6 +281,120 @@ class AuditLedger:
         except Exception as exc:
             self._corrupted = True
             self._corruption_error = f"Storage initialization failed: {exc}"
+
+    def _init_or_load_keys_postgres(self) -> None:
+        """Load persistent keys from PostgreSQL audit_metadata or initialize new ones securely."""
+        from backend.db import get_connection, release_connection
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT key, value FROM audit_metadata;")
+                meta = {r[0]: bytes(r[1]) for r in cur.fetchall()}
+
+            if "hmac_key" in meta and "ed25519_private_key" in meta:
+                try:
+                    self._hmac_key = meta["hmac_key"]
+                    priv_bytes = meta["ed25519_private_key"]
+                    pub_bytes = meta["ed25519_public_key"]
+                    self._ed25519_private_key = Ed25519PrivateKey.from_private_bytes(priv_bytes)
+                    self._ed25519_public_key = Ed25519PublicKey.from_public_bytes(pub_bytes)
+                    self._genesis_message = meta["genesis_message"]
+                    self._genesis_signature = meta["genesis_signature"]
+                    self._ed25519_public_key.verify(self._genesis_signature, self._genesis_message)
+                except Exception as e:
+                    self._corrupted = True
+                    self._corruption_error = f"PostgreSQL cryptographic metadata verification failed: {e}"
+            else:
+                self._hmac_key = os.urandom(64)
+                self._ed25519_private_key = Ed25519PrivateKey.generate()
+                self._ed25519_public_key = self._ed25519_private_key.public_key()
+
+                priv_bytes = self._ed25519_private_key.private_bytes(
+                    Encoding.Raw, PrivateFormat.Raw, NoEncryption()
+                )
+                pub_bytes = self._ed25519_public_key.public_bytes(
+                    Encoding.Raw, PublicFormat.Raw
+                )
+
+                genesis_msg = f"GENESIS:{time.time()}".encode()
+                self._genesis_message = genesis_msg
+                self._genesis_signature = self._ed25519_private_key.sign(genesis_msg)
+
+                with conn.cursor() as cur:
+                    insert_query = """
+                        INSERT INTO audit_metadata (key, value)
+                        VALUES (%s, %s)
+                        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+                    """
+                    for k, v in [
+                        ("schema_version", b"1.0"),
+                        ("created_at", str(time.time()).encode("utf-8")),
+                        ("hmac_key", self._hmac_key),
+                        ("ed25519_private_key", priv_bytes),
+                        ("ed25519_public_key", pub_bytes),
+                        ("genesis_message", self._genesis_message),
+                        ("genesis_signature", self._genesis_signature),
+                    ]:
+                        cur.execute(insert_query, (k, psycopg2.Binary(v) if isinstance(v, (bytes, bytearray)) else v))
+                    conn.commit()
+        finally:
+            release_connection(conn)
+
+    def _load_records_postgres(self) -> None:
+        """Load records from PostgreSQL database, verify unbroken chain, and populate cache."""
+        if self._corrupted:
+            return
+
+        from backend.db import get_connection, release_connection
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT record_id, timestamp, session_id, event_type, message_hash,
+                           verification_outcome, attack_type, qber, chi2_p_value, fidelity,
+                           confidence_score, threat_classification, recommended_action,
+                           node_id_hash, prev_hash, record_hash, hmac_tag, hash_algorithm,
+                           source_tab, target_entity
+                    FROM audit_records
+                    ORDER BY seq ASC;
+                """)
+                rows = cur.fetchall()
+
+            loaded_records: list[AuditRecord] = []
+            for r in rows:
+                rec = AuditRecord(
+                    record_id=r[0],
+                    timestamp=r[1],
+                    session_id=r[2],
+                    event_type=r[3],
+                    message_hash=r[4],
+                    verification_outcome=r[5],
+                    attack_type=r[6],
+                    qber=r[7],
+                    chi2_p_value=r[8],
+                    fidelity=r[9],
+                    confidence_score=r[10],
+                    threat_classification=r[11],
+                    recommended_action=r[12],
+                    node_id_hash=r[13],
+                    prev_hash=r[14],
+                    record_hash=r[15],
+                    hmac_tag=r[16],
+                    hash_algorithm=r[17],
+                    source_tab=r[18],
+                    target_entity=r[19],
+                )
+                loaded_records.append(rec)
+
+            verification = self._verify_chain_records(loaded_records)
+            if not verification["valid"]:
+                self._corrupted = True
+                self._corruption_error = f"PostgreSQL audit record verification failed: {verification.get('error')}"
+                return
+
+            self._records = loaded_records
+        finally:
+            release_connection(conn)
 
     def _create_schema(self) -> None:
         """Create metadata and audit_records tables if they do not exist."""
@@ -501,8 +654,48 @@ class AuditLedger:
                 target_entity=target_entity,
             )
 
-            # Persist to SQLite using parameterized query
-            if self._db_conn is not None:
+            # Persist using parameterized query
+            if self._use_postgres:
+                from backend.db import get_connection, release_connection
+                conn = get_connection()
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            """INSERT INTO audit_records (
+                                record_id, timestamp, session_id, event_type, message_hash,
+                                verification_outcome, attack_type, qber, chi2_p_value, fidelity,
+                                confidence_score, threat_classification, recommended_action,
+                                node_id_hash, prev_hash, record_hash, hmac_tag, hash_algorithm,
+                                source_tab, target_entity
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (record_id) DO NOTHING;""",
+                            (
+                                record.record_id,
+                                record.timestamp,
+                                record.session_id,
+                                record.event_type,
+                                record.message_hash,
+                                record.verification_outcome,
+                                record.attack_type,
+                                record.qber,
+                                record.chi2_p_value,
+                                record.fidelity,
+                                record.confidence_score,
+                                record.threat_classification,
+                                record.recommended_action,
+                                record.node_id_hash,
+                                record.prev_hash,
+                                record.record_hash,
+                                record.hmac_tag,
+                                record.hash_algorithm,
+                                record.source_tab,
+                                record.target_entity,
+                            ),
+                        )
+                        conn.commit()
+                finally:
+                    release_connection(conn)
+            elif self._db_conn is not None:
                 with self._db_conn:
                     self._db_conn.execute(
                         """INSERT INTO audit_records (
@@ -592,7 +785,16 @@ class AuditLedger:
         """Test helper to reset ledger state."""
         with self._sync_lock:
             self._records.clear()
-            if self._db_conn is not None and not self._corrupted:
+            if self._use_postgres and not self._corrupted:
+                from backend.db import get_connection, release_connection
+                conn = get_connection()
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute("TRUNCATE TABLE audit_records RESTART IDENTITY;")
+                        conn.commit()
+                finally:
+                    release_connection(conn)
+            elif self._db_conn is not None and not self._corrupted:
                 with self._db_conn:
                     self._db_conn.execute("DELETE FROM audit_records;")
                     try:

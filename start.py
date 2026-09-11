@@ -162,6 +162,25 @@ def main() -> None:
         except Exception:
             pass
 
+    # Database Pre-flight Verification
+    try:
+        if str(project_root) not in sys.path:
+            sys.path.insert(0, str(project_root))
+        from backend.db import check_db_connection, init_db
+        init_db()
+        db_info = check_db_connection()
+        if db_info.get("status") == "connected":
+            log_success(
+                f"PostgreSQL database '{db_info.get('database')}' linked on "
+                f"{db_info.get('host')}:{db_info.get('port')} "
+                f"({db_info.get('latency_ms')}ms latency | {db_info.get('counts', {}).get('audit_records', 0)} audit records, "
+                f"{db_info.get('counts', {}).get('users', 0)} users)."
+            )
+        else:
+            log_warning(f"PostgreSQL check note: {db_info.get('error')}. Running with fallback mode.")
+    except Exception as exc:
+        log_warning(f"Database pre-flight check warning: {exc}")
+
     # 2. Check and clean ports
     for port in (8000, 5173):
         if is_port_in_use(port):
@@ -189,7 +208,7 @@ def main() -> None:
         backend_cmd,
         cwd=str(project_root),
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
     )
 
     # 4. Start Frontend
@@ -201,7 +220,7 @@ def main() -> None:
         frontend_cmd,
         cwd=str(dashboard_dir),
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
         shell=(sys.platform == "win32"),
     )
 

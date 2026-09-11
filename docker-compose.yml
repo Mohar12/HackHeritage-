@@ -9,7 +9,35 @@ networks:
     driver: bridge
     name: quantum-network
 
+volumes:
+  postgres-data:
+    driver: local
+
 services:
+
+  # ----------------------------------------------------------
+  # PostgreSQL Database Service
+  # ----------------------------------------------------------
+  quantum-db:
+    image: postgres:16-alpine
+    container_name: quantum-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=hyperqds
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - quantum-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hyperqds"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   # ----------------------------------------------------------
   # FastAPI Backend Service
@@ -24,6 +52,8 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
+      - DATABASE_URL=postgresql://postgres:postgres@quantum-db:5432/hyperqds
+      - QDS_AUDIT_BACKEND=postgres
     volumes:
       - ./qds_core:/app/qds_core
       - ./attack_sim:/app/attack_sim
@@ -32,6 +62,9 @@ services:
       - ./backend:/app/api
     networks:
       - quantum-network
+    depends_on:
+      quantum-db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
