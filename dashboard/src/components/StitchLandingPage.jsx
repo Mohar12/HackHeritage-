@@ -22,7 +22,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 import TabCrossFade from './TabCrossFade.jsx';
-import StitchHeader from './StitchHeader.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 
@@ -41,47 +40,6 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
   const [activePillar, setActivePillar] = useState('01');
   const [activeDimension, setActiveDimension] = useState(0);
   const [initialCalibrationDone, setInitialCalibrationDone] = useState(false);
-
-  // Header Animation: Fluid sliding active/hover indicator
-  const [hoveredNav, setHoveredNav] = useState(null);
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
-  const navContainerRef = useRef(null);
-  const navItemRefs = useRef({});
-
-  // Sync fluid sliding indicator with hover state and scroll activeAct (Matches Reference Video)
-  useEffect(() => {
-    const targetId = hoveredNav || (
-      activeAct === 'problem' ? 'problem' :
-      activeAct === 'pillars' ? 'pillars' :
-      activeAct === 'comparison' ? 'comparison' : null
-    );
-
-    const updateIndicatorPos = () => {
-      if (targetId && navItemRefs.current[targetId] && navContainerRef.current) {
-        const el = navItemRefs.current[targetId];
-        const container = navContainerRef.current;
-        const elRect = el.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        setIndicatorStyle({
-          left: elRect.left - containerRect.left,
-          width: elRect.width,
-          opacity: 1,
-        });
-      } else if (!hoveredNav) {
-        setIndicatorStyle((prev) => ({ ...prev, opacity: 0 }));
-      }
-    };
-
-    updateIndicatorPos();
-    window.addEventListener('resize', updateIndicatorPos);
-    return () => window.removeEventListener('resize', updateIndicatorPos);
-  }, [hoveredNav, activeAct]);
-
-  const handleHeaderMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    e.currentTarget.style.setProperty('--header-mouse-x', `${x}px`);
-  };
 
 
   // Direct DOM refs for 60-120fps performance without React re-render overhead
@@ -773,80 +731,41 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         </div>
       </div>
 
-      {/* Canonical Landing Page Header & Top Navigation (3-Part Reference Layout with Fluid Gliding Motion) */}
-      <header className="hqds-landing-header" onMouseMove={handleHeaderMouseMove} aria-label="Main Navigation">
-        <div className="hqds-landing-header-inner">
-          {/* Left: HyperQDS Brand Identity */}
-          <div 
-            className="hqds-landing-brand"
-            onClick={() => scrollToAct('hero')}
-            role="button"
-            tabIndex={0}
-            title="HyperQDS Overview"
-            aria-label="HyperQDS Overview"
-          >
-            <img 
-              src="/HYPER_QDS_transparent.svg" 
-              alt="HyperQDS"
-              className="hqds-landing-logo-img"
-            />
+      {/* Minimal Top Navigation (Liquid Brokers Reference Architecture) */}
+      <nav className="hqds-top-nav" aria-label="Main Navigation">
+        <div className="hqds-nav-ambient-light" aria-hidden="true" />
+        <div className="hqds-nav-inner">
+          <div className="hqds-brand-wrap" onClick={() => scrollToAct('hero')}>
+            <span className="hqds-brand-title">HYPERQDS</span>
           </div>
 
-          {/* Center: Exactly 4 Nav Items with Fluid Gliding Active Indicator (Reference Video Motion) */}
-          <nav 
-            ref={navContainerRef}
-            className="hqds-landing-nav-center" 
-            aria-label="Landing Page Navigation"
-            onMouseLeave={() => setHoveredNav(null)}
-          >
-            {[
-              { id: 'problem', label: 'Physical Layer', action: () => scrollToAct('problem') },
-              { id: 'pillars', label: 'Pillars', action: () => scrollToAct('pillars') },
-              { id: 'comparison', label: 'Verification', action: () => scrollToAct('comparison') },
-              { id: 'audit', label: 'Audit Ledger', action: () => handleNavigateTab('audit') },
-            ].map((item) => {
-              const isItemActive = (hoveredNav === item.id) || (!hoveredNav && (
-                (item.id === 'problem' && activeAct === 'problem') ||
-                (item.id === 'pillars' && activeAct === 'pillars') ||
-                (item.id === 'comparison' && activeAct === 'comparison')
-              ));
+          <div className="hqds-nav-center">
+            <button type="button" className="hqds-nav-link" onClick={() => scrollToAct('problem')}>
+              Physical Layer
+            </button>
+            <button type="button" className="hqds-nav-link" onClick={() => scrollToAct('pillars')}>
+              Pillars
+            </button>
+            <button type="button" className="hqds-nav-link" onClick={() => scrollToAct('comparison')}>
+              Verification
+            </button>
+            <button type="button" className="hqds-nav-link" onClick={() => handleNavigateTab('audit')}>
+              Audit Ledger
+            </button>
+          </div>
 
-              return (
-                <button
-                  key={item.id}
-                  ref={(el) => { navItemRefs.current[item.id] = el; }}
-                  type="button"
-                  className={`hqds-landing-nav-link ${isItemActive ? 'is-active' : ''}`}
-                  onMouseEnter={() => setHoveredNav(item.id)}
-                  onClick={() => {
-                    setHoveredNav(item.id);
-                    item.action();
-                  }}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-
-            {/* Fluid Gliding Active/Hover Underline Indicator */}
-            <div 
-              className="hqds-landing-nav-indicator" 
-              style={{
-                transform: `translateX(${indicatorStyle.left}px)`,
-                width: `${indicatorStyle.width}px`,
-                opacity: indicatorStyle.opacity,
-              }}
-              aria-hidden="true"
-            />
-          </nav>
-
-          {/* Right: Exactly Sign In Button */}
-          <div className="hqds-landing-nav-right">
-
+          <div className="hqds-nav-right">
+            <button
+              type="button"
+              className="hqds-nav-ghost-btn"
+              onClick={() => handleNavigateTab('operations')}
+            >
+              <span>Console</span>
+            </button>
             {isAuthLoading ? (
               <button
                 type="button"
-                className="hqds-landing-btn hqds-landing-btn-signin"
+                className="hqds-nav-pill-btn"
                 disabled
                 aria-label="Checking session"
                 style={{ opacity: 0.6, pointerEvents: 'none' }}
@@ -856,7 +775,7 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
             ) : isAuthenticated ? (
               <button
                 type="button"
-                className="hqds-landing-btn hqds-landing-btn-signin"
+                className="hqds-nav-pill-btn"
                 onClick={async () => {
                   try {
                     await logout();
@@ -864,27 +783,28 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
                     console.error('Logout error:', err);
                   }
                 }}
-                title="Sign out of console"
               >
                 <span>Logout</span>
               </button>
             ) : (
               <button
                 type="button"
-                className="hqds-landing-btn hqds-landing-btn-signin"
+                className="hqds-nav-pill-btn"
                 onClick={() => {
                   if (onNavigate) {
                     onNavigate('sign-in');
+                  } else {
+                    handleLaunchHonest();
                   }
                 }}
-                title="Sign in to HyperQDS"
               >
                 <span>Sign In</span>
               </button>
             )}
           </div>
+
         </div>
-      </header>
+      </nav>
 
       {/* Main Narrative Flow */}
       <main className="hqds-flow-stream">
