@@ -2,125 +2,86 @@
  * StitchHeader.jsx
  * ================
  * Canonical Stitch Navigation Header shared across all HyperQDS pages.
- * 
- * Features:
- * - Unified 74px height, 32px glassmorphism backdrop-filter blur.
- * - Epilogue brand typography + Plus Jakarta Sans navigation labels + JetBrains Mono status.
- * - Cohesive violet / lavender quantum palette matching the landing page.
- * - Cursor-following soft radial light effect on tabs and action buttons.
- * - Seamless page navigation: Overview -> Honest Protocol -> Attack Lab -> Scalable Engine -> Audit Ledger.
+ * Exact design language from the Landing Page:
+ * - Liquid Brokers reference architecture (.hqds-top-nav + .hqds-nav-ambient-light)
+ * - Typography wordmark brand (HYPERQDS with Epilogue font & hqdsLogoLuminance)
+ * - Unified center navigation links (.hqds-nav-link with cyan active/hover indicators)
+ * - Optical fluid caustics button pair (.hqds-nav-ghost-btn & .hqds-nav-pill-btn)
+ * - Excludes SYSTEM: ONLINE and Test User
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function StitchHeader({ activeTab = 'landing', onNavigate }) {
-  const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
-  const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
-    e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
-  };
+  const { isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
+  const [optimisticTab, setOptimisticTab] = useState(activeTab);
+
+  useEffect(() => {
+    setOptimisticTab(activeTab);
+  }, [activeTab]);
 
   const navItems = [
-    { id: 'landing', label: 'Overview', tag: '00' },
-    { id: 'honest', label: 'Honest Protocol', tag: '01' },
-    { id: 'attack', label: 'Attack Lab', tag: '02' },
-    { id: 'large_scale', label: 'Scalable Engine', tag: '03' },
-    { id: 'audit', label: 'Audit Ledger', tag: '04' },
+    { id: 'landing', label: 'Overview', colorKey: 'overview' },
+    { id: 'honest', label: 'Honest Protocol', colorKey: 'honest' },
+    { id: 'attack', label: 'Attack Lab', colorKey: 'attack' },
+    { id: 'large_scale', label: 'Scalable Engine', colorKey: 'scalable' },
+    { id: 'audit', label: 'Audit Ledger', colorKey: 'audit' },
   ];
 
+  const themeClassMap = {
+    landing: 'theme-overview',
+    honest: 'theme-honest',
+    attack: 'theme-attack',
+    large_scale: 'theme-scalable',
+    scalable: 'theme-scalable',
+    audit: 'theme-audit',
+  };
+  const currentActive = optimisticTab || activeTab;
+  const currentTheme = themeClassMap[currentActive] || 'theme-overview';
+
   return (
-    <header className="hqds-header">
-      <div className="hqds-header-inner" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        maxWidth: '1440px',
-        margin: '0 auto',
-        padding: '0 24px',
-        height: '74px',
-        minHeight: '74px',
-        gap: '24px',
-        boxSizing: 'border-box',
-      }}>
-        {/* Brand Identity — Official HYPER.QDS Transparent SVG Lockup */}
+    <nav className={`hqds-top-nav ${currentTheme}`} aria-label="Main Navigation">
+      <div className="hqds-nav-ambient-light" aria-hidden="true" />
+      <div className="hqds-nav-inner">
+        {/* Brand Lockup — Exact Landing Page Typography Wordmark */}
         <div 
-          className="hqds-brand" 
-          onClick={() => onNavigate && onNavigate('landing')}
-          style={{ 
-            cursor: 'pointer', 
-            display: 'flex', 
-            alignItems: 'center',
-            textDecoration: 'none',
-            flexShrink: 0,
+          className="hqds-brand-wrap" 
+          onClick={() => {
+            setOptimisticTab('landing');
+            if (onNavigate) onNavigate('landing');
           }}
           title="HyperQDS Overview"
-          aria-label="HyperQDS Overview"
+          role="button"
+          tabIndex={0}
         >
-          <img 
-            src="/HYPER_QDS_transparent.svg" 
-            alt="HYPER.QDS"
-            className="hqds-header-logo-img"
-            style={{
-              height: '64px',
-              width: 'auto',
-              maxHeight: '68px',
-              display: 'block',
-              objectFit: 'contain',
-              background: 'transparent',
-              filter: 'drop-shadow(0 0 12px rgba(34, 211, 238, 0.28))',
-              transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease',
-            }}
-          />
+          <span className="hqds-brand-title">HYPERQDS</span>
         </div>
 
-        {/* Global Stitch Navigation Tabs */}
-        <nav className="hqds-nav" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {/* Global Navigation Links with distinct signature colors */}
+        <div className="hqds-nav-center">
           {navItems.map((item) => {
-            const isActive = activeTab === item.id;
+            const isActive = currentActive === item.id;
             return (
               <button
                 key={item.id}
-                className={`hqds-nav-tab ${isActive ? 'active' : ''} hqds-cursor-light`}
-                onMouseMove={handleMouseMove}
-                onClick={() => onNavigate && onNavigate(item.id)}
+                type="button"
+                className={`hqds-nav-link hqds-nav-link-${item.colorKey} ${isActive ? 'is-active' : ''}`}
+                onClick={() => {
+                  if (item.id !== currentActive) {
+                    setOptimisticTab(item.id);
+                    if (onNavigate) onNavigate(item.id);
+                  }
+                }}
               >
-                <span className="hqds-nav-tab-tag">{item.tag}</span>
-                <span className="hqds-nav-tab-label">{item.label}</span>
-                {isActive && <span className="hqds-nav-tab-indicator" />}
+                {item.label}
               </button>
             );
           })}
-        </nav>
+        </div>
 
-        {/* Action / Status Section — DISPLAY ONCE: SYSTEM: ONLINE + AUTH ENTRY */}
-        <div className="hqds-header-action" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-          {/* Status Pill */}
-          <div className="hqds-status-pill hidden-mobile" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '6px 14px',
-            borderRadius: '20px',
-            background: 'rgba(57, 255, 20, 0.08)',
-            border: '1px solid rgba(57, 255, 20, 0.3)',
-          }}>
-            <span className="stitch-pulse-dot-green" />
-            <span style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              color: '#39FF14',
-              letterSpacing: '0.06em',
-            }}>
-              SYSTEM: ONLINE
-            </span>
-          </div>
-
-          {/* Canonical Sign In / User Auth Entry */}
+        {/* Action Pair — Exact Landing Page Liquid-Fill Buttons */}
+        <div className="hqds-nav-right">
           {isAuthLoading ? (
             <button
               type="button"
@@ -132,20 +93,15 @@ export default function StitchHeader({ activeTab = 'landing', onNavigate }) {
               <span>···</span>
             </button>
           ) : isAuthenticated ? (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
-              {user?.full_name && (
-                <span className="hidden-mobile" style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '0.72rem',
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  maxWidth: '120px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {user.full_name}
-                </span>
-              )}
+            <>
+              <button
+                type="button"
+                className="hqds-nav-ghost-btn"
+                onClick={() => onNavigate && onNavigate('honest')}
+                title="Open Honest Protocol Console"
+              >
+                <span>Console</span>
+              </button>
               <button
                 type="button"
                 className="hqds-nav-pill-btn"
@@ -156,27 +112,37 @@ export default function StitchHeader({ activeTab = 'landing', onNavigate }) {
                     console.error('Logout error:', err);
                   }
                 }}
-                title="Sign out of console"
+                title="Sign out of session"
               >
                 <span>Logout</span>
               </button>
-            </div>
+            </>
           ) : (
-            <button
-              type="button"
-              className="hqds-nav-pill-btn"
-              onClick={() => {
-                if (onNavigate) {
-                  onNavigate('sign-in');
-                }
-              }}
-              title="Sign in to HyperQDS"
-            >
-              <span>Sign In</span>
-            </button>
+            <>
+              <button
+                type="button"
+                className="hqds-nav-ghost-btn"
+                onClick={() => onNavigate && onNavigate('landing')}
+                title="Explore platform overview"
+              >
+                <span>Get Started</span>
+              </button>
+              <button
+                type="button"
+                className="hqds-nav-pill-btn"
+                onClick={() => {
+                  if (onNavigate) {
+                    onNavigate('sign-in');
+                  }
+                }}
+                title="Sign in to HyperQDS"
+              >
+                <span>Sign In</span>
+              </button>
+            </>
           )}
         </div>
       </div>
-    </header>
+    </nav>
   );
 }

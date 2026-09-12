@@ -15,7 +15,7 @@
  *  - Liquid Glass Design System & Specular Refraction Styling
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import QuantumEntanglementCanvas from './components/QuantumEntanglementCanvas.jsx';
 import StitchLandingPage from './components/StitchLandingPage.jsx';
@@ -35,7 +35,53 @@ import ScalableCluster3D from './components/ScalableCluster3D.jsx';
 import ScalableEnginePage from './components/ScalableEnginePage.jsx';
 import AuditLedgerPanel from './components/AuditLedgerPanel.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
+import { Component as AiLoader } from './components/ui/ai-loader.jsx';
 import './index.css';
+
+const NAV_TRANSITION_METADATA = {
+  landing: {
+    title: 'Overview',
+    colorTheme: 'overview',
+    statusBadge: 'PHYSICAL MATRIX · SYNCHRONIZING',
+    subtext: 'Calibrating topological optics & quantum narrative layers...',
+  },
+  honest: {
+    title: 'Honest Protocol',
+    colorTheme: 'honest',
+    statusBadge: 'BELL STATE CHANNEL · CORRELATING',
+    subtext: 'Establishing correlated EPR pairs & teleportation telemetry...',
+  },
+  attack: {
+    title: 'Attack Lab',
+    colorTheme: 'attack',
+    statusBadge: 'THREAT VECTOR ENGINE · ENGAGING',
+    subtext: 'Configuring adversary signature entities & quantum interception...',
+  },
+  large_scale: {
+    title: 'Scalable Engine',
+    colorTheme: 'scalable',
+    statusBadge: 'PARALLEL QPU CLUSTER · PROVISIONING',
+    subtext: 'Allocating high-dimensional multi-core quantum workload channels...',
+  },
+  scalable: {
+    title: 'Scalable Engine',
+    colorTheme: 'scalable',
+    statusBadge: 'PARALLEL QPU CLUSTER · PROVISIONING',
+    subtext: 'Allocating high-dimensional multi-core quantum workload channels...',
+  },
+  audit: {
+    title: 'Audit Ledger',
+    colorTheme: 'overview',
+    statusBadge: 'MERKLE AUDIT CHAIN · VERIFYING',
+    subtext: 'Indexing cryptographic audit trails & invariant compliance...',
+  },
+  'sign-in': {
+    title: 'Authentication',
+    colorTheme: 'overview',
+    statusBadge: 'SECURITY GATEWAY · CONNECTING',
+    subtext: 'Establishing encrypted zero-knowledge authorization session...',
+  },
+};
 
 // Per-tab & per-attack vector color pattern synchronization for QuantumEntanglementCanvas
 const ATTACK_TO_PILLAR = {
@@ -138,223 +184,173 @@ function AppContent() {
   // color is correct throughout the whole phase sequence, not just at the end.
   const blobThreatAttackType = activeTab === 'attack' ? selectedAttack : null;
 
-  const handleNavigate = useCallback((view) => {
-    if (view === 'landing') {
-      setCurrentView('landing');
-      if (typeof window !== 'undefined' && window.history?.pushState) {
-        window.history.pushState(null, '', '/');
-      }
-    } else if (view === 'sign-in' || view === 'signin' || view === 'login') {
-      setCurrentView('sign-in');
-      if (typeof window !== 'undefined' && window.history?.pushState) {
-        window.history.pushState(null, '', '/sign-in');
-      }
-    } else if (view === 'honest' || view === 'pipeline') {
-      setCurrentView('honest');
-      setActiveData(null);
-      if (typeof window !== 'undefined' && window.history?.pushState) {
-        window.history.pushState(null, '', '?view=honest');
-      }
-    } else if (view === 'large_scale' || view === 'scalable') {
-      setCurrentView('large_scale');
-      setActiveTab('large_scale');
-      if (typeof window !== 'undefined' && window.history?.pushState) {
-        window.history.pushState(null, '', '?view=large_scale');
-      }
-    } else {
-      setCurrentView('operations');
-      setActiveTab(view);
-      if (typeof window !== 'undefined' && window.history?.pushState) {
-        window.history.pushState(null, '', `?view=${view}`);
-      }
+  const currentKey = useMemo(() => {
+    if (currentView === 'sign-in') return 'sign-in';
+    if (currentView === 'landing') return 'landing';
+    if (currentView === 'honest') return 'honest';
+    if (currentView === 'large_scale') return 'large_scale';
+    if (currentView === 'operations') {
+      return activeTab === 'attack' ? 'attack' : 'audit';
     }
-  }, []);
+    return activeTab || 'landing';
+  }, [currentView, activeTab]);
+
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [navMeta, setNavMeta] = useState(NAV_TRANSITION_METADATA.overview);
+
+  const handleNavigate = useCallback((view) => {
+    const normalizedTarget = (
+      view === 'pipeline' ? 'honest' :
+      view === 'scalable' ? 'large_scale' :
+      view === 'operations' ? activeTab :
+      view
+    );
+
+    if (normalizedTarget === currentKey) return;
+
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+    // Step 1: Immediately paint the glassy loading overlay with matching quantum theme
+    const meta = NAV_TRANSITION_METADATA[normalizedTarget] || NAV_TRANSITION_METADATA.overview;
+    setNavMeta(meta);
+    setIsNavigating(true);
+
+    // Step 2: Allow browser to paint the loader on screen in frame 1, then mount page in next tick
+    setTimeout(() => {
+      if (view === 'landing') {
+        setCurrentView('landing');
+        if (typeof window !== 'undefined' && window.history?.pushState) {
+          window.history.pushState(null, '', '/');
+        }
+      } else if (view === 'sign-in' || view === 'signin' || view === 'login') {
+        setCurrentView('sign-in');
+        if (typeof window !== 'undefined' && window.history?.pushState) {
+          window.history.pushState(null, '', '/sign-in');
+        }
+      } else if (view === 'honest' || view === 'pipeline') {
+        setCurrentView('honest');
+        setActiveData(null);
+        if (typeof window !== 'undefined' && window.history?.pushState) {
+          window.history.pushState(null, '', '?view=honest');
+        }
+      } else if (view === 'large_scale' || view === 'scalable') {
+        setCurrentView('large_scale');
+        setActiveTab('large_scale');
+        if (typeof window !== 'undefined' && window.history?.pushState) {
+          window.history.pushState(null, '', '?view=large_scale');
+        }
+      } else {
+        setCurrentView('operations');
+        setActiveTab(view);
+        if (typeof window !== 'undefined' && window.history?.pushState) {
+          window.history.pushState(null, '', `?view=${view}`);
+        }
+      }
+    }, 40);
+  }, [currentKey, activeTab]);
+
+  // Step 3: Page readiness detection - once target page mounts and paints, smoothly dismiss loader
+  useEffect(() => {
+    if (!isNavigating) return;
+
+    // Crisp display duration: holds the revolving animation clearly in between quick entrance & exit
+    const timer = setTimeout(() => {
+      setIsNavigating(false);
+    }, 750);
+
+    return () => clearTimeout(timer);
+  }, [currentKey, isNavigating]);
 
   const handleEnterSOC = useCallback(() => {
     handleNavigate('honest');
   }, [handleNavigate]);
 
-  // View 0: Secure Authentication Page (Stage 13)
-  if (currentView === 'sign-in') {
-    return (
-      <ErrorBoundary title="HyperQDS Authentication Error">
-        <SignInPage 
-          onNavigate={handleNavigate}
-          onLoginSuccess={(user) => {
-            setCurrentUser(user);
-            handleNavigate('honest');
-          }}
-        />
-      </ErrorBoundary>
-    );
-  }
+  const renderActivePage = () => {
+    switch (currentKey) {
+      case 'sign-in':
+        return (
+          <ErrorBoundary title="HyperQDS Authentication Error">
+            <SignInPage 
+              onNavigate={handleNavigate}
+              onLoginSuccess={(user) => {
+                setCurrentUser(user);
+                handleNavigate('honest');
+              }}
+            />
+          </ErrorBoundary>
+        );
 
-  // View 1: Canonical Stitch Landing Page
-  if (currentView === 'landing') {
-    return (
-      <ErrorBoundary title="HyperQDS Landing Page Error">
-        <StitchLandingPage 
-          onEnterSOC={handleEnterSOC}
-          onNavigate={handleNavigate}
-        />
-      </ErrorBoundary>
-    );
-  }
+      case 'landing':
+        return (
+          <ErrorBoundary title="HyperQDS Landing Page Error">
+            <StitchLandingPage 
+              onEnterSOC={handleEnterSOC}
+              onNavigate={handleNavigate}
+            />
+          </ErrorBoundary>
+        );
 
-  // View 2: Canonical Honest QDS Protocol Page (Inheriting Stitch Design System)
-  if (currentView === 'honest') {
-    return (
-      <ErrorBoundary title="HyperQDS Honest Protocol Error">
-        <HonestProtocolPage 
-          onNavigate={handleNavigate}
-          onResultData={setActiveData}
-        />
-      </ErrorBoundary>
-    );
-  }
+      case 'honest':
+        return (
+          <ErrorBoundary title="HyperQDS Honest Protocol Error">
+            <HonestProtocolPage 
+              onNavigate={handleNavigate}
+              onResultData={setActiveData}
+            />
+          </ErrorBoundary>
+        );
 
-  // View 2.5: Canonical Scalable Engine Page (Dedicated High-Density Quantum Console)
-  if (currentView === 'large_scale') {
-    return (
-      <ErrorBoundary title="HyperQDS Scalable Engine Error">
-        <ScalableEnginePage 
-          onNavigate={handleNavigate}
-          onResultData={setActiveData}
-          activeData={activeData}
-        />
-      </ErrorBoundary>
-    );
-  }
+      case 'large_scale':
+        return (
+          <ErrorBoundary title="HyperQDS Scalable Engine Error">
+            <ScalableEnginePage 
+              onNavigate={handleNavigate}
+              onResultData={setActiveData}
+              activeData={activeData}
+            />
+          </ErrorBoundary>
+        );
 
-  // View 3: Operational Command Center (Modules 2, 3, 4)
+      case 'attack':
+        return (
+          <ErrorBoundary title="Attack Lab Error">
+            <AttackLab
+              onNavigate={handleNavigate}
+              onResult={setActiveData}
+              onOperationPhase={setOperationPhase}
+              externalAttack={selectedAttack}
+              externalEntity={selectedEntity}
+              onSelectAttack={handleSelectAttack}
+              onSelectEntity={setSelectedEntity}
+              activeDataProp={activeData}
+            />
+          </ErrorBoundary>
+        );
 
-  // ── Attack Lab: Full-page standalone (replaces split-column layout for tab 02) ──
-  if (activeTab === 'attack') {
-    return (
-      <ErrorBoundary title="Attack Lab Error">
-        <AttackLab
-          onNavigate={handleNavigate}
-          onResult={setActiveData}
-          onOperationPhase={setOperationPhase}
-          externalAttack={selectedAttack}
-          externalEntity={selectedEntity}
-          onSelectAttack={handleSelectAttack}
-          onSelectEntity={setSelectedEntity}
-          activeDataProp={activeData}
-        />
-      </ErrorBoundary>
-    );
-  }
-
-  // ── Audit Ledger: Full-page standalone (first-class HyperQDS Stitch page) ──
-  if (activeTab === 'audit') {
-    return (
-      <ErrorBoundary title="Audit Ledger Error">
-        <AuditLedgerPanel onNavigate={handleNavigate} />
-      </ErrorBoundary>
-    );
-  }
-
-  const activePillar = activeTab === 'large_scale' ? '02' : '01';
-  const activeDimension = activeTab === 'large_scale' ? 3 : 1;
+      case 'audit':
+      default:
+        return (
+          <ErrorBoundary title="Audit Ledger Error">
+            <AuditLedgerPanel onNavigate={handleNavigate} />
+          </ErrorBoundary>
+        );
+    }
+  };
 
   return (
-    <ErrorBoundary title="Quantum SOC Global Error">
-      <div className="soc-container" style={{ background: '#06070a' }}>
-        {/* 3D WebGL Canvas: Single 3D Hero Object Background */}
-        <QuantumEntanglementCanvas activePillar={activePillar} activeDimension={activeDimension} threatAlert={blobThreatAlert} threatAttackType={blobThreatAttackType} isDashboard={true} />
-
-        {/* Canonical Stitch Header */}
-        <StitchHeader activeTab={activeTab} onNavigate={handleNavigate} />
-
-            {/* Dedicated Audit Ledger View (De-cluttered Full-Width) */}
-            {activeTab === 'audit' ? (
-              <main className="soc-audit-deck">
-                <ErrorBoundary title="Audit Ledger Unavailable">
-                  <AuditLedgerPanel />
-                </ErrorBoundary>
-              </main>
-            ) : (
-              /* Primary 2-Column Responsive SOC Operations Grid */
-              <main className="soc-main">
-                {/* Left Column: Interactive Parameters & Control Desks */}
-                <div className="soc-left-column">
-                  <ErrorBoundary title="Interactive Controls Unavailable">
-                    {activeTab === 'pipeline' && (
-                      <ProtocolRunPanel
-                        onResult={setActiveData}
-                        onStageUpdate={setActiveStage}
-                      />
-                    )}
-                    {activeTab === 'large_scale' && (
-                      <LargeScaleSimulationPanel
-                        onResult={setActiveData}
-                        onParamsChange={setLargeScaleParams}
-                      />
-                    )}
-                  </ErrorBoundary>
-
-                  {/* Supporting 3D Visualizer Row (Context-Aware) */}
-                  <div className="visualizations-row">
-                    {activeTab === 'pipeline' && (
-                      <>
-                        <ErrorBoundary title="3D Bloch Sphere Unavailable">
-                          <BlochSphere3D fidelity={fidelity} isAttacked={false} />
-                        </ErrorBoundary>
-                        <ErrorBoundary title="Network Topology Unavailable">
-                          <NetworkTopology3D isAttacked={false} />
-                        </ErrorBoundary>
-                      </>
-                    )}
-
-                    {activeTab === 'large_scale' && (
-                      <>
-                        <ErrorBoundary title="3D Bloch Sphere Unavailable">
-                          <BlochSphere3D fidelity={fidelity} isAttacked={isAttacked} />
-                        </ErrorBoundary>
-                        <ErrorBoundary title="Network Topology Unavailable">
-                          <NetworkTopology3D isAttacked={isAttacked} />
-                        </ErrorBoundary>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right Column: Tab-Specific Primary 3D Animation & Telemetry Desk */}
-                <div className="soc-right-column">
-                  {/* TAB 1 ANIMATION: 4-Stage Quantum Teleportation Signature Journey */}
-                  {activeTab === 'pipeline' && (
-                    <ErrorBoundary title="3D Teleportation Flow Unavailable">
-                      <Teleportation3D
-                        activeStage={activeStage}
-                        isCompromised={isAttacked}
-                      />
-                    </ErrorBoundary>
-                  )}
-
-                  {/* TAB 3 ANIMATION: High-Throughput Quantum Computing Cluster & Parallel Batch Bus */}
-                  {activeTab === 'large_scale' && (
-                    <ErrorBoundary title="3D Scalable Cluster Unavailable">
-                      <ScalableCluster3D
-                        numSamples={largeScaleParams.numSamples}
-                        batchesExecuted={activeData?.sim?.batches_executed || Math.ceil(largeScaleParams.numSamples / 14)}
-                        throughput={activeData?.sim?.samples_per_sec || 450}
-                        attackType={largeScaleParams.attackType}
-                        noiseRate={largeScaleParams.noiseRate}
-                        status={largeScaleParams.status !== 'idle' ? largeScaleParams.status : (activeData ? 'done' : 'idle')}
-                      />
-                    </ErrorBoundary>
-                  )}
-
-                   {/* Continuous Deterministic Verdict & Telemetry Desk */}
-                  <ErrorBoundary title="Telemetry & Verdict Desk Unavailable">
-                    <ResultsCharts data={activeData} />
-                  </ErrorBoundary>
-                </div>
-              </main>
-            )}
+    <>
+      <div className="hqds-page-transition-stage">
+        <div key={currentKey} className="hqds-page-transition-pane">
+          {renderActivePage()}
+        </div>
       </div>
-    </ErrorBoundary>
+
+      <AiLoader
+        visible={isNavigating}
+        size={180}
+        colorTheme={navMeta.colorTheme}
+      />
+    </>
   );
 }
 

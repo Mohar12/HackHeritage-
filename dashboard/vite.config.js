@@ -1,3 +1,4 @@
+import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -6,6 +7,11 @@ const BACKEND_URL = process.env.VITE_BACKEND_URL || process.env.BACKEND_URL || '
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   envDir: '../',
   server: {
     host: '0.0.0.0',

@@ -26,13 +26,14 @@ import StitchHeader from './StitchHeader.jsx';
 import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 import TabCrossFade from './TabCrossFade.jsx';
 import { getAuditLedger } from '../api/client.js';
+import { Activity, ShieldCheck, TriangleAlert, Link2, RefreshCw } from 'lucide-react';
 
 const FILTER_TABS = [
-  { id: 'all', label: 'ALL EVENTS' },
-  { id: 'protocol', label: 'PROTOCOL' },
-  { id: 'attacks', label: 'ATTACKS' },
-  { id: 'scalable', label: 'SCALABLE' },
-  { id: 'security', label: 'SECURITY' },
+  { id: 'all', label: 'ALL EVENTS', accent: '#22d3ee' },
+  { id: 'protocol', label: 'PROTOCOL', accent: '#38bdf8' },
+  { id: 'attacks', label: 'ATTACKS', accent: '#fb7185' },
+  { id: 'scalable', label: 'SCALABLE', accent: '#c084fc' },
+  { id: 'security', label: 'SECURITY', accent: '#34d399' },
 ];
 
 /**
@@ -297,57 +298,247 @@ function ProvenanceNode({
 
 /**
  * Subcomponent: CryptographicInvariant
- * Dedicated mathematical formula presentation with mathematical notation and 3 architectural principles.
+ * Vertical, educational cryptographic proof and invariant module decomposing SHA3-512 record immutability.
  */
 function CryptographicInvariant() {
   return (
-    <div className="hqds-audit-invariant-section hqds-reveal" style={{ '--reveal-delay': '160ms' }}>
-      {/* Mathematical Invariant Formula Card */}
-      <div className="hqds-audit-formula-panel">
-        <span className="hqds-audit-formula-eyebrow">CRYPTOGRAPHIC INVARIANT</span>
-        <div className="hqds-audit-formula-body">
-          <span className="hqds-audit-formula-target">ENTRY_HASH[n]</span>
-          <span className="hqds-audit-formula-eq">=</span>
-          <span className="hqds-audit-formula-func">SHA3-512</span>
-          <span className="hqds-audit-formula-paren">(</span>
-          <div className="hqds-audit-formula-terms">
-            <span className="hqds-audit-formula-term">PREV_HASH</span>
-            <span className="hqds-audit-formula-join">∥</span>
-            <span className="hqds-audit-formula-term">EVENT_PAYLOAD</span>
-            <span className="hqds-audit-formula-join">∥</span>
-            <span className="hqds-audit-formula-term">NODE_HASH</span>
-            <span className="hqds-audit-formula-join">∥</span>
-            <span className="hqds-audit-formula-term">TIMESTAMP</span>
+    <div className="hqds-audit-invariant-section" role="region" aria-label="Cryptographic invariant proof module">
+      {/* 1. Section Header */}
+      <div className="hqds-invariant-header hqds-reveal" style={{ '--reveal-delay': '40ms' }}>
+        <span className="hqds-invariant-eyebrow">CRYPTOGRAPHIC INVARIANT</span>
+        <h3 className="hqds-invariant-title">How Each Audit Record Becomes Immutable</h3>
+        <p className="hqds-invariant-lead">
+          Every committed event derives its cryptographic identity from the previous record, event payload, hardware node identity, and timestamp. Changing any component produces a different digest and breaks the verified sequence.
+        </p>
+      </div>
+
+      {/* 2. Visual Formula Pipeline Decomposition */}
+      <div className="hqds-invariant-pipeline-deck hqds-reveal" style={{ '--reveal-delay': '80ms' }}>
+        <div className="hqds-invariant-pipeline-heading-row">
+          <span className="hqds-invariant-pipeline-tag">CRYPTOGRAPHIC CONSTRUCTION</span>
+          <span className="hqds-invariant-pipeline-subtitle">Sequential Pipeline Decomposition</span>
+        </div>
+
+        <div className="hqds-invariant-pipeline" aria-label="Cryptographic construction pipeline">
+          {/* Component 01: PREVIOUS HASH */}
+          <div className="hqds-invariant-step-card">
+            <div className="hqds-invariant-step-meta">
+              <span className="hqds-invariant-step-num">01</span>
+              <span className="hqds-invariant-step-token">PREV_HASH</span>
+            </div>
+            <div className="hqds-invariant-step-content">
+              <h4 className="hqds-invariant-step-name">PREVIOUS HASH</h4>
+              <p className="hqds-invariant-step-desc">The digest of the preceding audit record.</p>
+            </div>
           </div>
-          <span className="hqds-audit-formula-paren">)</span>
+
+          {/* Connector 1 */}
+          <div className="hqds-invariant-connector" aria-hidden="true">
+            <div className="hqds-invariant-connector-line" />
+            <svg className="hqds-invariant-connector-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 2V10M6 10L3 7M6 10L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* Component 02: EVENT PAYLOAD */}
+          <div className="hqds-invariant-step-card">
+            <div className="hqds-invariant-step-meta">
+              <span className="hqds-invariant-step-num">02</span>
+              <span className="hqds-invariant-step-token">EVENT_PAYLOAD</span>
+            </div>
+            <div className="hqds-invariant-step-content">
+              <h4 className="hqds-invariant-step-name">EVENT PAYLOAD</h4>
+              <p className="hqds-invariant-step-desc">The cryptographic representation of the committed operation.</p>
+            </div>
+          </div>
+
+          {/* Connector 2 */}
+          <div className="hqds-invariant-connector" aria-hidden="true">
+            <div className="hqds-invariant-connector-line" />
+            <svg className="hqds-invariant-connector-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 2V10M6 10L3 7M6 10L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* Component 03: NODE ATTESTATION */}
+          <div className="hqds-invariant-step-card">
+            <div className="hqds-invariant-step-meta">
+              <span className="hqds-invariant-step-num">03</span>
+              <span className="hqds-invariant-step-token">NODE_HASH</span>
+            </div>
+            <div className="hqds-invariant-step-content">
+              <h4 className="hqds-invariant-step-name">NODE ATTESTATION</h4>
+              <p className="hqds-invariant-step-desc">The hardware/node identity associated with the recorded event.</p>
+            </div>
+          </div>
+
+          {/* Connector 3 */}
+          <div className="hqds-invariant-connector" aria-hidden="true">
+            <div className="hqds-invariant-connector-line" />
+            <svg className="hqds-invariant-connector-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 2V10M6 10L3 7M6 10L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* Component 04: TIMESTAMP */}
+          <div className="hqds-invariant-step-card">
+            <div className="hqds-invariant-step-meta">
+              <span className="hqds-invariant-step-num">04</span>
+              <span className="hqds-invariant-step-token">TIMESTAMP</span>
+            </div>
+            <div className="hqds-invariant-step-content">
+              <h4 className="hqds-invariant-step-name">TIMESTAMP</h4>
+              <p className="hqds-invariant-step-desc">The temporal state associated with the commitment.</p>
+            </div>
+          </div>
+
+          {/* Connector 4 */}
+          <div className="hqds-invariant-connector" aria-hidden="true">
+            <div className="hqds-invariant-connector-line" />
+            <svg className="hqds-invariant-connector-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 2V10M6 10L3 7M6 10L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* SHA3-512 Visual Centerpiece */}
+          <div className="hqds-invariant-centerpiece">
+            <div className="hqds-invariant-centerpiece-glow" aria-hidden="true" />
+            <div className="hqds-invariant-centerpiece-badge">POST-QUANTUM PRIMITIVE</div>
+            <h4 className="hqds-invariant-centerpiece-title">SHA3-512</h4>
+            <span className="hqds-invariant-centerpiece-sub">Deterministic digest generation</span>
+            <p className="hqds-invariant-centerpiece-desc">
+              All inputs are combined into a fixed cryptographic digest. Any modification changes the resulting hash.
+            </p>
+          </div>
+
+          {/* Connector 5 */}
+          <div className="hqds-invariant-connector" aria-hidden="true">
+            <div className="hqds-invariant-connector-line" />
+            <svg className="hqds-invariant-connector-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 2V10M6 10L3 7M6 10L9 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* Result: ENTRY_HASH[n] */}
+          <div className="hqds-invariant-result-card">
+            <div className="hqds-invariant-result-meta">
+              <span className="hqds-invariant-result-dot" aria-hidden="true" />
+              <span className="hqds-invariant-result-tag">IMMUTABLE RECORD DIGEST</span>
+            </div>
+            <div className="hqds-invariant-result-token">ENTRY_HASH[n]</div>
+            <p className="hqds-invariant-result-desc">
+              Deterministic 512-bit state commitment sealed into the irreversible ledger sequence.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* 3 Architectural Principles with Vertical Separators */}
-      <div className="hqds-audit-principles-grid">
-        <div className="hqds-audit-principle-col">
-          <span className="hqds-audit-principle-index">01 / SEQUENTIAL LINKAGE</span>
-          <p className="hqds-audit-principle-desc">
-            Each block embeds predecessor state digest, binding historical telemetry into an immutable unidirectional sequence.
+      {/* 3. Formal Construction Panel */}
+      <div className="hqds-invariant-formal-panel hqds-reveal" style={{ '--reveal-delay': '120ms' }}>
+        <div className="hqds-invariant-formal-header">
+          <div className="hqds-invariant-formal-tag-group">
+            <span className="hqds-invariant-formal-tag">FORMAL CONSTRUCTION</span>
+            <span className="hqds-invariant-formal-sub">Mathematical Invariant Specification</span>
+          </div>
+          <div className="hqds-invariant-op-pill" title="Deterministic concatenation operator">
+            <code className="hqds-invariant-op-symbol">||</code>
+            <span className="hqds-invariant-op-eq">=</span>
+            <span className="hqds-invariant-op-text">concatenation</span>
+          </div>
+        </div>
+
+        <div className="hqds-invariant-formula-code" role="region" aria-label="Formal cryptographic invariant formula">
+          <div className="hqds-formula-line">
+            <span className="hqds-formula-target">ENTRY_HASH[n]</span>
+            <span className="hqds-formula-eq"> =</span>
+          </div>
+          <div className="hqds-formula-line">
+            <span className="hqds-formula-func">SHA3-512</span>
+            <span className="hqds-formula-paren">(</span>
+          </div>
+          <div className="hqds-formula-line hqds-formula-indent">
+            <span className="hqds-formula-term">PREV_HASH</span>
+          </div>
+          <div className="hqds-formula-line hqds-formula-indent">
+            <span className="hqds-formula-join">|| </span>
+            <span className="hqds-formula-term">EVENT_PAYLOAD</span>
+          </div>
+          <div className="hqds-formula-line hqds-formula-indent">
+            <span className="hqds-formula-join">|| </span>
+            <span className="hqds-formula-term">NODE_HASH</span>
+          </div>
+          <div className="hqds-formula-line hqds-formula-indent">
+            <span className="hqds-formula-join">|| </span>
+            <span className="hqds-formula-term">TIMESTAMP</span>
+          </div>
+          <div className="hqds-formula-line">
+            <span className="hqds-formula-paren">)</span>
+          </div>
+        </div>
+
+        <div className="hqds-invariant-formal-footer">
+          <div className="hqds-invariant-op-legend">
+            <span className="hqds-invariant-legend-badge">||</span>
+            <span className="hqds-invariant-legend-text">
+              The inputs are joined in a deterministic order before hashing.
+            </span>
+          </div>
+          <p className="hqds-invariant-formal-clause">
+            Each record depends on the cryptographic state of its predecessor. A modified payload, node identity, timestamp, or previous hash produces a different digest.
+          </p>
+        </div>
+      </div>
+
+      {/* 4. Three Cryptographic Guarantees (Vertical Stack) */}
+      <div className="hqds-invariant-guarantees-section hqds-reveal" style={{ '--reveal-delay': '160ms' }}>
+        <div className="hqds-invariant-guarantees-header">
+          <span className="hqds-invariant-guarantees-eyebrow">MATHEMATICAL VERIFICATION</span>
+          <h4 className="hqds-invariant-guarantees-title">Cryptographic Guarantees</h4>
+          <p className="hqds-invariant-guarantees-sub">
+            Three foundational properties enforced on every transaction by the invariant construction.
           </p>
         </div>
 
-        <div className="hqds-audit-principle-divider" aria-hidden="true" />
+        <div className="hqds-invariant-guarantees-stack">
+          {/* Guarantee 01 */}
+          <div className="hqds-invariant-guarantee-item">
+            <div className="hqds-invariant-guarantee-idx">01</div>
+            <div className="hqds-invariant-guarantee-body">
+              <span className="hqds-invariant-guarantee-tag">ORDERED INTEGRITY</span>
+              <h5 className="hqds-invariant-guarantee-heading">SEQUENTIAL LINKAGE</h5>
+              <p className="hqds-invariant-guarantee-desc">
+                Each record references the cryptographic state of the preceding record, creating an ordered dependency across the ledger.
+              </p>
+            </div>
+          </div>
 
-        <div className="hqds-audit-principle-col">
-          <span className="hqds-audit-principle-index">02 / NODE ATTESTATION</span>
-          <p className="hqds-audit-principle-desc">
-            Hardware-level node signatures cryptographically seal physical quantum device origins to recorded measurement events.
-          </p>
-        </div>
+          <div className="hqds-invariant-guarantee-hr" aria-hidden="true" />
 
-        <div className="hqds-audit-principle-divider" aria-hidden="true" />
+          {/* Guarantee 02 */}
+          <div className="hqds-invariant-guarantee-item">
+            <div className="hqds-invariant-guarantee-idx">02</div>
+            <div className="hqds-invariant-guarantee-body">
+              <span className="hqds-invariant-guarantee-tag">EXECUTION CONTEXT</span>
+              <h5 className="hqds-invariant-guarantee-heading">NODE ATTESTATION</h5>
+              <p className="hqds-invariant-guarantee-desc">
+                The recorded node identity is incorporated into the cryptographic state, binding the event to its originating execution context.
+              </p>
+            </div>
+          </div>
 
-        <div className="hqds-audit-principle-col">
-          <span className="hqds-audit-principle-index">03 / NON-REPUDIATION</span>
-          <p className="hqds-audit-principle-desc">
-            Quantum physical non-cloning bounds prevent falsification, retroactive tampering, or signature repudiation.
-          </p>
+          <div className="hqds-invariant-guarantee-hr" aria-hidden="true" />
+
+          {/* Guarantee 03 */}
+          <div className="hqds-invariant-guarantee-item">
+            <div className="hqds-invariant-guarantee-idx">03</div>
+            <div className="hqds-invariant-guarantee-body">
+              <span className="hqds-invariant-guarantee-tag">IRREVERSIBLE COMMITMENT</span>
+              <h5 className="hqds-invariant-guarantee-heading">NON-REPUDIATION</h5>
+              <p className="hqds-invariant-guarantee-desc">
+                Changing committed event data invalidates the resulting digest and breaks the verified cryptographic sequence.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -456,6 +647,7 @@ export default function AuditLedgerPanel({ onNavigate }) {
   const [activeAuditSection, setActiveAuditSection] = useState('audit-hero');
   const [chainWindowStart, setChainWindowStart] = useState(0);
   const [copiedHashKey, setCopiedHashKey] = useState(null);
+  const [selectedRowId, setSelectedRowId] = useState(null);
   const [revealReady, setRevealReady] = useState(false);
   const revealObserverRef = useRef(null);
   const pendingSectionRef = useRef(null);
@@ -697,7 +889,7 @@ export default function AuditLedgerPanel({ onNavigate }) {
       sectionObserver.observe(section);
     });
 
-    const revealElements = document.querySelectorAll('.hqds-audit-page-body .hqds-reveal');
+    const revealElements = document.querySelectorAll('.hqds-audit-page-body .hqds-reveal, .hqds-audit-page-body [data-audit-reveal]');
     revealElements.forEach(registerRevealElement);
 
     // MutationObserver: dynamically catches any newly rendered reveal elements (e.g. chain nodes on data load or pagination)
@@ -708,11 +900,11 @@ export default function AuditLedgerPanel({ onNavigate }) {
         mutations.forEach((mutation) => {
           mutation.addedNodes.forEach((node) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
-              if (node.classList?.contains('hqds-reveal')) {
+              if (node.classList?.contains('hqds-reveal') || node.hasAttribute?.('data-audit-reveal')) {
                 registerRevealElement(node);
               }
               if (node.querySelectorAll) {
-                node.querySelectorAll('.hqds-reveal').forEach(registerRevealElement);
+                node.querySelectorAll('.hqds-reveal, [data-audit-reveal]').forEach(registerRevealElement);
               }
             }
           });
@@ -755,7 +947,7 @@ export default function AuditLedgerPanel({ onNavigate }) {
   // Stage 7.1 Dynamic Content Safety: observe newly mounted chain nodes / records on state changes
   useEffect(() => {
     if (!revealReady || !revealObserverRef.current) return;
-    const elements = document.querySelectorAll('.hqds-audit-page-body .hqds-reveal');
+    const elements = document.querySelectorAll('.hqds-audit-page-body .hqds-reveal, .hqds-audit-page-body [data-audit-reveal]');
     elements.forEach((el) => {
       revealObserverRef.current.observe(el);
       const rect = el.getBoundingClientRect();
@@ -786,8 +978,11 @@ export default function AuditLedgerPanel({ onNavigate }) {
     // 03. Attack events
     const attackEvents = list.filter(isAttackRecord).length;
 
-    // 04. Chain integrity status
-    const chainIntegrity = totalCount > 0 ? 'VERIFIED' : 'STANDBY';
+    // 04. Chain integrity status (Prompt Section 3 & 25: 99.8% or derived percentage)
+    const aborts = list.filter((r) => r?.recommended_action === 'ABORT').length;
+    const chainIntegrity = totalCount > 0
+      ? `${(((totalCount - aborts) / totalCount) * 100).toFixed(1)}%`
+      : '100.0%';
 
     return {
       totalEvents: totalCount,
@@ -1175,7 +1370,7 @@ export default function AuditLedgerPanel({ onNavigate }) {
           }`}
           aria-labelledby="audit-table-heading"
         >
-          <header className="hqds-audit-section-header is-centered hqds-reveal" style={{ '--reveal-delay': '0ms' }}>
+          <header className="hqds-audit-section-header is-centered hqds-reveal" style={{ '--reveal-delay': '0ms' }} data-audit-reveal>
             <span className="hqds-audit-section-eyebrow">03 · CHRONOLOGICAL EVENT STREAM</span>
             <h2 id="audit-table-heading" className="hqds-audit-section-title">
               Post-Quantum Cryptographic Records
@@ -1215,13 +1410,127 @@ export default function AuditLedgerPanel({ onNavigate }) {
             </svg>
           </div>
 
-          {/* Glassy Audit Ledger Control / Navigation Layer */}
+          {/* Top Metric Strip: Centered Telemetry Instrument Cluster + Independent Right Refresh Control */}
+          <div className="audit-ledger-metrics-strip hqds-reveal" style={{ '--reveal-delay': '30ms' }} data-audit-reveal>
+            {/* Left balance spacer: ensures metric grid is mathematically centered */}
+            <div className="audit-ledger-metrics-spacer" aria-hidden="true" />
+
+            {/* Centered Telemetry Instrument Cluster */}
+            <div className="audit-ledger-metrics-grid" role="region" aria-label="Cryptographic Audit Summary Telemetry">
+              {/* TOTAL EVENTS */}
+              <div className="audit-ledger-metric-module is-total hqds-cursor-light" onMouseMove={handleButtonMouseMove}>
+                <div className="audit-ledger-metric-icon" aria-hidden="true">
+                  <Activity size={16} strokeWidth={2} />
+                </div>
+                <div className="audit-ledger-metric-content">
+                  <div className="audit-ledger-metric-value">{stats.totalEvents}</div>
+                  <div className="audit-ledger-metric-label">Total Events</div>
+                </div>
+                <div className="audit-ledger-metric-spark" aria-hidden="true">
+                  <span style={{ height: '7px' }} />
+                  <span style={{ height: '14px' }} />
+                  <span style={{ height: '9px' }} />
+                  <span style={{ height: '17px' }} />
+                  <span style={{ height: '11px' }} />
+                </div>
+              </div>
+
+              {/* VERIFIED */}
+              <div className="audit-ledger-metric-module is-verified hqds-cursor-light" onMouseMove={handleButtonMouseMove}>
+                <div className="audit-ledger-metric-icon" aria-hidden="true">
+                  <ShieldCheck size={16} strokeWidth={2} />
+                </div>
+                <div className="audit-ledger-metric-content">
+                  <div className="audit-ledger-metric-value">{stats.verifiedSecure}</div>
+                  <div className="audit-ledger-metric-label">Verified</div>
+                </div>
+                <div className="audit-ledger-metric-spark" aria-hidden="true">
+                  <span style={{ height: '9px' }} />
+                  <span style={{ height: '16px' }} />
+                  <span style={{ height: '11px' }} />
+                  <span style={{ height: '18px' }} />
+                  <span style={{ height: '8px' }} />
+                </div>
+              </div>
+
+              {/* ATTACK EVENTS */}
+              <div className="audit-ledger-metric-module is-attack hqds-cursor-light" onMouseMove={handleButtonMouseMove}>
+                <div className="audit-ledger-metric-icon" aria-hidden="true">
+                  <TriangleAlert size={16} strokeWidth={2} />
+                </div>
+                <div className="audit-ledger-metric-content">
+                  <div className="audit-ledger-metric-value">{stats.attackEvents}</div>
+                  <div className="audit-ledger-metric-label">Attack Events</div>
+                </div>
+                <div className="audit-ledger-metric-spark" aria-hidden="true">
+                  <span style={{ height: '6px' }} />
+                  <span style={{ height: '13px' }} />
+                  <span style={{ height: '8px' }} />
+                  <span style={{ height: '16px' }} />
+                  <span style={{ height: '10px' }} />
+                </div>
+              </div>
+
+              {/* CHAIN INTEGRITY */}
+              <div className="audit-ledger-metric-module is-chain hqds-cursor-light" onMouseMove={handleButtonMouseMove}>
+                <div className="audit-ledger-metric-icon" aria-hidden="true">
+                  <Link2 size={16} strokeWidth={2} />
+                </div>
+                <div className="audit-ledger-metric-content">
+                  <div className="audit-ledger-metric-value">{stats.chainIntegrity}</div>
+                  <div className="audit-ledger-metric-label">Chain Integrity</div>
+                </div>
+                <div className="audit-ledger-metric-spark" aria-hidden="true">
+                  <span style={{ height: '10px' }} />
+                  <span style={{ height: '17px' }} />
+                  <span style={{ height: '13px' }} />
+                  <span style={{ height: '18px' }} />
+                  <span style={{ height: '12px' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Independent Right Refresh Control: Compact Icon-Only on Desktop */}
+            <div className="audit-ledger-refresh-wrap">
+              <button
+                type="button"
+                className="audit-ledger-refresh-btn hqds-cursor-light"
+                onClick={fetchLedger}
+                disabled={loading}
+                onMouseMove={handleButtonMouseMove}
+                aria-label="Refresh Cryptographic Ledger"
+                title="Refresh Cryptographic Ledger"
+              >
+                <RefreshCw
+                  className={`audit-ledger-refresh-icon ${loading ? 'is-spinning' : ''}`}
+                  size={15}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Symmetrical Three-Zone Navigation & Status Row */}
           <div
-            className="hqds-audit-toolbar hqds-reveal"
+            className="hqds-audit-toolbar audit-hero-nav-row hqds-reveal"
             style={{ '--reveal-delay': '60ms' }}
+            data-audit-reveal
           >
-            {/* Left: Pill Navigation Filters */}
-            <div className="hqds-audit-pills" role="tablist" aria-label="Audit filter views">
+            {/* Zone 1 (Left): SYNCED Status */}
+            <div className="audit-sync-status" aria-label="Last synchronization timestamp">
+              <span className="audit-sync-label">SYNCED</span>
+              <span className="audit-sync-val">
+                {lastRefreshed ? lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--'}
+              </span>
+            </div>
+
+            {/* Zone 2 (Center): Mathematically Centered Filter Navigation */}
+            <nav
+              className="hqds-audit-subnav-capsule hqds-audit-filter-capsule audit-section-nav"
+              role="tablist"
+              aria-label="Audit event filter views"
+            >
               {FILTER_TABS.map((tab) => {
                 const isActive = activeFilter === tab.id;
                 const count = filterCounts[tab.id] ?? 0;
@@ -1231,266 +1540,289 @@ export default function AuditLedgerPanel({ onNavigate }) {
                     type="button"
                     role="tab"
                     aria-selected={isActive}
-                    className={`hqds-audit-pill hqds-cursor-light ${isActive ? 'is-active' : ''}`}
-                    onMouseMove={handleButtonMouseMove}
+                    className={`hqds-audit-subnav-item ${isActive ? 'is-active' : ''}`}
+                    style={{ '--audit-accent': tab.accent }}
                     onClick={() => setActiveFilter(tab.id)}
+                    aria-label={`Filter by ${tab.label}`}
                   >
-                    <span className="hqds-audit-pill-glow" aria-hidden="true" />
-                    {isActive && <span className="hqds-audit-pill-dot" aria-hidden="true" />}
-                    <span className="hqds-audit-pill-label">{tab.label}</span>
-                    <span className={`hqds-audit-pill-badge ${isActive ? 'is-active' : ''}`}>
-                      {count}
-                    </span>
+                    <span className="hqds-audit-subnav-label">{tab.label}</span>
+                    <span className="hqds-audit-subnav-index">{count}</span>
                   </button>
                 );
               })}
-            </div>
+            </nav>
 
-            {/* Right: Live Telemetry Metadata Cluster */}
-            <div className="hqds-audit-telemetry-cluster" aria-label="Live ledger telemetry status">
-              <div className="hqds-audit-telemetry-item">
-                <span className="hqds-audit-telemetry-label">TOTAL EVENTS</span>
-                <span className="hqds-audit-telemetry-val">{records.length}</span>
-              </div>
-              <div className="hqds-audit-telemetry-divider" aria-hidden="true">/</div>
-              <div className="hqds-audit-telemetry-item">
-                <span className="hqds-audit-telemetry-label">LAST SYNC</span>
-                <span className="hqds-audit-telemetry-val">
-                  {lastRefreshed ? lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--'}
-                </span>
-              </div>
-              <div className="hqds-audit-telemetry-divider" aria-hidden="true">/</div>
-              <div className="hqds-audit-telemetry-live">
-                <span className="hqds-audit-live-dot" aria-hidden="true" />
-                <span className="hqds-audit-live-label">LIVE</span>
-              </div>
+            {/* Zone 3 (Right): LIVE 10s Status */}
+            <div className="audit-live-status" aria-label="Live polling telemetry status">
+              <span className="audit-live-dot" aria-hidden="true" />
+              <span className="audit-live-label">LIVE 10s</span>
             </div>
           </div>
 
           {/* Monolithic Glassmorphism Ledger Surface with TabCrossFade (Deck reveals as one unit) */}
-          <div className="hqds-audit-deck-wrap hqds-reveal" style={{ '--reveal-delay': '120ms' }}>
-            <TabCrossFade activeKey={activeFilter} duration={320} className="hqds-audit-crossfade">
+          <div className="hqds-audit-deck-wrap hqds-reveal" style={{ '--reveal-delay': '90ms' }} data-audit-reveal>
+            <TabCrossFade activeKey={activeFilter} duration={260} className="hqds-audit-crossfade">
               <div className="hqds-audit-deck">
                 <div className="hqds-audit-table-wrap">
                   <table className="hqds-audit-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">RECORD</th>
-                      <th scope="col">TIME</th>
-                      <th scope="col">ORIGIN</th>
-                      <th scope="col">TARGET</th>
-                      <th scope="col">EVENT</th>
-                      <th scope="col">SESSION</th>
-                      <th scope="col">QBER</th>
-                      <th scope="col">FIDELITY</th>
-                      <th scope="col">ACTION</th>
-                      <th scope="col">ENTRY HASH</th>
-                      <th scope="col">NODE HASH</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading && (!Array.isArray(records) || records.length === 0) ? (
-                      /* Polished Cryptographic Loading State */
+                    <thead>
                       <tr>
-                        <td colSpan="11" className="hqds-audit-loading-cell">
-                          <div className="hqds-audit-loading-inner">
-                            <div className="hqds-audit-loading-scanner" aria-hidden="true">
-                              <div className="hqds-audit-loading-laser" />
-                            </div>
-                            <div className="hqds-audit-loading-title">
-                              SYNCING IMMUTABLE LEDGER
-                            </div>
-                            <div className="hqds-audit-loading-sub">
-                              Connecting to quantum telemetry bus and verifying Merkle block continuity...
-                            </div>
-                          </div>
-                        </td>
+                        <th scope="col">RECORD</th>
+                        <th scope="col">TIME</th>
+                        <th scope="col">ORIGIN</th>
+                        <th scope="col">TARGET</th>
+                        <th scope="col">EVENT</th>
+                        <th scope="col">SESSION</th>
+                        <th scope="col">QBER</th>
+                        <th scope="col">FIDELITY</th>
+                        <th scope="col">ACTION</th>
+                        <th scope="col">ENTRY HASH</th>
+                        <th scope="col">NODE HASH</th>
                       </tr>
-                    ) : filteredRecords.length === 0 ? (
-                      /* Polished Glass Empty State (Dynamically Styled per Filter Category) */
-                      <tr>
-                        <td colSpan="11" className="hqds-audit-empty-cell">
-                          <div className="hqds-audit-empty-inner">
-                            <div className="hqds-audit-empty-icon" aria-hidden="true">
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                                <line x1="12" y1="22.08" x2="12" y2="12" />
-                              </svg>
+                    </thead>
+                    <tbody>
+                      {loading && (!Array.isArray(records) || records.length === 0) ? (
+                        /* Polished Cryptographic Loading State */
+                        <tr>
+                          <td colSpan="11" className="hqds-audit-loading-cell">
+                            <div className="hqds-audit-loading-inner">
+                              <div className="hqds-audit-loading-scanner" aria-hidden="true">
+                                <div className="hqds-audit-loading-laser" />
+                              </div>
+                              <div className="hqds-audit-loading-title">
+                                SYNCING IMMUTABLE LEDGER
+                              </div>
+                              <div className="hqds-audit-loading-sub">
+                                Connecting to quantum telemetry bus and verifying Merkle block continuity...
+                              </div>
                             </div>
-                            <div className="hqds-audit-empty-title">
-                              {emptyContent.title}
-                            </div>
-                            <div className="hqds-audit-empty-desc">
-                              {emptyContent.desc}
-                            </div>
-                            <div className="hqds-audit-empty-hint">
-                              {emptyContent.hint}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredRecords.map((rec, idx) => {
-                      if (!rec) return null;
-                      const recId = rec.record_id || `aud-${idx + 1}`;
-                      const evType = rec.event_type || 'UNKNOWN';
-                      const sessId = rec.session_id || '--';
-                      const srcTab = rec.source_tab || (
-                        evType === 'ATTACK_SIMULATION' ? 'Tab 2: Adversarial Attack Laboratory' :
-                        evType === 'SIMULATION_RUN' ? 'Tab 1: Honest QDS Protocol Pipeline' :
-                        evType === 'KEY_EXCHANGE' || evType === 'SIGNATURE_GEN' || evType === 'VERIFICATION' ? 'Tab 1: Honest QDS Protocol Pipeline' :
-                        'Operations Control'
-                      );
-                      const targetEnt = rec.target_entity || (
-                        evType === 'ATTACK_SIMULATION' ? 'Digital Signature Asset' :
-                        evType === 'KEY_EXCHANGE' ? 'Alice-Bob-Charlie Bell Pairs' :
-                        evType === 'VERIFICATION' ? 'Signed Quantum Payload' :
-                        'QDS Quantum State Pipeline'
-                      );
-
-                      const rawQber = Number.isFinite(rec.qber) ? rec.qber : null;
-                      const rawFid = Number.isFinite(rec.fidelity) ? rec.fidelity : null;
-                      const qberVal = rawQber !== null ? `${(rawQber * 100).toFixed(2)}%` : '--';
-                      const fidVal = rawFid !== null ? `${(rawFid * 100).toFixed(1)}%` : '--';
-
-                      const actionVal = rec.recommended_action || 'NONE';
-                      const entryHash = typeof rec.record_hash === 'string' ? rec.record_hash : '0000000000000000';
-                      const nodeHash = typeof rec.node_id_hash === 'string' ? rec.node_id_hash : '00000000';
-                      const timeStr = rec.timestamp ? new Date(rec.timestamp * 1000).toLocaleTimeString() : '--';
-
-                      // Compact origin pill classification
-                      let tabOriginClass = 'origin-generic';
-                      let tabOriginLabel = srcTab;
-                      if (srcTab.includes('Tab 1')) {
-                        tabOriginClass = 'origin-pipeline';
-                        tabOriginLabel = '01 Honest Pipeline';
-                      } else if (srcTab.includes('Tab 2')) {
-                        tabOriginClass = 'origin-attack';
-                        tabOriginLabel = '02 Attack Lab';
-                      } else if (srcTab.includes('Tab 3')) {
-                        tabOriginClass = 'origin-scale';
-                        tabOriginLabel = '03 Scalable Engine';
-                      }
-
-                      // QBER micro-meter width and hue
-                      const qberPct = rawQber !== null ? Math.min(100, Math.max(0, rawQber * 100 * 3)) : 0;
-                      const qberMeterClass = rawQber !== null ? (rawQber > 0.11 ? 'meter-danger' : rawQber > 0.05 ? 'meter-warn' : 'meter-good') : '';
-
-                      // Fidelity micro-meter width and hue
-                      const fidPct = rawFid !== null ? Math.min(100, Math.max(0, rawFid * 100)) : 0;
-                      const fidMeterClass = rawFid !== null ? (rawFid >= 0.90 ? 'meter-good' : rawFid >= 0.75 ? 'meter-warn' : 'meter-danger') : '';
-
-                      return (
-                        <tr key={recId} className={`row-${evType.toLowerCase()}`}>
-                          {/* RECORD */}
-                          <td className="hqds-audit-seq-cell">
-                            <span className="hqds-audit-mono-seq">{recId}</span>
-                          </td>
-
-                          {/* TIME */}
-                          <td className="hqds-audit-time-cell">
-                            <span className="hqds-audit-mono-time">{timeStr}</span>
-                          </td>
-
-                          {/* ORIGIN */}
-                          <td className="hqds-audit-origin-cell">
-                            <span className={`hqds-audit-pill-origin ${tabOriginClass}`} title={srcTab}>
-                              {tabOriginLabel}
-                            </span>
-                          </td>
-
-                          {/* TARGET */}
-                          <td className="hqds-audit-target-cell">
-                            <span className="hqds-audit-target-label" title={targetEnt}>
-                              <svg className="hqds-audit-target-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <circle cx="12" cy="12" r="10" />
-                                <line x1="22" y1="12" x2="18" y2="12" />
-                                <line x1="6" y1="12" x2="2" y2="12" />
-                                <line x1="12" y1="6" x2="12" y2="2" />
-                                <line x1="12" y1="22" x2="12" y2="18" />
-                              </svg>
-                              <span className="hqds-audit-target-text">
-                                {targetEnt.length > 24 ? `${targetEnt.slice(0, 22)}...` : targetEnt}
-                              </span>
-                            </span>
-                          </td>
-
-                          {/* EVENT */}
-                          <td className="hqds-audit-event-cell">
-                            <span className={`hqds-audit-event-pill badge-${evType.toLowerCase()}`}>
-                              {evType}
-                            </span>
-                          </td>
-
-                          {/* SESSION */}
-                          <td className="hqds-audit-session-cell" title={`Session ID: ${sessId}`}>
-                            <span className="hqds-audit-mono-sess">
-                              {sessId.length > 14 ? `${sessId.slice(0, 12)}..` : sessId}
-                            </span>
-                          </td>
-
-                          {/* QBER (with aligned number + micro-meter) */}
-                          <td className="hqds-audit-metric-cell">
-                            <div className="hqds-audit-meter-wrap">
-                              <span className="hqds-audit-metric-val">{qberVal}</span>
-                              {rawQber !== null && (
-                                <div className="hqds-audit-micro-track">
-                                  <div
-                                    className={`hqds-audit-micro-bar ${qberMeterClass}`}
-                                    style={{ width: `${qberPct}%` }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* FIDELITY (with aligned number + micro-meter) */}
-                          <td className="hqds-audit-metric-cell">
-                            <div className="hqds-audit-meter-wrap">
-                              <span className="hqds-audit-metric-val">{fidVal}</span>
-                              {rawFid !== null && (
-                                <div className="hqds-audit-micro-track">
-                                  <div
-                                    className={`hqds-audit-micro-bar ${fidMeterClass}`}
-                                    style={{ width: `${fidPct}%` }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* ACTION */}
-                          <td className="hqds-audit-action-cell">
-                            <span className={`hqds-audit-action-pill action-${actionVal.toLowerCase()}`}>
-                              {actionVal}
-                            </span>
-                          </td>
-
-                          {/* ENTRY HASH */}
-                          <td className="hqds-audit-hash-cell" title={`Full Entry Hash: ${entryHash}`}>
-                            <span className="hqds-audit-hash-text">
-                              {entryHash.length >= 14 ? `${entryHash.slice(0, 7)}...${entryHash.slice(-5)}` : entryHash}
-                            </span>
-                          </td>
-
-                          {/* NODE HASH */}
-                          <td className="hqds-audit-hash-cell" title={`Full Node Identifier Hash: ${nodeHash}`}>
-                            <span className="hqds-audit-hash-text node-hash">
-                              {nodeHash.length > 10 ? `${nodeHash.slice(0, 8)}..` : nodeHash}
-                            </span>
                           </td>
                         </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                      ) : error ? (
+                        /* Error Row */
+                        <tr>
+                          <td colSpan="11" className="hqds-audit-error-cell">
+                            <div className="hqds-audit-system-alert" role="alert">
+                              <span className="hqds-audit-alert-icon-wrap" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                  <circle cx="12" cy="12" r="10" />
+                                  <line x1="12" y1="8" x2="12" y2="12" />
+                                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                              </span>
+                              <div className="hqds-audit-alert-content">
+                                <span className="hqds-audit-alert-title">SYSTEM ALERT: TELEMETRY DESYNC</span>
+                                <span className="hqds-audit-alert-msg">{error}</span>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : filteredRecords.length === 0 ? (
+                        /* Empty State Row */
+                        <tr>
+                          <td colSpan="11" className="hqds-audit-empty-cell">
+                            <div className="hqds-audit-empty-state">
+                              <span className="hqds-audit-empty-icon-wrap" aria-hidden="true">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                  <polyline points="14 2 14 8 20 8" />
+                                  <line x1="16" y1="13" x2="8" y2="13" />
+                                  <line x1="16" y1="17" x2="8" y2="17" />
+                                  <line x1="10" y1="9" x2="8" y2="9" />
+                                </svg>
+                              </span>
+                              <span className="hqds-audit-empty-title">NO IMMUTABLE EVENTS</span>
+                              <span className="hqds-audit-empty-desc">
+                                {activeFilter !== 'all'
+                                  ? `No verified records currently matched under the "${activeFilter.toUpperCase()}" filter category.`
+                                  : 'No ledger entries recorded yet. Run a protocol, attack, or scalable simulation to commit immutable audit records.'}
+                              </span>
+                              <span className="hqds-audit-empty-hint">
+                                Telemetry heartbeats poll every 10 seconds automatically.
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        /* Render High-Density Immutable Audit Rows */
+                        filteredRecords.map((record, index) => {
+                          const recId = record?.record_id || `REC-${index.toString().padStart(4, '0')}`;
+                          const ts = record?.timestamp ? new Date(record.timestamp).toLocaleTimeString() : '--:--:--';
+                          const srcTab = record?.source_tab || 'Unknown Tab';
+                          const targetEnt = record?.target_entity || 'All Active Quantum Channels';
+                          const evType = record?.event_type || 'TELEMETRY_LOG';
+                          const sessId = record?.session_id || 'Global-Bus';
+                          const rawQber = typeof record?.qber === 'number' ? record.qber : null;
+                          const rawFid = typeof record?.fidelity === 'number' ? record.fidelity : null;
+                          const actionVal = record?.recommended_action || 'NONE';
+                          const entryHash = record?.entry_hash || '---';
+                          const nodeHash = record?.node_hash || '---';
+
+                          // Normalized QBER values
+                          const qberVal = rawQber !== null ? `${(rawQber * 100).toFixed(2)}%` : '--';
+                          const qberPct = rawQber !== null ? Math.min(Math.max(rawQber * 100, 0), 100) : 0;
+                          const qberMeterClass =
+                            rawQber === null
+                              ? ''
+                              : rawQber > 0.11
+                              ? 'meter-danger'
+                              : rawQber > 0.05
+                              ? 'meter-warn'
+                              : 'meter-good';
+
+                          // Normalized Fidelity values
+                          const fidVal = rawFid !== null ? `${(rawFid * 100).toFixed(1)}%` : '--';
+                          const fidPct = rawFid !== null ? Math.min(Math.max(rawFid * 100, 0), 100) : 0;
+                          const fidMeterClass =
+                            rawFid === null
+                              ? ''
+                              : rawFid < 0.85
+                              ? 'meter-danger'
+                              : rawFid < 0.95
+                              ? 'meter-warn'
+                              : 'meter-good';
+
+                          // Tab origin labels & badges
+                          let tabOriginClass = 'origin-generic';
+                          let tabOriginLabel = 'Operations';
+                          const srcLower = String(srcTab).toLowerCase();
+                          if (srcLower.includes('tab 1') || srcLower.includes('honest') || srcLower.includes('pipeline') || srcLower.includes('alice') || srcLower.includes('signer')) {
+                            tabOriginClass = 'origin-pipeline';
+                            tabOriginLabel = '01 Pipeline';
+                          } else if (srcLower.includes('tab 2') || srcLower.includes('attack') || srcLower.includes('eve')) {
+                            tabOriginClass = 'origin-attack';
+                            tabOriginLabel = '02 Attack Lab';
+                          } else if (srcLower.includes('tab 3') || srcLower.includes('scalable') || srcLower.includes('engine') || srcLower.includes('cluster')) {
+                            tabOriginClass = 'origin-scale';
+                            tabOriginLabel = '03 Scalable';
+                          }
+
+                          return (
+                            <tr key={recId} className="hqds-audit-row">
+                              {/* RECORD */}
+                              <td className="hqds-audit-seq-cell">
+                                <span className="hqds-audit-mono-seq">{recId}</span>
+                              </td>
+
+                              {/* TIME */}
+                              <td className="hqds-audit-time-cell">
+                                <span className="hqds-audit-mono-time">{ts}</span>
+                              </td>
+
+                              {/* ORIGIN */}
+                              <td className="hqds-audit-origin-cell">
+                                <span className={`hqds-audit-pill-origin ${tabOriginClass}`} title={srcTab}>
+                                  {tabOriginLabel}
+                                </span>
+                              </td>
+
+                              {/* TARGET */}
+                              <td className="hqds-audit-target-cell">
+                                <span className="hqds-audit-target-label" title={targetEnt}>
+                                  <svg className="hqds-audit-target-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="22" y1="12" x2="18" y2="12" />
+                                    <line x1="6" y1="12" x2="2" y2="12" />
+                                    <line x1="12" y1="6" x2="12" y2="2" />
+                                    <line x1="12" y1="22" x2="12" y2="18" />
+                                  </svg>
+                                  <span className="hqds-audit-target-text">
+                                    {targetEnt.length > 24 ? `${targetEnt.slice(0, 22)}...` : targetEnt}
+                                  </span>
+                                </span>
+                              </td>
+
+                              {/* EVENT */}
+                              <td className="hqds-audit-event-cell">
+                                <span className={`hqds-audit-event-pill badge-${evType.toLowerCase()}`}>
+                                  {evType}
+                                </span>
+                              </td>
+
+                              {/* SESSION */}
+                              <td className="hqds-audit-session-cell" title={`Session ID: ${sessId}`}>
+                                <span className="hqds-audit-mono-sess">
+                                  {sessId.length > 14 ? `${sessId.slice(0, 12)}..` : sessId}
+                                </span>
+                              </td>
+
+                              {/* QBER (with aligned number + micro-meter) */}
+                              <td className="hqds-audit-metric-cell">
+                                <div className="hqds-audit-meter-wrap">
+                                  <span className="hqds-audit-metric-val">{qberVal}</span>
+                                  {rawQber !== null && (
+                                    <div className="hqds-audit-micro-track">
+                                      <div
+                                        className={`hqds-audit-micro-bar ${qberMeterClass}`}
+                                        style={{ width: `${qberPct}%` }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* FIDELITY (with aligned number + micro-meter) */}
+                              <td className="hqds-audit-metric-cell">
+                                <div className="hqds-audit-meter-wrap">
+                                  <span className="hqds-audit-metric-val">{fidVal}</span>
+                                  {rawFid !== null && (
+                                    <div className="hqds-audit-micro-track">
+                                      <div
+                                        className={`hqds-audit-micro-bar ${fidMeterClass}`}
+                                        style={{ width: `${fidPct}%` }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* ACTION */}
+                              <td className="hqds-audit-action-cell">
+                                <span className={`hqds-audit-action-pill action-${actionVal.toLowerCase()}`}>
+                                  {actionVal}
+                                </span>
+                              </td>
+
+                              {/* ENTRY HASH */}
+                              <td className="hqds-audit-hash-cell" title={`Full Entry Hash: ${entryHash}`}>
+                                <button
+                                  type="button"
+                                  className="hqds-audit-hash-btn"
+                                  onClick={() => handleCopyHash(entryHash, `entry-${recId}`)}
+                                  title={`Click to copy: ${entryHash}`}
+                                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
+                                >
+                                  <span className="hqds-audit-hash-text">
+                                    {copiedHashKey === `entry-${recId}` ? 'COPIED' : (entryHash.length >= 14 ? `${entryHash.slice(0, 7)}...${entryHash.slice(-5)}` : entryHash)}
+                                  </span>
+                                </button>
+                              </td>
+
+                              {/* NODE HASH */}
+                              <td className="hqds-audit-hash-cell" title={`Full Node Identifier Hash: ${nodeHash}`}>
+                                <button
+                                  type="button"
+                                  className="hqds-audit-hash-btn"
+                                  onClick={() => handleCopyHash(nodeHash, `node-${recId}`)}
+                                  title={`Click to copy: ${nodeHash}`}
+                                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
+                                >
+                                  <span className="hqds-audit-hash-text node-hash">
+                                    {copiedHashKey === `node-${recId}` ? 'COPIED' : (nodeHash.length > 10 ? `${nodeHash.slice(0, 8)}..` : nodeHash)}
+                                  </span>
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </TabCrossFade>
           </div>
-        </TabCrossFade>
-      </div>
-    </section>
+        </section>
 
         {/* 5. CRYPTOGRAPHIC PROVENANCE GRAPH (Prompt 6.2 Minimal Cryptographic Hash Chain) */}
         <CryptographicProvenanceSection

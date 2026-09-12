@@ -396,7 +396,7 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({ onNav
       <StitchHeader activeTab="honest" onNavigate={onNavigate} />
 
       {/* ── MAIN CONTENT CONTAINER ── */}
-      <main style={{ position: 'relative', zIndex: 5, maxWidth: '1440px', margin: '0 auto', padding: '16px 20px 48px' }}>
+      <main style={{ position: 'relative', zIndex: 5, maxWidth: '1440px', margin: '0 auto', padding: '92px 20px 48px' }}>
 
         {/* ── 2. LIVE QUANTUM TELEMETRY & VERDICT (FIRST MAJOR SECTION - ABOVE THE FOLD) ── */}
         <section className="al-live-telemetry-panel" style={{

@@ -144,6 +144,14 @@ app = FastAPI(
 DEFAULT_DEV_ORIGINS: tuple[str, ...] = (
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175",
+    "http://localhost:5176",
+    "http://127.0.0.1:5176",
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
@@ -262,11 +270,23 @@ ALLOWED_HEADERS: list[str] = resolve_allowed_headers()
 EXPOSED_HEADERS: list[str] = list(DEFAULT_EXPOSED_HEADERS)
 CORS_MAX_AGE: int = int(os.environ.get("CORS_MAX_AGE", "86400"))
 
+DEV_ORIGIN_REGEX: str = r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$"
+_env_mode_str = (
+    os.environ.get("ENVIRONMENT")
+    or os.environ.get("QDS_ENV")
+    or os.environ.get("NODE_ENV")
+    or "development"
+).strip().lower()
+_is_prod_mode = _env_mode_str in ("production", "prod")
+_allow_local_dev = os.environ.get("QDS_ALLOW_LOCAL_ORIGINS", "").strip().lower() == "true"
+CORS_ORIGIN_REGEX: str | None = DEV_ORIGIN_REGEX if (not _is_prod_mode or _allow_local_dev) else None
+
 from backend.auth import APIKeyAuthMiddleware
 app.add_middleware(APIKeyAuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=ALLOWED_METHODS,
     allow_headers=ALLOWED_HEADERS,
