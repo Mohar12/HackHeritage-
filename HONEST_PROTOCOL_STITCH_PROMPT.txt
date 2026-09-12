@@ -1,0 +1,211 @@
+================================================================================
+STITCH AI DESIGN PROMPT: HYPERQDS HONEST PROTOCOL OPERATIONS CENTER
+================================================================================
+
+Role & Domain:
+You are an expert Principal UI/UX Architect designing a mission-critical Quantum Security Operations Center (SOC) dashboard. The application is "HyperQDS", an enterprise physical-layer quantum cybersecurity platform. This specific view is the "Honest Protocol Operations View" — showcasing a legitimate, non-adversarial Alice-to-Bob Quantum Digital Signature (QDS) and teleportation pipeline running on a Qiskit Aer quantum simulator.
+
+Visual Tone & Aesthetic:
+- Design Style: Ultra-premium dark-mode Glassmorphism / Aerospace Telemetry Cockpit.
+- Color Palette:
+  * Backgrounds: Deep Obsidian Black (#06070a), Carbon Navy (#0a0f1d), Slate Panel Base (#0f172a with 65%-85% opacity).
+  * Primary Accent: Neon Electric Cyan (#00f2fe) for quantum statevectors, entanglement links, and active controls.
+  * Integrity / Safe Accent: Vivid Emerald Green (#00e676) for verified signatures, intact states, and low QBER.
+  * Cryptographic / Secondary Accent: Radiant Violet / Lavender (#c084fc, #9333ea) for session tokens, key material, and HUD highlights.
+  * Alert / Warning Thresholds: Amber (#ffb300) for elevated noise, Coral Red (#ff1744) for threshold violations.
+- Borders & Surfaces: Subtle 1px translucent borders (rgba(255, 255, 255, 0.08) to rgba(0, 242, 254, 0.3)), 24px-32px backdrop-filter blur, radial cursor-glow highlights.
+- Typography:
+  * Headers: Geometric Display Sans (Epilogue / Syne / Space Grotesk).
+  * Body & Labels: Crisp Neutral Sans (Plus Jakarta Sans / Inter).
+  * Numerical & Hashes: High-Legibility Monospace (JetBrains Mono / Fira Code).
+
+--------------------------------------------------------------------------------
+1. GLOBAL NAVIGATION HEADER (Height: 74px, Glassmorphic Backdrop Blur: 32px)
+--------------------------------------------------------------------------------
+- Left Identity:
+  * Logo Icon: Square glyph with rounded corners, violet border (#c084fc), inner quantum nucleus circle (#4a1272 / #e9b3ff), and cross-axial quantum arms.
+  * Brand Name: "HyperQDS" in bold geometric typography.
+  * Sub-badge: "QUANTUM CYBER DEFENSE" (uppercase, 9px, letter-spacing: 0.12em).
+- Center Global Navigation Tabs:
+  * [00] Overview
+  * [01] Honest Protocol   <-- ACTIVE TAB (Highlighted with glowing violet/cyan pill and active bottom underline)
+  * [02] Attack Lab
+  * [03] Scalable Engine
+  * [04] Audit Ledger
+- Right Operations Utility:
+  * Engine Status Pill: "Qiskit Aer v1.0.2 • Connected" (with pulsing green status dot).
+  * Live Telemetry Clock: "Live: HH:MM:SS" (monospace, wired to real-time simulation updates).
+
+--------------------------------------------------------------------------------
+2. PRIMARY PAGE LAYOUT: 2-COLUMN RESPONSIVE OPERATIONS GRID
+--------------------------------------------------------------------------------
+The main body is structured into two balanced, high-density columns:
+- Left Column: Interactive Parameters, Digital Signature Entity Dossier, Intervention Noise Controls, and Vector Mechanism Inspector.
+- Right Column: 8-Stage 3D Teleportation Flow, Live Scientific Telemetry & Verdict Desk, Security Bounds Curves, Bell Measurement Histogram, and Dual 3D Viewports (Bloch Sphere + Network Topology).
+
+================================================================================
+LEFT COLUMN: PROTOCOL CONTROLS & LIFECYCLE DECK
+================================================================================
+
+[CARD 1] TARGET DIGITAL SIGNATURE ENTITY DOSSIER & PARAMETERS PANEL
+- Header Badge: "HONEST QUANTUM TELEPORTATION PIPELINE" (Emerald border & faint green background).
+- Section Title: "1. Quantum Digital Signature Protocol"
+- Description: "Execute deterministic Alice → Bob quantum digital signatures and evaluate physical-layer integrity on Qiskit Aer."
+- Target Entity Dropdown:
+  * Label: "🎯 Target Digital Signature Entity to Protect:"
+  * Current Selection: "Treasury Wire Authorization #8942 [TX-2026-FED-BOE]"
+  * Dropdown options for financial wires, defense telemetry, SWIFT transactions, and SCADA grid commands.
+- Live Dossier Sub-Card (Translucent nested card with cyan border glow):
+  * Header: Category Pill "FINANCIAL_WIRE" (cyan) + Entity ID "ID: TX-2026-FED-BOE".
+  * Signed Transaction / Command Payload Box:
+    Quotes payload: "Authorize immediate transfer of $450,000,000 USD from Federal Reserve Account 011000015 to Bank of England Operating Reserve..."
+  * 4-Field Metadata Grid:
+    1. Signer (Alice): "Federal Reserve Bank of New York (FRBNY)" (cyan text)
+    2. Verifier (Bob): "Bank of England (BoE)" (green text)
+    3. SHA3-512 Hash: "7f83b1657ff1fc53b9..." (monospace code font)
+    4. Session Nonce: "NONCE-FED-BOE-8942-A" (purple monospace)
+  * Target Quantum EPR Key Bits Strip:
+    Displays raw binary key material: "10101100101101"
+
+- Protocol Configuration Inputs (2-Column Form Row):
+  * Field A: "Signature Length (L Qubits)" — Numeric stepper (Value: 14, min: 4, max: 28).
+    Sub-text: "Security Bound: P(forgery) ≤ 2⁻¹⁴"
+  * Field B: "Circuit Measurement Shots" — Dropdown with [1,024 Shots (Standard Precision)], [512 Shots], [4,096 Shots].
+    Sub-text: "Qiskit Aer Monte Carlo Sampling Depth"
+- Quick Preset Pills:
+  * [8 Qubits (Fast Demo)]
+  * [14 Qubits (1 Full Aer Batch)]  <-- SELECTED
+  * [28 Qubits (High Security)]
+
+- Intervention Controls: Channel Conditions & Noise Tolerance Card:
+  * Card Header: "INTERVENTION CONTROLS" + Forecast Badge "🔒 FORECAST: WILL ACCEPT" (or "⚡ FORECAST: WILL ABORT").
+  * Section Title: "Channel Conditions & Noise Tolerance"
+  * Dropdown: "SOC Threat Sensitivity Policy":
+    - Options: "Zero-Trust / Strict (Abort if QBER > 5%)", "Standard BB84 (Abort if QBER > 11%)" [Selected], "Permissive / High Loss (Abort if QBER > 20%)"
+  * Simulated Channel Noise Slider:
+    - Title: "Simulated Channel Noise (Honest, Non-Adversarial):"
+    - Slider range: 0 to L bits (Current: 0 / 14, 0.0%).
+    - Dynamic Message: "✓ Simulated noise within policy limit → protocol will accept intact states."
+    - Policy QBER Limit Readout: "11%"
+- Primary Action Button:
+  * Full-width button with cyan/emerald gradient and glow: "🚀 Run Honest Protocol"
+  * Running State: "⚡ Executing Legitimate Teleportation Pipeline..." with progress pulse.
+
+[CARD 2] VECTOR MECHANISM INSPECTOR (HONEST MODE VISUALIZER)
+- Header:
+  * Badge: "VECTOR MECHANISM INSPECTOR"
+  * Live status pill: Pulsing green dot + "Live: HH:MM:SS" (or cyan "Recomputing...")
+  * Sub-header: "✨ Alice → Bob Legitimate Quantum Signature Lifecycle"
+- Horizontal 3-Box Actor Flow Diagram:
+  * Box 1 (Alice / Signer): Icon "A", Title "Alice", Subtitle "Sends |Φ⁺⟩ flying qubit".
+  * Middle Channel (Legitimate Flow):
+    - Top beam label: "|ψ⟩"
+    - Center BSM Box: Atom icon + "Bell-State Measurement" + "Genuine BSM on message qubit + EPR half — correction bits (c₀, c₁) extracted honestly".
+    - Bottom state banner: "|ψ⟩ Teleported Intact" (Bold emerald green).
+  * Box 2 (Bob / Verifier): Icon "B", Title "Bob", Subtitle "Applies Pauli correction, measures intact qubit".
+- Inline Physical Metrics Bar:
+  * Observed QBER: "0.00%" (Green)
+  * Born χ² p-value: "0.9800" (Green)
+  * State Fidelity: "99.8%" (Green)
+- 7-Stage Protocol Sequence:
+  * Interactive step buttons (Pills 1 through 7).
+  * 7 Responsive Stage Cards (each with stage number, title, icon, description, mathematical formula, and status badge):
+    1. Stage 1: Message Encoding | Formula: |ψ⟩ = α|0⟩ + β|1⟩ (Z-Basis) | Badge: "STATE PREPARED"
+    2. Stage 2: Bell-State Measurement | Formula: BSM(|ψ⟩ ⊗ |Φ⁺⟩_A) → (c₀, c₁) | Badge: "GENUINE BSM PERFORMED"
+    3. Stage 3: Correction Bits Extracted | Formula: (c₀, c₁) ∈ {0, 1}² [Protected] | Badge: "LEGITIMATE BITS EXTRACTED"
+    4. Stage 4: Signature Packet Assembled | Formula: Packet = {SHA256(m), outcomes, (c₀, c₁), sid} | Badge: "SIGNATURE PACKET BOUND"
+    5. Stage 5: Bob Verifies Identity & Session | Formula: Check: SHA256(m) == H ∧ sid == sid_curr | Badge: "IDENTITY & NONCE VERIFIED"
+    6. Stage 6: Pauli Correction Applied | Formula: U_corr = σ_z^(c₀) · σ_x^(c₁) | Badge: "TELEPORTED STATE RECOVERED"
+    7. Stage 7: QBER Computed → Verdict | Formula: QBER = 0.00% < 0.11 · Score = 0.08 < 0.30 | Badge: "VERDICT: ACCEPT"
+- Technical Specification HUD Box (Collapsible):
+  * Header: Shield icon + "Stage X Technical Specification: [Title]"
+  * Fields: Subsystem & Channel Node, Governing Physical Law, and Deterministic Verification verdict ("✓ Physical State Intact · Zero Wiretap Anomaly Detected").
+
+================================================================================
+RIGHT COLUMN: 3D TELEMETRY & VERDICT DESK
+================================================================================
+
+[VIEWPORT 1] 3D QUANTUM TELEPORTATION SIGNATURE JOURNEY
+- Dynamic 3D interactive stage visualizer showing:
+  * Central twin EPR photon generation stream.
+  * Quantum fiber optical channels connecting Alice, EPR source, and Bob.
+  * Photonic particle pulses streaming between nodes.
+  * Interactive 8-Stage switcher controls:
+    1. EPR Pair Distribution
+    2. Message State Preparation
+    3. Bell-State Measurement (BSM)
+    4. Classical Bit Transmission
+    5. Conditional Pauli Correction
+    6. Teleported State Sifting
+    7. Statistical Threat Detection
+    8. Immutable Audit Ledger Commit
+  * Auto-Play toggle button (cycling through stages every 1.8 seconds).
+
+[VIEWPORT 2] LIVE QUANTUM TELEMETRY & VERDICT DESK
+- Section Header:
+  * Badge: "PHYSICS-BASED THREAT METRICS"
+  * Title: "Live Quantum Telemetry & Verdict"
+  * Sub-title: "Deterministic Pauli & χ² Born Rule Statistical Classifier (Zero-ML)"
+  * Verdict Badge: "🛡️ SECURE (AUTHENTIC)" in glowing emerald green.
+- 4 Primary Statistical Metric Cards:
+  1. Quantum Bit Error Rate (QBER):
+     * Value: "0.00%"
+     * Gauge Progress Bar with marker at BB84 Limit (ε ≤ 11.0%).
+     * Status tag: "Status: SECURE".
+  2. Pearson's χ² Born Test:
+     * Value: "0.9800"
+     * Gauge Progress Bar with marker at Anomaly Limit (p = 0.01).
+     * Status tag: "Status: CONSISTENT".
+  3. Uhlmann State Fidelity (F):
+     * Value: "99.8%"
+     * Gauge Progress Bar with Critical Threshold marker (< 70%).
+     * Status tag: "Status: HIGH".
+  4. Threat Confidence (C):
+     * Value: "8.2%"
+     * Formula indicator: "0.45·C_Hoeff + 0.30·(1−p) + 0.25·C_F"
+     * Threshold tag: "Detection: > 50%".
+- Deterministic Decision & Physics Evidence Breakdown Box:
+  * Heading: "🔬 Deterministic Decision & Physics Evidence:"
+  * Item 1: Observed QBER: "0.00% ✅ WITHIN SECURE LIMITS"
+  * Item 2: Born χ² Null Hypothesis: "0.9800 ✅ ACCEPTED (Consistent with pure Bell states)"
+  * Item 3: Hoeffding QBER Confidence: "99.99% — 1 − exp(−2N·ε²) [Hoeffding 1963]"
+  * Item 4: Recommended Security Action: "COMMIT — Accept Signature & Commit to Immutable Ledger" (in bold emerald green).
+- Quantum-Mechanical Security Bounds Panel (Collapsible):
+  * Header: "🔐 Quantum-Mechanical Security Bounds" (with Expand/Collapse toggle).
+  * 4 Mathematical Bound Summary Cards:
+    1. Forgery Probability: "6.103e-5" | Formula: 2⁻¹⁴ | Gottesman & Chuang (2001) §2
+    2. Non-Repudiation Bound: "1.000e-12" | Formula: exp(−(sᵥ − sₐ)² · N / 2) | Dunjko et al. (2014)
+    3. Helstrom Distinguishability: "50.0%" | Formula: P = (1 + D(ρ, σ)) / 2 | Helstrom (1976)
+    4. QBER Detection Confidence: "99.99%" | Formula: 1 − exp(−2Nε²) | Hoeffding (1963)
+  * 2 Interactive Recharts Area Curves:
+    - Curve 1: P_forge(n) = 2⁻ⁿ vs Signature Length (with active vertical reference line at n=14).
+    - Curve 2: Hoeffding Confidence vs Sample Count N (with 99% confidence horizontal reference line).
+- Observed Bell Basis Histogram (Recharts Bar Chart):
+  * Title: "Observed Bell Measurement Distribution (|00⟩, |01⟩, |10⟩, |11⟩)"
+  * Sub-note: "Theoretical Pure Bell Pair Expectation: 50% |00⟩, 50% |11⟩"
+  * 4 Bars:
+    * |00⟩: Count ~512 (50.0%) in Electric Cyan (#00f2fe)
+    * |01⟩: Count 0 (0.0%) in Coral Red (#ff1744)
+    * |10⟩: Count 0 (0.0%) in Coral Red (#ff1744)
+    * |11⟩: Count ~512 (50.0%) in Electric Cyan (#00f2fe)
+  * Legend: Correlated Bell States (|00⟩, |11⟩) vs Error/Anomaly States (|01⟩, |10⟩).
+
+[VIEWPORT 3] DUAL SUPPORTING 3D VISUALIZERS (Side-by-Side Row)
+- Left Box: 3D Bloch Sphere Visualizer (`BlochSphere3D`)
+  * 3D WebGL sphere with coordinate axes X, Y, Z, equator ring, and quantum statevector arrow pointing to |ψ⟩.
+  * Header Pill: "State Vector Preserved" (Glowing Green).
+  * Fidelity Readout: "F = 0.998".
+- Right Box: 3D Quantum Network Topology Visualizer (`NetworkTopology3D`)
+  * Interactive 3D node network graph containing Alice (Signer), Bob (Verifier), and Charlie/EPR source.
+  * Pulsing quantum optical fiber links between nodes.
+  * Header Pill: "No Interceptor Detected" (Glowing Green).
+  * Node selection inspector displaying active node properties and EPR key distribution stats.
+
+================================================================================
+CRITICAL DESIGN REQUIREMENTS FOR STITCH GENERATION:
+================================================================================
+1. High Information Density: This is a professional quantum engineering & defense operations desk, not a marketing landing page. Do not omit any metrics, formulas, or cards.
+2. Distinct Visual Hierarchy: Ensure clear visual separation between the control configuration zone, the 7-stage operational lifecycle, and the scientific telemetry readouts.
+3. Micro-Interactions & States: Clearly indicate interactive states (hover glows, active pills, collapsible drawers, sliders with numerical feedback, and running animation state).
+4. Cohesive Cyberpunk/Aerospace Theme: Dark glass surfaces, neon cyan and emerald accents, high-contrast monospace numerical readouts, and clean mathematical notation.
+================================================================================

@@ -266,11 +266,13 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
   threatAlert = 0,
   threatAttackType = null,
   isDashboard = false,
+  visualContext = 'landing',
 }) {
   const mountRef = useRef(null);
   const activePillarRef = useRef(activePillar);
   const activeDimensionRef = useRef(activeDimension);
   const isDashboardRef = useRef(isDashboard);
+  const visualContextRef = useRef(visualContext);
 
   useEffect(() => {
     activePillarRef.current = activePillar;
@@ -283,6 +285,10 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
   useEffect(() => {
     isDashboardRef.current = isDashboard;
   }, [isDashboard]);
+
+  useEffect(() => {
+    visualContextRef.current = visualContext;
+  }, [visualContext]);
 
   const threatAlertRef = useRef(threatAlert);
 
@@ -425,23 +431,24 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
     // Minimum virtual scroll-height floor. This is calibrated to roughly match
     // the landing page's own natural scrollable height, so on the landing page
     // itself this Math.max is a no-op (real docHeight already exceeds it) and
-    // nothing changes there. On shorter pages (Attack Lab, Honest Protocol,
-    // Scalable Engine, Audit Ledger), this floor prevents scroll progress from
-    // being computed against a tiny denominator, which previously caused (a)
-    // large p-jumps per scroll tick (non-smooth motion) and (b) p reaching the
-    // Act 5 "closing dissolve" state after only a small amount of scrolling on
-    // short pages (the blob appearing to vanish prematurely).
+    // nothing changes there. On shorter tool pages (Attack Lab, Honest Protocol,
+    // Scalable Engine), this floor prevents scroll progress from being computed
+    // against a tiny denominator. On the full-page Audit Ledger (visualContext === 'audit'),
+    // we use the real document scroll height so progress p spans smoothly across
+    // all five narrative sections and reaches the Act 5 closing recession state.
     const MIN_VIRTUAL_SCROLL_HEIGHT = 4200;
 
-    let cachedDocHeight = Math.max(
-      MIN_VIRTUAL_SCROLL_HEIGHT,
-      document.documentElement.scrollHeight - window.innerHeight
-    );
+    const getDocScrollHeight = () => {
+      const realScrollable = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      if (visualContextRef.current === 'audit') {
+        return realScrollable;
+      }
+      return Math.max(MIN_VIRTUAL_SCROLL_HEIGHT, realScrollable);
+    };
+
+    let cachedDocHeight = getDocScrollHeight();
     const updateDocHeight = () => {
-      cachedDocHeight = Math.max(
-        MIN_VIRTUAL_SCROLL_HEIGHT,
-        document.documentElement.scrollHeight - window.innerHeight
-      );
+      cachedDocHeight = getDocScrollHeight();
     };
     window.addEventListener('resize', updateDocHeight, { passive: true });
 
@@ -907,8 +914,10 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
           fillDensity = 1.0;
           smokeMix = 0.0;
 
-          // Smooth continuous bell curve: peaks in middle of Act 4 and dissolves gracefully
-          if (p < 0.82) {
+          // Smooth continuous bell curve: peaks in middle of Act 4 and dissolves gracefully (Landing comparison)
+          if (visualContextRef.current === 'audit') {
+            splitMix = 0.0;
+          } else if (p < 0.82) {
             const sIn = (p - 0.72) / 0.10;
             splitMix = sIn * sIn * (3.0 - 2.0 * sIn);
           } else {

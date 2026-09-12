@@ -246,6 +246,15 @@ function AppContent() {
     );
   }
 
+  // ── Audit Ledger: Full-page standalone (first-class HyperQDS Stitch page) ──
+  if (activeTab === 'audit') {
+    return (
+      <ErrorBoundary title="Audit Ledger Error">
+        <AuditLedgerPanel onNavigate={handleNavigate} />
+      </ErrorBoundary>
+    );
+  }
+
   const activePillar = activeTab === 'large_scale' ? '02' : '01';
   const activeDimension = activeTab === 'large_scale' ? 3 : 1;
 

@@ -1,0 +1,334 @@
+/* ==========================================================================
+   HYPERQDS ATTACK LAB VISUAL FOUNDATION (Stage 2)
+   Design Language: Cold Optical Quantum / Deep Cryogenic Teal / Obsidian
+   Layer Architecture: Velaris -> Dark Readability Overlay -> UI -> Content
+   ========================================================================== */
+
+.attack-lab-root {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #0a0b14;
+  color: #f8fafc;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* 1. Velaris WebGL Background Layer */
+.attack-lab-velaris-bg {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* 2. Dark Readability Atmospheric Overlay */
+.attack-lab-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  pointer-events: none;
+  background: 
+    radial-gradient(ellipse 90% 70% at 50% 18%, rgba(10, 11, 20, 0.52) 0%, rgba(10, 11, 20, 0.88) 72%, #0a0b14 100%),
+    linear-gradient(180deg, rgba(10, 11, 20, 0.4) 0%, rgba(10, 11, 20, 0.82) 45%, #0a0b14 100%);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* 3. Global Header Shell Position */
+.attack-lab-header-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  width: 100%;
+}
+
+/* 4. Minimal Floating Chapter Progress Rail */
+.attack-lab-progress-rail {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.attack-lab-rail-spine {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 20px;
+  padding: 14px 0;
+}
+
+/* Vertical track line */
+.attack-lab-rail-track-line {
+  position: absolute;
+  right: 6px;
+  top: 14px;
+  bottom: 14px;
+  width: 1.5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+
+.attack-lab-rail-track-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(180deg, #0d9488 0%, #2dd4bf 100%);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(45, 212, 191, 0.55);
+  transition: height 0.15s ease-out;
+}
+
+/* Chapter item */
+.attack-lab-rail-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  pointer-events: auto;
+  background: transparent;
+  border: none;
+  padding: 2px 0;
+  margin: 0;
+  outline: none;
+  transition: transform 0.2s ease;
+}
+
+.attack-lab-rail-item:hover {
+  transform: translateX(-3px);
+}
+
+.attack-lab-rail-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: rgba(248, 250, 252, 0.38);
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 0.25s ease, opacity 0.25s ease, text-shadow 0.25s ease;
+  opacity: 0.65;
+}
+
+.attack-lab-rail-item:hover .attack-lab-rail-label {
+  color: rgba(248, 250, 252, 0.85);
+  opacity: 1;
+}
+
+.attack-lab-rail-node {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attack-lab-rail-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.attack-lab-rail-item:hover .attack-lab-rail-dot {
+  background: rgba(45, 212, 191, 0.7);
+  transform: scale(1.3);
+}
+
+/* Active chapter state */
+.attack-lab-rail-item.is-active .attack-lab-rail-label {
+  color: #2dd4bf;
+  font-weight: 700;
+  opacity: 1;
+  text-shadow: 0 0 10px rgba(45, 212, 191, 0.4);
+}
+
+.attack-lab-rail-item.is-active .attack-lab-rail-dot {
+  width: 7px;
+  height: 7px;
+  background: #2dd4bf;
+  box-shadow: 
+    0 0 0 2px rgba(45, 212, 191, 0.25),
+    0 0 10px rgba(45, 212, 191, 0.85),
+    0 0 2px #ffffff;
+}
+
+/* 5. Scroll Sections Content Container */
+.attack-lab-content {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 24px 28px 120px 28px;
+  box-sizing: border-box;
+}
+
+/* Section Header Common */
+.attack-lab-section {
+  position: relative;
+  margin-bottom: 48px;
+  scroll-margin-top: 90px;
+  border-radius: 16px;
+}
+
+.attack-lab-section-header {
+  margin-bottom: 18px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 12px;
+}
+
+.attack-lab-section-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attack-lab-chapter-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: #14b8a6;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attack-lab-chapter-tag::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2dd4bf;
+  box-shadow: 0 0 6px rgba(45, 212, 191, 0.8);
+}
+
+.attack-lab-section-title {
+  font-family: 'Epilogue', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.attack-lab-section-desc {
+  font-size: 0.82rem;
+  color: rgba(248, 250, 252, 0.65);
+  margin: 0;
+}
+
+/* Section 01: INTRO Hero Banner */
+.attack-lab-intro-card {
+  position: relative;
+  background: rgba(12, 16, 28, 0.65);
+  border: 1px solid rgba(45, 212, 191, 0.18);
+  border-radius: 14px;
+  padding: 24px 28px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 
+    0 20px 40px -15px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.attack-lab-intro-lead {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(248, 250, 252, 0.88);
+}
+
+.attack-lab-intro-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.attack-lab-intro-metric-box {
+  background: rgba(4, 47, 46, 0.35);
+  border: 1px solid rgba(20, 184, 166, 0.28);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.attack-lab-intro-metric-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2dd4bf;
+  text-shadow: 0 0 12px rgba(45, 212, 191, 0.4);
+}
+
+.attack-lab-intro-metric-lbl {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(248, 250, 252, 0.6);
+}
+
+/* Sections 02 & 03: Two-Column Operational Workbench */
+.attack-lab-workbench-grid {
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1200px) {
+  .attack-lab-progress-rail {
+    display: none;
+  }
+  .attack-lab-workbench-grid {
+    grid-template-columns: 1fr;
+  }
+  .attack-lab-intro-card {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .attack-lab-content {
+    padding: 16px 16px 80px 16px;
+  }
+  .attack-lab-intro-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  .attack-lab-section-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

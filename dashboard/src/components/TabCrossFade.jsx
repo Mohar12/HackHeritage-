@@ -37,6 +37,11 @@ export default function TabCrossFade({ activeKey, children, duration = 320, clas
       return () => clearTimeout(timer);
     } else {
       prevContentRef.current = children;
+      setItems((currentItems) =>
+        currentItems.map((item) =>
+          item.key === activeKey ? { ...item, content: children } : item
+        )
+      );
     }
   }, [activeKey, children, duration]);
 
