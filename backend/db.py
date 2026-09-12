@@ -20,7 +20,7 @@ from psycopg2.pool import ThreadedConnectionPool
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DATABASE_URL = "postgresql://postgres:ANANYA2006@127.0.0.1:5432/hyperqds"
+DEFAULT_DATABASE_URL = "postgresql://postgres:ARKA2006@127.0.0.1:5432/hyperqds"
 _pool: Optional[ThreadedConnectionPool] = None
 
 
