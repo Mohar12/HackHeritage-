@@ -18,6 +18,10 @@ import os
 from pathlib import Path
 from typing import Optional
 
+# Prevent OpenBLAS / SciPy thread allocation abort crashes on Windows
+for _blas_var in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_blas_var, "1")
+
 logger = logging.getLogger(__name__)
 
 _LOADED_ENV_PATH: Optional[Path] = None

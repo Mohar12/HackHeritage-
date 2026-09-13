@@ -28,6 +28,10 @@ import webbrowser
 import subprocess
 from pathlib import Path
 
+# Set BLAS/OpenBLAS thread limits to avoid Windows thread memory allocation aborts
+for _var in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ[_var] = "1"
+
 # ANSI colors for beautiful terminal output
 GREEN = "\033[92m"
 YELLOW = "\033[93m"
@@ -204,11 +208,13 @@ def main() -> None:
     if env_file.exists():
         backend_cmd.extend(["--env-file", str(env_file)])
 
+    backend_env = os.environ.copy()
     backend_process = subprocess.Popen(
         backend_cmd,
         cwd=str(project_root),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        env=backend_env,
     )
 
     # 4. Start Frontend

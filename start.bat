@@ -2,6 +2,12 @@
 setlocal enabledelayedexpansion
 title QDS Framework Launcher
 
+set OPENBLAS_NUM_THREADS=1
+set MKL_NUM_THREADS=1
+set OMP_NUM_THREADS=1
+set NUMEXPR_NUM_THREADS=1
+set VECLIB_MAXIMUM_THREADS=1
+
 cd /d "%~dp0"
 
 echo ======================================================================

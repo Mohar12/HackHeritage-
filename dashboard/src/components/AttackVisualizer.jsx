@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import TabCrossFade from './TabCrossFade.jsx';
 
 export const HONEST_PROTOCOL_STAGES = [
   {
@@ -233,132 +234,100 @@ const AttackVisualizer = React.memo(function AttackVisualizer({
     const honestFidelity = typeof detectData?.fidelity === 'number' ? detectData.fidelity : 0.998;
 
     return (
-      <div className="attack-visualizer-container honest-protocol-visualizer" style={{ marginTop: '1.4rem' }}>
+      <div className="attack-visualizer-container honest-protocol-visualizer">
         {/* Header */}
         <div className="attack-viz-header">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="viz-badge" style={{ background: 'rgba(0, 242, 254, 0.15)', color: 'var(--accent-cyan)', border: '1px solid rgba(0, 242, 254, 0.3)' }}>
+          <div className="hqds-honest-header-row">
+            <div className="hqds-honest-header-left">
+              <span className="viz-badge hqds-honest-badge">
                 VECTOR MECHANISM INSPECTOR
               </span>
               {lastUpdated && (
                 <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    fontSize: '0.68rem',
-                    color: isUpdating ? 'var(--accent-cyan)' : '#00e676',
-                    background: 'rgba(0, 0, 0, 0.35)',
-                    padding: '2px 8px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                  }}
+                  className={`hqds-honest-live-tag ${isUpdating ? 'is-updating' : ''}`}
                   title="Wired to live simulation recomputation"
                 >
                   <span
-                    style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      background: isUpdating ? 'var(--accent-cyan)' : '#00e676',
-                      boxShadow: isUpdating ? '0 0 6px #00f2fe' : '0 0 6px #00e676',
-                      animation: isUpdating ? 'pulse 0.8s infinite alternate' : 'none',
-                    }}
+                    className={`hqds-honest-live-dot ${isUpdating ? 'is-updating' : ''}`}
+                    aria-hidden="true"
                   />
                   {isUpdating ? 'Recomputing...' : `Live: ${lastUpdated}`}
                 </span>
               )}
             </div>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+            <span className="hqds-honest-desc-eyebrow">
               Deterministic Quantum Teleportation Signature Lifecycle
             </span>
           </div>
-          <h4 style={{ color: '#ffffff', marginTop: '0.35rem' }}>
-            ✨ Alice → Bob Legitimate Quantum Signature Lifecycle
+          <h4 className="hqds-honest-title">
+            Alice → Bob Legitimate Quantum Signature Lifecycle
           </h4>
         </div>
 
         {/* 1. Horizontal 3-box actor flow */}
-        <div className="viz-diagram intercept-diagram" style={{ marginBottom: '0.8rem' }}>
+        <div className="viz-diagram intercept-diagram hqds-honest-actor-flow">
           <div className="node-box alice">
-            <span className="node-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe', fontWeight: 800, fontSize: '0.75rem' }}>A</span>
+            <span className="node-icon hqds-honest-node-icon is-alice">A</span>
             <strong>Alice</strong>
             <small>Sends |Φ⁺⟩ flying qubit</small>
           </div>
 
           <div className="channel-flow legitimate-flow">
             <div className="beam beam-quantum">|ψ⟩</div>
-            <div 
-              className="eve-interceptor" 
-              style={{ 
-                background: 'rgba(0, 242, 254, 0.12)', 
-                border: '1px solid rgba(0, 242, 254, 0.4)',
-                borderRadius: '6px',
-                padding: '0.4rem 0.6rem',
-                margin: '0.3rem 0',
-                textAlign: 'center'
-              }}
-            >
-              <span className="eve-icon" style={{ color: 'var(--accent-cyan)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <div className="eve-interceptor hqds-honest-eve-interceptor">
+              <span className="eve-icon hqds-honest-eve-icon">
                 <StageIcon type="atom" /> Bell-State Measurement
               </span>
-              <span className="eve-action" style={{ color: '#cbd5e1' }}>
+              <span className="eve-action hqds-honest-eve-action">
                 Genuine BSM on message qubit + EPR half — correction bits (c₀, c₁) extracted honestly
               </span>
             </div>
             {/* 2. State banner beneath actor flow */}
-            <div className="beam beam-quantum" style={{ color: '#00e676', fontWeight: 700 }}>
+            <div className="beam beam-quantum hqds-honest-state-banner">
               |ψ⟩ Teleported Intact
             </div>
           </div>
 
           <div className="node-box bob">
-            <span className="node-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '4px', background: 'rgba(0, 230, 118, 0.15)', color: '#00e676', fontWeight: 800, fontSize: '0.75rem' }}>B</span>
+            <span className="node-icon hqds-honest-node-icon is-bob">B</span>
             <strong>Bob</strong>
             <small>Applies Pauli correction, measures intact qubit</small>
           </div>
         </div>
 
         {/* 3. Inline Metrics Row */}
-        <div className="viz-footer" style={{ marginBottom: '1.2rem' }}>
+        <div className="viz-footer hqds-honest-metrics-footer">
           <div className="viz-stat">
             <span>Observed QBER:</span>
-            <strong style={{ color: '#00e676' }}>{(honestQber * 100).toFixed(2)}%</strong>
+            <strong className="hqds-honest-metric-val">{(honestQber * 100).toFixed(2)}%</strong>
           </div>
           <div className="viz-stat">
             <span>Born χ² p-value:</span>
-            <strong style={{ color: '#00e676' }}>{honestPval.toFixed(4)}</strong>
+            <strong className="hqds-honest-metric-val">{honestPval.toFixed(4)}</strong>
           </div>
           <div className="viz-stat">
             <span>State Fidelity:</span>
-            <strong style={{ color: '#00e676' }}>{(honestFidelity * 100).toFixed(1)}%</strong>
+            <strong className="hqds-honest-metric-val">{(honestFidelity * 100).toFixed(1)}%</strong>
           </div>
         </div>
 
         {/* 7-Stage Protocol Sequence Sub-header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', paddingTop: '0.6rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-cyan)', letterSpacing: '0.06em' }}>
+        <div className="hqds-honest-sub-divider">
+          <span className="hqds-honest-sub-label">
             7-STAGE PROTOCOL SEQUENCE
           </span>
-          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+          <span className="hqds-honest-sub-hint">
             Select a stage to inspect physical parameters &amp; circuit verification
           </span>
         </div>
 
         {/* Phase Steps Strip */}
-        <div className="phase-steps-strip" style={{ marginBottom: '1rem', flexWrap: 'wrap', gap: '6px' }}>
+        <div className="phase-steps-strip hqds-honest-phase-strip">
           {stages.map((b) => (
             <span
               key={b.step}
               className={`phase-pill ${selectedStep === b.step ? 'active' : ''}`}
               onClick={() => handleStepClick(b.step)}
-              style={{
-                cursor: 'pointer',
-                background: selectedStep === b.step ? '#9333ea' : undefined,
-                boxShadow: selectedStep === b.step ? '0 0 12px rgba(192, 132, 252, 0.6)' : undefined,
-                color: selectedStep === b.step ? '#ffffff' : undefined,
-              }}
               title={`View Stage ${b.step}: ${b.title}`}
             >
               {b.step}. {b.title}
@@ -366,72 +335,35 @@ const AttackVisualizer = React.memo(function AttackVisualizer({
           ))}
         </div>
 
-        {/* All 7 Protocol Stages in Strict Sequence Order */}
-        <div
-          className="viz-diagram honest-diagram"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
-            gap: '12px',
-            alignItems: 'stretch',
-            padding: '1rem',
-            background: 'rgba(15, 23, 42, 0.65)',
-            borderRadius: '8px',
-          }}
-        >
+        {/* All 7 Protocol Stages in Strict Sequence Order (Responsive CSS grid) */}
+        <div className="viz-diagram honest-diagram hqds-honest-stages-grid">
           {stages.map((b) => {
             const isSelected = selectedStep === b.step;
             return (
               <div
                 key={b.step}
-                className="key-state-card"
+                className={`key-state-card hqds-honest-stage-card ${isSelected ? 'is-selected' : ''}`}
                 onClick={() => handleStepClick(b.step)}
-                style={{
-                  cursor: 'pointer',
-                  padding: '0.85rem',
-                  borderRadius: '8px',
-                  background: isSelected ? 'rgba(192, 132, 252, 0.12)' : 'rgba(15, 23, 42, 0.85)',
-                  border: `1px solid ${isSelected ? '#c084fc' : 'rgba(255, 255, 255, 0.08)'}`,
-                  boxShadow: isSelected ? '0 0 16px rgba(192, 132, 252, 0.25)' : 'none',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
               >
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isSelected ? '#ffffff' : '#c084fc', letterSpacing: '-0.01em' }}>
+                  <div className="hqds-honest-card-top">
+                    <span className="hqds-honest-card-title">
                       Stage {b.step} — {b.title}
                     </span>
-                    <span
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        minWidth: '24px',
-                        borderRadius: '6px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: isSelected ? 'rgba(192, 132, 252, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                        border: `1px solid ${isSelected ? 'rgba(192, 132, 252, 0.5)' : 'rgba(255, 255, 255, 0.1)'}`,
-                        color: isSelected ? '#e9d5ff' : '#94a3b8',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
+                    <span className="hqds-honest-card-icon">
                       <StageIcon type={b.iconType} />
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.75rem', color: '#cbd5e1', lineHeight: '1.5', margin: '4px 0 10px 0' }}>
+                  <p className="hqds-honest-card-desc">
                     {b.text}
                   </p>
                 </div>
 
                 <div>
-                  <code style={{ display: 'block', fontSize: '0.68rem', color: '#38bdf8', marginBottom: '6px', fontFamily: 'var(--font-mono)' }}>
+                  <code className="hqds-honest-card-formula">
                     {b.formula}
                   </code>
-                  <div className="outcome-pill success" style={{ margin: 0, fontSize: '0.66rem', padding: '0.22rem 0.45rem', letterSpacing: '0.04em' }}>
+                  <div className="outcome-pill success hqds-honest-card-pill">
                     {b.statusBadge}
                   </div>
                 </div>
@@ -442,7 +374,7 @@ const AttackVisualizer = React.memo(function AttackVisualizer({
 
         {/* Active Stage Detailed Technical Specification */}
         {activeStageItem && (
-          <div className="target-hud-box" style={{ marginTop: '1rem' }}>
+          <div className="target-hud-box hqds-honest-spec-hud">
             <div className="hud-title-bar" onClick={() => setHudExpanded(!hudExpanded)}>
               <span className="hud-icon"><StageIcon type="shield" /></span>
               <span className="hud-heading">
@@ -463,7 +395,7 @@ const AttackVisualizer = React.memo(function AttackVisualizer({
                 </div>
                 <div className="hud-field">
                   <span className="hud-label">Deterministic Verification:</span>
-                  <span className="hud-val safe-text">✓ Physical State Intact · Zero Wiretap Anomaly Detected</span>
+                  <span className="hud-val safe-text">[NOMINAL] Physical State Intact · Zero Wiretap Anomaly Detected</span>
                 </div>
               </div>
             )}
@@ -474,158 +406,505 @@ const AttackVisualizer = React.memo(function AttackVisualizer({
   }
 
   // ─────────────────────────────────────────────────────────────
-  // MODE 2: ATTACK LAB VECTOR MECHANISM INSPECTOR (UNMODIFIED)
+  // MODE 2: AUDIT/STITCH ADVERSARIAL PHYSICAL-LAYER INSTRUMENT
   // ─────────────────────────────────────────────────────────────
   const qber = detectData?.qber ?? (attackType === 'intercept_resend' ? 0.25 : attackType === 'forgery' ? 0.50 : 0.05);
   const pVal = detectData?.chi2_p_value ?? (attackType === 'impersonation' ? 0.00001 : 0.45);
   const fidelity = detectData?.fidelity ?? (attackType === 'depolarizing' ? 0.78 : 0.99);
 
   return (
-    <div className="attack-visualizer-container">
-      <div className="attack-viz-header">
-        <span className="viz-badge">VECTOR MECHANISM INSPECTOR</span>
-        <h4>
-          {attackType === 'intercept_resend' && '⚡ Intercept-Resend (EPR Collapse)'}
-          {attackType === 'depolarizing' && '🌊 Depolarizing Noise Decoherence'}
-          {attackType === 'forgery' && '🎭 Signature Forgery (Blind Guessing)'}
-          {attackType === 'impersonation' && '👤 Alice Impersonation (Spoofed States)'}
-          {attackType === 'replay' && '🔁 Signature Replay Attack'}
-        </h4>
+    <div className="hqds-viz-instrument-container attack-visualizer-container">
+      {/* ── Visualizer Header ── */}
+      <div className="hqds-viz-instrument-header">
+        <div className="hqds-viz-header-top">
+          <span className="hqds-viz-instrument-eyebrow">02.1 · PHYSICAL ATTACK MECHANISM OBSERVATORY</span>
+          <span className="hqds-viz-instrument-badge">LIVE INSTRUMENT SURFACE</span>
+        </div>
       </div>
 
-      {/* Vector 1: Intercept-Resend */}
-      {attackType === 'intercept_resend' && (
-        <div className="viz-diagram intercept-diagram">
-          <div className="node-box alice">
-            <span className="node-icon">🅰️</span>
-            <strong>Alice</strong>
-            <small>Sends |Φ⁺⟩ flying qubit</small>
-          </div>
+      {/* ── Crossfaded Attack Mechanism Visual Scenes (One Scientific Instrument) ── */}
+      <TabCrossFade activeKey={attackType} duration={320} className="attack-viz-mechanism-crossfade">
+        <div key={attackType} className="hqds-viz-scene-frame">
 
-          <div className="channel-flow intercepted">
-            <div className="beam beam-quantum">|ψ⟩</div>
-            <div className="eve-interceptor">
-              <span className="eve-icon">🕵️‍♀️ Eve</span>
-              <span className="eve-action">Measures in random Pauli basis (X or Z)</span>
-              <span className="eve-effect">Collapses Bell entanglement → Induces ~25% QBER</span>
-            </div>
-            <div className="beam beam-collapsed">|ψ'⟩ Collapsed</div>
-          </div>
+          {/* ═══════════════════════════════════════════════════════════
+              STATE 1: INTERCEPT-RESEND (EPR COLLAPSE & BASIS MISMATCH)
+              ═══════════════════════════════════════════════════════════ */}
+          {(attackType === 'intercept_resend' || attackType === 'beam_splitter') && (
+            <div className="hqds-viz-scene-content">
+              <div className="hqds-viz-scene-intro">
+                <span className="hqds-viz-scene-eyebrow">VECTOR 01 // INTERCEPT-RESEND EAVESDROPPING</span>
+                <h4 className="hqds-viz-scene-title">EPR Entanglement Collapse &amp; Pauli Basis Mismatch</h4>
+                <p className="hqds-viz-scene-desc">
+                  Eve splices an optical beam splitter into the quantum channel between Alice and Bob, projecting flying entangled qubits onto random conjugate bases {'{X, Z}'}. Projective measurement permanently destroys quantum superposition, inducing an anomalous ~25% QBER.
+                </p>
+              </div>
 
-          <div className="node-box bob">
-            <span className="node-icon">🅱️</span>
-            <strong>Bob</strong>
-            <small>Measures disturbed qubit</small>
-          </div>
-        </div>
-      )}
+              {/* Central Physical Mechanism Scene */}
+              <div className="hqds-viz-physical-track">
+                {/* Alice Node */}
+                <div className="hqds-viz-node is-alice">
+                  <div className="hqds-viz-node-badge">
+                    <span className="hqds-viz-node-dot is-cyan" aria-hidden="true" />
+                    <span>ALICE (QSP)</span>
+                  </div>
+                  <div className="hqds-viz-node-state">|Φ⁺⟩ = (|00⟩ + |11⟩)/√2</div>
+                  <div className="hqds-viz-node-sub">Source Qubit Ingestion</div>
+                </div>
 
-      {/* Vector 2: Depolarizing Noise */}
-      {attackType === 'depolarizing' && (
-        <div className="viz-diagram depolarizing-diagram">
-          <div className="node-box source">
-            <span className="node-icon">⚛️</span>
-            <strong>Pure State</strong>
-            <small>ρ = |ψ⟩⟨ψ|</small>
-          </div>
+                {/* Laser Waveguide Beam: Pure */}
+                <div className="hqds-viz-beam-segment is-pure">
+                  <div className="hqds-viz-beam-line" />
+                  <span className="hqds-viz-beam-pulse is-cyan" aria-hidden="true" />
+                  <span className="hqds-viz-beam-label">Flying Qubit |ψ⟩</span>
+                </div>
 
-          <div className="channel-flow noisy-channel">
-            <div className="superoperator-box">
-              <span className="superoperator-title">Channel Superoperator E(ρ)</span>
-              <code>(1 − p)ρ + (p/3)(XρX + YρY + ZρZ)</code>
-              <small>Uniform thermal phase &amp; bit flips over optical fiber</small>
-            </div>
-          </div>
+                {/* Eve Optical Wiretap & Collapse */}
+                <div className="hqds-viz-interceptor">
+                  <div className="hqds-viz-interceptor-badge">
+                    <span className="hqds-viz-node-dot is-crimson" aria-hidden="true" />
+                    <span>EVE OPTICAL WIRETAP</span>
+                  </div>
+                  <div className="hqds-viz-interceptor-action">
+                    Random Pauli Basis Projector &#123;σ_x, σ_z&#125;
+                  </div>
+                  <div className="hqds-viz-interceptor-impact">
+                    <span className="hqds-viz-impact-title">Entanglement Collapsed</span>
+                    <code className="hqds-viz-impact-state">|ψ⟩ → |00⟩ or |11⟩</code>
+                  </div>
+                </div>
 
-          <div className="node-box degraded">
-            <span className="node-icon">📉</span>
-            <strong>Mixed State</strong>
-            <small>Fidelity = {(fidelity * 100).toFixed(1)}%</small>
-          </div>
-        </div>
-      )}
+                {/* Perturbed Beam: Collapsed */}
+                <div className="hqds-viz-beam-segment is-collapsed">
+                  <div className="hqds-viz-beam-line is-broken" />
+                  <span className="hqds-viz-beam-pulse is-crimson" aria-hidden="true" />
+                  <span className="hqds-viz-beam-label">Perturbed Qubit |ψ&#39;⟩</span>
+                </div>
 
-      {/* Vector 3: Signature Forgery */}
-      {attackType === 'forgery' && (
-        <div className="viz-diagram forgery-diagram">
-          <div className="comparison-col legitimate">
-            <h5>✅ Legitimate Signature (Alice)</h5>
-            <div className="key-state-card">
-              <code>|K_A⟩ = EPR Bell Pairs (|00⟩ + |11⟩)/√2</code>
-              <span>Pauli Encoded with Private EPR Keys</span>
-            </div>
-            <div className="outcome-pill success">Bob Verification: ACCEPTED</div>
-          </div>
+                {/* Bob Node */}
+                <div className="hqds-viz-node is-bob">
+                  <div className="hqds-viz-node-badge">
+                    <span className="hqds-viz-node-dot is-emerald" aria-hidden="true" />
+                    <span>BOB (DETECTOR)</span>
+                  </div>
+                  <div className="hqds-viz-node-state">P(Mismatch) = 25.0%</div>
+                  <div className="hqds-viz-node-sub">Firewall Abort Triggered</div>
+                </div>
+              </div>
 
-          <div className="vs-divider">VS</div>
-
-          <div className="comparison-col forged">
-            <h5>❌ Forged Signature (Eve)</h5>
-            <div className="key-state-card forged-card">
-              <code>|K_Eve⟩ = Random Blind Guess</code>
-              <span>Success Probability: P(forgery) ≤ 2⁻ᴸ</span>
-            </div>
-            <div className="outcome-pill failure">Bob Verification: REJECTED (QBER = {(qber * 100).toFixed(1)}%)</div>
-          </div>
-        </div>
-      )}
-
-      {/* Vector 4: Alice Impersonation */}
-      {attackType === 'impersonation' && (
-        <div className="viz-diagram impersonation-diagram">
-          <div className="spoof-flow">
-            <div className="spoof-attacker">
-              <span className="eve-icon">🚨 Eve</span>
-              <strong>Transmits Unentangled Product States</strong>
-              <small>Attempts to bypass Alice's EPR distribution entirely</small>
-            </div>
-            <div className="arrow-down">⬇️</div>
-            <div className="born-rule-check">
-              <strong>Pearson χ² Born Rule Test Outcome:</strong>
-              <div className="chi2-alert-box">
-                <span>Observed p-value: <strong>{pVal < 0.0001 ? '< 0.0001' : pVal.toFixed(6)}</strong></span>
-                <p>Severe distribution skew: Product states violate the quantum Born distribution for Bell pairs!</p>
+              {/* Supporting Telemetry & Result State */}
+              <div className="hqds-viz-scene-footer">
+                <div className="hqds-viz-scene-telemetry-row">
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">INTERCEPT PROBABILITY</span>
+                    <strong className="hqds-viz-mini-val">100.0%</strong>
+                  </div>
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">EVE PROJECTIVE BASIS</span>
+                    <strong className="hqds-viz-mini-val">Random &#123;X, Z&#125;</strong>
+                  </div>
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">THEORETICAL INDUCED ERROR</span>
+                    <strong className="hqds-viz-mini-val is-alert">25.00% QBER</strong>
+                  </div>
+                </div>
+                <div className="hqds-viz-result-banner is-alert">
+                  <span className="hqds-viz-banner-dot is-crimson" aria-hidden="true" />
+                  <span>CRITICAL ANOMALY: QBER = {(qber * 100).toFixed(2)}% &gt; 11.00% · BB84 Bound Violated · Optical Link Severed</span>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Vector 5: Replay */}
-      {attackType === 'replay' && (
-        <div className="viz-diagram replay-diagram">
-          <div className="replay-flow">
-            <div className="session-box old-session">
-              <span className="sess-badge">SESSION #1 (Past)</span>
-              <code>Hash: 0xa4f9...81c</code>
-              <small>Legitimate signature captured by Eve</small>
-            </div>
+          {/* ═══════════════════════════════════════════════════════════
+              STATE 2: DEPOLARIZING CHANNEL NOISE (THERMAL DECOHERENCE)
+              ═══════════════════════════════════════════════════════════ */}
+          {attackType === 'depolarizing' && (
+            <div className="hqds-viz-scene-content">
+              <div className="hqds-viz-scene-intro">
+                <span className="hqds-viz-scene-eyebrow">VECTOR 02 // DEPOLARIZING CHANNEL NOISE</span>
+                <h4 className="hqds-viz-scene-title">Environmental Thermal Decoherence &amp; Phase Flips</h4>
+                <p className="hqds-viz-scene-desc">
+                  Simulates environmental thermal noise and phase-damping in the fiber-optic silica core. The superoperator acts isotropically on the density operator ρ, reducing state purity and fidelity without requiring an active eavesdropper.
+                </p>
+              </div>
 
-            <div className="replay-arrow">➡️ Replay Injection ➡️</div>
+              {/* Central Physical Mechanism Scene */}
+              <div className="hqds-viz-depolarizing-track">
+                {/* Pure State Input */}
+                <div className="hqds-viz-node is-pure-state">
+                  <div className="hqds-viz-node-badge">
+                    <span className="hqds-viz-node-dot is-cyan" aria-hidden="true" />
+                    <span>PURE INPUT STATE</span>
+                  </div>
+                  <div className="hqds-viz-node-state">ρ_in = |ψ⟩⟨ψ|</div>
+                  <div className="hqds-viz-node-sub">Tr(ρ²) = 1.000 · Unit Fidelity</div>
+                </div>
 
-            <div className="session-box new-session">
-              <span className="sess-badge danger">SESSION #2 (Current)</span>
-              <code>Expected Nonce: 0x7b2e...</code>
-              <div className="replay-rejection">
-                ❌ REJECTED: Session Nonce Mismatch &amp; Stale State Re-measurement
+                {/* Central Mathematical Superoperator Object */}
+                <div className="hqds-viz-superoperator-card">
+                  <div className="hqds-viz-superoperator-head">
+                    <span className="hqds-viz-superoperator-badge">KRAUS CHANNEL SUPEROPERATOR</span>
+                    <span className="hqds-viz-superoperator-noise">Noise Rate: p = {((1 - fidelity) * 1.5).toFixed(2)}</span>
+                  </div>
+                  <div className="hqds-viz-math-display">
+                    <code className="hqds-viz-formula">
+                      E(ρ) = (1 − p)ρ + (p/3)(σ_x ρ σ_x + σ_y ρ σ_y + σ_z ρ σ_z)
+                    </code>
+                  </div>
+                  <p className="hqds-viz-superoperator-desc">
+                    Isotropic depolarizing map with uniform bit flips (σ_x), phase flips (σ_z), and bit-phase flips (σ_y).
+                  </p>
+                </div>
+
+                {/* Mixed Degraded State Output */}
+                <div className="hqds-viz-node is-mixed-state">
+                  <div className="hqds-viz-node-badge">
+                    <span className="hqds-viz-node-dot is-amber" aria-hidden="true" />
+                    <span>MIXED OUTPUT STATE</span>
+                  </div>
+                  <div className="hqds-viz-node-state">F = {(fidelity * 100).toFixed(1)}%</div>
+                  <div className="hqds-viz-node-sub">Tr(ρ²) &lt; 1.000 · Coherence Decayed</div>
+                </div>
+              </div>
+
+              {/* Supporting Telemetry & Result State */}
+              <div className="hqds-viz-scene-footer">
+                <div className="hqds-viz-scene-telemetry-row">
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">NOISE CHANNEL TYPE</span>
+                    <strong className="hqds-viz-mini-val">Isotropic Depolarizing</strong>
+                  </div>
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">KRAUS GENERATORS</span>
+                    <strong className="hqds-viz-mini-val">Pauli &#123;I, X, Y, Z&#125;</strong>
+                  </div>
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">UHLMANN FIDELITY</span>
+                    <strong className="hqds-viz-mini-val is-warning">{(fidelity * 100).toFixed(1)}%</strong>
+                  </div>
+                </div>
+                <div className="hqds-viz-result-banner is-warning">
+                  <span className="hqds-viz-banner-dot is-amber" aria-hidden="true" />
+                  <span>DECOHERENCE ACTIVE: State Fidelity = {(fidelity * 100).toFixed(1)}% · Thermal Fiber Loss Observed Without Wiretap</span>
+                </div>
               </div>
             </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════
+              STATE 3: SIGNATURE FORGERY (BLIND GUESSING COMPARISON)
+              ═══════════════════════════════════════════════════════════ */}
+          {attackType === 'forgery' && (
+            <div className="hqds-viz-scene-content">
+              <div className="hqds-viz-scene-intro">
+                <span className="hqds-viz-scene-eyebrow">VECTOR 03 // SIGNATURE FORGERY ATTEMPT</span>
+                <h4 className="hqds-viz-scene-title">Private EPR Key Material vs. Blind Statevector Guess</h4>
+                <p className="hqds-viz-scene-desc">
+                  Eve attempts to generate a verified quantum signature without possessing Alice&#39;s private EPR key store. The probability of forging an L-qubit quantum signature is exponentially bounded by the Holevo information limit P(forgery) ≤ 2⁻ᴸ.
+                </p>
+              </div>
+
+              {/* Central Physical Mechanism Scene: Side-by-Side Comparison */}
+              <div className="hqds-viz-comparison-deck">
+                {/* Legitimate Column */}
+                <div className="hqds-viz-compare-card is-legitimate">
+                  <div className="hqds-viz-compare-head">
+                    <span className="hqds-viz-node-dot is-emerald" aria-hidden="true" />
+                    <span className="hqds-viz-compare-title">LEGITIMATE SIGNATURE (ALICE)</span>
+                  </div>
+                  <div className="hqds-viz-compare-body">
+                    <code className="hqds-viz-code-block">
+                      |K_A⟩ = ⨂ (|00⟩ + |11⟩)/√2
+                    </code>
+                    <p className="hqds-viz-compare-desc">
+                      Pauli-encoded with Alice&#39;s private EPR key store. Perfect correlation on Bob&#39;s Bell-state measurement.
+                    </p>
+                  </div>
+                  <div className="hqds-viz-compare-status is-pass">
+                    <span>[PASS] BOB VERIFICATION: ACCEPTED</span>
+                    <span className="hqds-viz-status-metric">QBER ≤ 5.0%</span>
+                  </div>
+                </div>
+
+                {/* Central VS Holevo Bound Barrier */}
+                <div className="hqds-viz-vs-barrier">
+                  <span className="hqds-viz-vs-badge">VS</span>
+                  <div className="hqds-viz-vs-bound">
+                    <span className="hqds-viz-vs-bound-lbl">HOLEVO BOUND</span>
+                    <code className="hqds-viz-vs-bound-val">P(Forgery) ≤ 2⁻ᴸ</code>
+                  </div>
+                </div>
+
+                {/* Forged Column */}
+                <div className="hqds-viz-compare-card is-forged">
+                  <div className="hqds-viz-compare-head">
+                    <span className="hqds-viz-node-dot is-crimson" aria-hidden="true" />
+                    <span className="hqds-viz-compare-title">FORGED SIGNATURE (EVE)</span>
+                  </div>
+                  <div className="hqds-viz-compare-body">
+                    <code className="hqds-viz-code-block is-forged-code">
+                      |K_Eve⟩ = Random Guess ∈ ℋ₂^⊗L
+                    </code>
+                    <p className="hqds-viz-compare-desc">
+                      Zero private key material. Random statevector guesses produce orthogonal projection error on ~50% of qubits.
+                    </p>
+                  </div>
+                  <div className="hqds-viz-compare-status is-fail">
+                    <span>[REJECTED] BOB VERIFICATION: REJECTED</span>
+                    <span className="hqds-viz-status-metric">QBER = {(qber * 100).toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Supporting Telemetry & Result State */}
+              <div className="hqds-viz-scene-footer">
+                <div className="hqds-viz-scene-telemetry-row">
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">KEY HILBERT SPACE</span>
+                    <strong className="hqds-viz-mini-val">2¹⁴ = 16,384</strong>
+                  </div>
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">MAX SUCCESS PROBABILITY</span>
+                    <strong className="hqds-viz-mini-val">P ≤ 6.10 × 10⁻⁵</strong>
+                  </div>
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">OBSERVED GUESS ERROR</span>
+                    <strong className="hqds-viz-mini-val is-alert">{(qber * 100).toFixed(1)}% QBER</strong>
+                  </div>
+                </div>
+                <div className="hqds-viz-result-banner is-alert">
+                  <span className="hqds-viz-banner-dot is-crimson" aria-hidden="true" />
+                  <span>FORGERY ABORT: QBER = {(qber * 100).toFixed(2)}% &gt;&gt; 11.00% · Orthogonal Statevector Blind Guess Blocked</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════
+              STATE 4: ALICE IMPERSONATION (UNENTANGLED SPOOF & BORN SKEW)
+              ═══════════════════════════════════════════════════════════ */}
+          {attackType === 'impersonation' && (
+            <div className="hqds-viz-scene-content">
+              <div className="hqds-viz-scene-intro">
+                <span className="hqds-viz-scene-eyebrow">VECTOR 04 // ALICE IMPERSONATION ATTEMPT</span>
+                <h4 className="hqds-viz-scene-title">Unentangled Product States &amp; Born Distribution Anomaly</h4>
+                <p className="hqds-viz-scene-desc">
+                  Eve attempts to impersonate Alice by transmitting factorized product states without genuine Bell entanglement. While classical messages appear valid, Bob&#39;s zero-ML physical detector identifies extreme Pearson χ² Born distribution skew.
+                </p>
+              </div>
+
+              {/* Central Physical Mechanism Scene */}
+              <div className="hqds-viz-impersonation-layout">
+                {/* Spoofed Source Card */}
+                <div className="hqds-viz-spoof-card">
+                  <div className="hqds-viz-compare-head">
+                    <span className="hqds-viz-node-dot is-crimson" aria-hidden="true" />
+                    <span className="hqds-viz-compare-title">EVE SPOOFED QUANTUM TRANSMITTER</span>
+                  </div>
+                  <div className="hqds-viz-spoof-content">
+                    <code className="hqds-viz-code-block is-forged-code">
+                      |ψ_spoof⟩ = |q₀⟩ ⊗ |q₁⟩ ⊗ ... ⊗ |q_L⟩
+                    </code>
+                    <p className="hqds-viz-compare-desc">
+                      Transmits separable classical product states to spoof Alice&#39;s identity without quantum entanglement.
+                    </p>
+                    <div className="hqds-viz-spoof-concurrence">
+                      <span className="hqds-viz-mini-lbl">ENTANGLEMENT CONCURRENCE</span>
+                      <span className="hqds-viz-concurrence-val is-alert">C = 0.00 (Zero Entanglement)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Flow Indicator to Focal Point */}
+                <div className="hqds-viz-flow-indicator">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                  <span>Bob Joint Projection</span>
+                </div>
+
+                {/* Born χ² Statistical Focal Point Card */}
+                <div className="hqds-viz-chi2-focal-card">
+                  <div className="hqds-viz-chi2-head">
+                    <span className="hqds-viz-chi2-badge">ZERO-ML STATISTICAL ENGINE</span>
+                    <span className="hqds-viz-chi2-title">Pearson χ² Born-Rule Goodness-of-Fit</span>
+                  </div>
+                  <div className="hqds-viz-chi2-formula-wrap">
+                    <code className="hqds-viz-formula">
+                      χ² = ∑_i (O_i − E_i)² / E_i
+                    </code>
+                  </div>
+                  <div className="hqds-viz-chi2-stat-row">
+                    <div className="hqds-viz-chi2-val-box">
+                      <span className="hqds-viz-chi2-lbl">OBSERVED p-VALUE</span>
+                      <span className="hqds-viz-chi2-val is-alert">{pVal < 0.0001 ? '< 0.0001' : pVal.toFixed(6)}</span>
+                    </div>
+                    <div className="hqds-viz-chi2-verdict-box">
+                      <span className="hqds-viz-chi2-lbl">BORN DISTRIBUTION SKEW</span>
+                      <span className="hqds-viz-chi2-alert-text">EXTREME ANOMALY DETECTED</span>
+                    </div>
+                  </div>
+                  <p className="hqds-viz-chi2-note">
+                    Product states fatally skew joint coincidence rates across measurement bases. The Born-rule p-value collapses below 0.0001, triggering deterministic rejection.
+                  </p>
+                </div>
+              </div>
+
+              {/* Supporting Telemetry & Result State */}
+              <div className="hqds-viz-scene-footer">
+                <div className="hqds-viz-scene-telemetry-row">
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">STATISTICAL TEST</span>
+                    <strong className="hqds-viz-mini-val">Pearson χ² Test</strong>
+                  </div>
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">DEGREES OF FREEDOM</span>
+                    <strong className="hqds-viz-mini-val">ν = 3 (Bell Basis)</strong>
+                  </div>
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">CONFIDENCE INTERVAL</span>
+                    <strong className="hqds-viz-mini-val is-alert">&gt; 99.999% Anomaly</strong>
+                  </div>
+                </div>
+                <div className="hqds-viz-result-banner is-alert">
+                  <span className="hqds-viz-banner-dot is-crimson" aria-hidden="true" />
+                  <span>IMPERSONATION BLOCKED: Born χ² p-Value &lt; 0.0001 · Deterministic Physics Rejection Triggered</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════
+              STATE 5: SIGNATURE REPLAY (TEMPORAL SEQUENCE & NONCE MISMATCH)
+              ═══════════════════════════════════════════════════════════ */}
+          {attackType === 'replay' && (
+            <div className="hqds-viz-scene-content">
+              <div className="hqds-viz-scene-intro">
+                <span className="hqds-viz-scene-eyebrow">VECTOR 05 // SIGNATURE REPLAY ATTACK</span>
+                <h4 className="hqds-viz-scene-title">Temporal Epoch Desynchronization &amp; Nonce Invalidation</h4>
+                <p className="hqds-viz-scene-desc">
+                  Eve eavesdrops and intercepts a valid quantum signature from a past epoch (Session #1) and attempts re-submission in the active epoch (Session #2). The attack is rejected via single-use ephemeral session nonces and the no-cloning theorem.
+                </p>
+              </div>
+
+              {/* Central Physical Mechanism Scene: Temporal Sequence */}
+              <div className="hqds-viz-timeline-deck">
+                {/* Session 1 (Past) */}
+                <div className="hqds-viz-epoch-card is-past">
+                  <div className="hqds-viz-epoch-head">
+                    <span className="hqds-viz-epoch-badge">SESSION #1 (EPOCH T₀ · PAST)</span>
+                    <span className="hqds-viz-epoch-tag is-closed">COMMITTED</span>
+                  </div>
+                  <div className="hqds-viz-epoch-body">
+                    <div className="hqds-viz-epoch-field">
+                      <span className="hqds-viz-epoch-lbl">TRANSACTION DIGEST</span>
+                      <code className="hqds-viz-epoch-code">0x9f4a...81b2</code>
+                    </div>
+                    <div className="hqds-viz-epoch-field">
+                      <span className="hqds-viz-epoch-lbl">LEGITIMATE NONCE</span>
+                      <code className="hqds-viz-epoch-code is-nonce">0x7b2f489a</code>
+                    </div>
+                    <p className="hqds-viz-epoch-desc">
+                      Valid quantum signature successfully verified and committed to the immutable audit ledger.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Temporal Replay Injection Connector */}
+                <div className="hqds-viz-temporal-connector">
+                  <div className="hqds-viz-temporal-line" />
+                  <div className="hqds-viz-temporal-eve-badge">
+                    <span className="hqds-viz-node-dot is-crimson" aria-hidden="true" />
+                    <span>EVE REPLAY INJECTION</span>
+                  </div>
+                  <span className="hqds-viz-temporal-delay">Delay Δt &gt; τ_session · Stale Packet</span>
+                </div>
+
+                {/* Session 2 (Active) */}
+                <div className="hqds-viz-epoch-card is-active">
+                  <div className="hqds-viz-epoch-head">
+                    <span className="hqds-viz-epoch-badge is-danger">SESSION #2 (EPOCH T₁ · ACTIVE)</span>
+                    <span className="hqds-viz-epoch-tag is-reject">REJECTED</span>
+                  </div>
+                  <div className="hqds-viz-epoch-body">
+                    <div className="hqds-viz-epoch-field">
+                      <span className="hqds-viz-epoch-lbl">EXPECTED ACTIVE NONCE</span>
+                      <code className="hqds-viz-epoch-code is-active-nonce">0x3c99a14d</code>
+                    </div>
+                    <div className="hqds-viz-epoch-field">
+                      <span className="hqds-viz-epoch-lbl">INJECTED STALE NONCE</span>
+                      <code className="hqds-viz-epoch-code is-stale-nonce">0x7b2f489a (COLLISION)</code>
+                    </div>
+                    <div className="hqds-viz-epoch-alert">
+                      [COLLAPSE] RE-MEASUREMENT COLLAPSE: No-cloning theorem prevents state reuse
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Supporting Telemetry & Result State */}
+              <div className="hqds-viz-scene-footer">
+                <div className="hqds-viz-scene-telemetry-row">
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">SESSION TOKEN STATUS</span>
+                    <strong className="hqds-viz-mini-val is-alert">Expired Epoch</strong>
+                  </div>
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">NONCE REUSE CHECK</span>
+                    <strong className="hqds-viz-mini-val is-alert">Collision Detected</strong>
+                  </div>
+                  <div className="hqds-viz-metric-mini">
+                    <span className="hqds-viz-mini-lbl">NO-CLONING VALIDATION</span>
+                    <strong className="hqds-viz-mini-val">Irreversible Collapse</strong>
+                  </div>
+                </div>
+                <div className="hqds-viz-result-banner is-alert">
+                  <span className="hqds-viz-banner-dot is-crimson" aria-hidden="true" />
+                  <span>REPLAY NEUTRALIZED: Ephemeral Nonce Mismatch · Quantum Non-Reuse Rule Enforced</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </TabCrossFade>
+
+      {/* ── 10. Audit-Style Technical Telemetry Footer (Requirement 10) ── */}
+      <div className="hqds-viz-footer-telemetry" aria-label="Physical Threat Detection Telemetry">
+        {/* Chip 1: Observed QBER */}
+        <div className={`hqds-viz-telemetry-chip ${qber > 0.11 ? 'is-anomaly' : 'is-nominal'}`}>
+          <div className="hqds-viz-chip-top">
+            <span className="hqds-viz-chip-label">OBSERVED QBER</span>
+            <span className="hqds-viz-chip-limit">BB84 BOUND: 11.0%</span>
+          </div>
+          <div className="hqds-viz-chip-val">{(qber * 100).toFixed(2)}%</div>
+          <div className="hqds-viz-chip-sub">
+            {qber > 0.11 ? '[ANOMALY] Eavesdropping Threshold Exceeded' : '[NOMINAL] Physical Channel Secure'}
           </div>
         </div>
-      )}
 
-      <div className="viz-footer">
-        <div className="viz-stat">
-          <span>Observed QBER:</span>
-          <strong style={{ color: qber > 0.11 ? '#ff1744' : '#00e676' }}>{(qber * 100).toFixed(2)}%</strong>
+        {/* Chip 2: Born χ² p-value */}
+        <div className={`hqds-viz-telemetry-chip ${pVal < 0.01 ? 'is-anomaly' : 'is-nominal'}`}>
+          <div className="hqds-viz-chip-top">
+            <span className="hqds-viz-chip-label">BORN χ² p-VALUE</span>
+            <span className="hqds-viz-chip-limit">CRITICAL α: 0.01</span>
+          </div>
+          <div className="hqds-viz-chip-val">{pVal < 0.0001 ? '< 0.0001' : pVal.toFixed(4)}</div>
+          <div className="hqds-viz-chip-sub">
+            {pVal < 0.01 ? '[ANOMALY] Significant State Distribution Skew' : '[NOMINAL] Conforms to Bell State Statistics'}
+          </div>
         </div>
-        <div className="viz-stat">
-          <span>Born χ² p-value:</span>
-          <strong style={{ color: pVal < 0.01 ? '#ff1744' : '#00e676' }}>{pVal < 0.0001 ? '< 0.0001' : pVal.toFixed(4)}</strong>
-        </div>
-        <div className="viz-stat">
-          <span>State Fidelity:</span>
-          <strong style={{ color: fidelity < 0.85 ? '#ff1744' : '#00e676' }}>{(fidelity * 100).toFixed(1)}%</strong>
+
+        {/* Chip 3: State Fidelity */}
+        <div className={`hqds-viz-telemetry-chip ${fidelity < 0.85 ? 'is-anomaly' : 'is-nominal'}`}>
+          <div className="hqds-viz-chip-top">
+            <span className="hqds-viz-chip-label">STATE FIDELITY</span>
+            <span className="hqds-viz-chip-limit">UHLMANN F(ρ, σ)</span>
+          </div>
+          <div className="hqds-viz-chip-val">{(fidelity * 100).toFixed(1)}%</div>
+          <div className="hqds-viz-chip-sub">
+            {fidelity < 0.85 ? '[ANOMALY] Substantial Mixed State Decoherence' : '[NOMINAL] Unitary Pure State Overlap'}
+          </div>
         </div>
       </div>
     </div>

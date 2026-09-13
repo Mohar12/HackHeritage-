@@ -446,7 +446,7 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
 
     const getDocScrollHeight = () => {
       const realScrollable = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-      if (visualContextRef.current === 'audit' || visualContextRef.current === 'honest') {
+      if (visualContextRef.current === 'audit' || visualContextRef.current === 'honest' || visualContextRef.current === 'attack') {
         return realScrollable;
       }
       return Math.max(MIN_VIRTUAL_SCROLL_HEIGHT, realScrollable);
@@ -691,45 +691,44 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
           rim: new THREE.Color(0xff4d5a),
           wireframe: new THREE.Color(0xff1e2f),
           halo: new THREE.Color(0x6e0f1c),
-        },
-        depolarizing: {
-          // Warm orange-red -- environmental noise/decoherence, not an active adversary
-          deepVoid: new THREE.Color(0x140702),
-          core: new THREE.Color(0x401505),
-          mid: new THREE.Color(0x8a3208),
-          bright: new THREE.Color(0xe0570f),
-          torchGlint: new THREE.Color(0xff6a24),
-          specGlint: new THREE.Color(0xffd0b3),
-          rim: new THREE.Color(0xff8a4d),
-          wireframe: new THREE.Color(0xff5e1e),
-          halo: new THREE.Color(0x6e2c0f),
+             depolarizing: {
+          // Scarlet-crimson -- environmental decoherence noise in red spectrum
+          deepVoid: new THREE.Color(0x140305),
+          core: new THREE.Color(0x40090f),
+          mid: new THREE.Color(0x8a1520),
+          bright: new THREE.Color(0xe12435),
+          torchGlint: new THREE.Color(0xff3348),
+          specGlint: new THREE.Color(0xffc2cc),
+          rim: new THREE.Color(0xff5265),
+          wireframe: new THREE.Color(0xff2238),
+          halo: new THREE.Color(0x6e101c),
         },
         forgery: {
-          // Crimson-magenta -- identity/signature forgery
-          deepVoid: new THREE.Color(0x120210),
-          core: new THREE.Color(0x3d0638),
-          mid: new THREE.Color(0x830f6e),
-          bright: new THREE.Color(0xd91ea8),
-          torchGlint: new THREE.Color(0xff24bd),
-          specGlint: new THREE.Color(0xffb3e8),
-          rim: new THREE.Color(0xff4dd0),
-          wireframe: new THREE.Color(0xff1eb8),
-          halo: new THREE.Color(0x6e0f5e),
+          // Ruby-crimson -- signature forgery in red spectrum
+          deepVoid: new THREE.Color(0x140208),
+          core: new THREE.Color(0x3d0614),
+          mid: new THREE.Color(0x830f28),
+          bright: new THREE.Color(0xd91e45),
+          torchGlint: new THREE.Color(0xff2458),
+          specGlint: new THREE.Color(0xffb3c8),
+          rim: new THREE.Color(0xff4d70),
+          wireframe: new THREE.Color(0xff1e48),
+          halo: new THREE.Color(0x6e0f22),
         },
         impersonation: {
-          // Deep rose-red -- spoofed identity, slightly cooler than pure red
-          deepVoid: new THREE.Color(0x140208),
-          core: new THREE.Color(0x400620),
-          mid: new THREE.Color(0x8a0f46),
-          bright: new THREE.Color(0xe01e78),
-          torchGlint: new THREE.Color(0xff248a),
-          specGlint: new THREE.Color(0xffb3d0),
-          rim: new THREE.Color(0xff4da0),
-          wireframe: new THREE.Color(0xff1e8a),
-          halo: new THREE.Color(0x6e0f3c),
+          // Deep rose-red -- spoofed identity in red spectrum
+          deepVoid: new THREE.Color(0x140206),
+          core: new THREE.Color(0x400618),
+          mid: new THREE.Color(0x8a0f35),
+          bright: new THREE.Color(0xe01e58),
+          torchGlint: new THREE.Color(0xff2468),
+          specGlint: new THREE.Color(0xffb3c5),
+          rim: new THREE.Color(0xff4d80),
+          wireframe: new THREE.Color(0xff1e60),
+          halo: new THREE.Color(0x6e0f2a),
         },
         replay: {
-          // Deep blood-red / maroon -- stale/reused signature, darker and heavier
+          // Deep blood-red / maroon -- stale/reused signature in red spectrum
           deepVoid: new THREE.Color(0x110203),
           core: new THREE.Color(0x38070c),
           mid: new THREE.Color(0x701018),
@@ -739,7 +738,7 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
           rim: new THREE.Color(0xd6404a),
           wireframe: new THREE.Color(0xb81e28),
           halo: new THREE.Color(0x520d13),
-        },
+        },     },
       },
     };
 
@@ -1132,7 +1131,7 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
           smokeMix = 0.0;
 
           // Smooth continuous bell curve: peaks in middle of Act 4 and dissolves gracefully (Landing comparison)
-          if (visualContextRef.current === 'audit') {
+          if (visualContextRef.current === 'audit' || visualContextRef.current === 'attack') {
             splitMix = 0.0;
           } else if (p < 0.82) {
             const sIn = (p - 0.72) / 0.10;
@@ -1186,12 +1185,14 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
           targetColors.halo.lerpColors(dimensionState.halo, stateColors.closingRuby.halo, smoothT);
         }
 
-        // Attack Lab threat alert overlay: blend the just-computed act-based
-        // targetColors further toward the attack-type-specific alert palette,
-        // scaled by threatAlertRef.current (0 = no change, 1 = full crimson).
-        // This runs AFTER the act-based color logic so it layers on top of
-        // whatever the scroll state currently is.
-        const alertAmount = Math.max(0, Math.min(1, threatAlertRef.current));
+        // Attack Lab threat alert overlay: blend the targetColors toward the
+        // attack-type-specific alert palette, scaled by threatAlert.
+        // For visualContext === 'attack', enforce a baseline of at least 0.88
+        // so the 3D Entanglement canvas radiates continuously in the red spectrum.
+        const baseAlert = visualContextRef.current === 'attack'
+          ? Math.max(0.88, Math.min(1, threatAlertRef.current ?? 0.88))
+          : Math.max(0, Math.min(1, threatAlertRef.current));
+        const alertAmount = baseAlert;
         if (alertAmount > 0.001) {
           const requestedType = threatAttackTypeRef.current;
           const alert =
