@@ -3382,23 +3382,11 @@ body {
    - Monospace section telemetry label
    ══════════════════════════════════════════════════════════ */
 .hqds-progress-rail-minimal {
-  position: fixed;
-  right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 80;
-  width: 14px;
-  height: 180px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: none !important;
 }
 
 .hqds-root.is-calibrated .hqds-progress-rail-minimal {
-  opacity: 1;
+  display: none !important;
 }
 
 .hqds-rail-track {
@@ -13173,7 +13161,8 @@ span.phase-pill:hover,
 }
 
 /* Universal Scrollbar Removal - Completely Hidden Across All Browsers */
-html {
+html,
+body {
   overflow-x: clip;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
@@ -13181,9 +13170,17 @@ html {
 
 body:has(.hqds-honest-page-root),
 body:has(.hqds-landing-root),
+body:has(.hqds-root),
 body:has(.hqds-audit-page-root) {
   padding: 0;
   overflow-x: clip;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.hqds-root {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 *,
@@ -13193,6 +13190,10 @@ body:has(.hqds-audit-page-root) {
   -ms-overflow-style: none !important;
 }
 
+::-webkit-scrollbar,
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.hqds-root::-webkit-scrollbar,
 *::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;

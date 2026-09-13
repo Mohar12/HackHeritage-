@@ -708,29 +708,6 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
       {/* Atmospheric Cryogenic Ambient Scrim */}
       <div className="hqds-ambient-scrim" aria-hidden="true" />
 
-      {/* Precision Scroll Navigation Rail (Stage 8 Precision Redesign) */}
-      <div className="hqds-progress-rail-minimal" aria-hidden="true">
-        <div className="hqds-rail-track">
-          {/* Continuous Progress Fill & Active Calibration Marker */}
-          <div ref={railIndicatorRef} className="hqds-rail-indicator-fill" style={{ height: '0%' }}>
-            <div className="hqds-rail-marker" />
-          </div>
-
-          {/* Major Narrative Section Calibration Ticks */}
-          <div className="hqds-rail-ticks">
-            {RAIL_SECTIONS.map((sec) => (
-              <div
-                key={sec.id}
-                id={`hqds-rail-tick-${sec.id}`}
-                className={`hqds-rail-tick ${activeAct === sec.id ? 'is-active' : ''}`}
-                style={{ top: `${sec.defaultPct}%` }}
-                data-label={sec.label}
-                data-section={sec.id}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* Canonical HyperQDS Top Navigation (Landing: 3 section buttons) */}
       <StitchHeader 
