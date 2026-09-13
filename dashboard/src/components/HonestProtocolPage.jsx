@@ -959,19 +959,6 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
           }`}
           aria-labelledby="honest-hero-title"
         >
-          {/* Centered Eyebrow + Subtle Live Status Pill */}
-          <div className="hqds-honest-hero-eyebrow-row hqds-reveal">
-            <span className="hqds-honest-hero-eyebrow">HONEST PROTOCOL</span>
-            <span className="hqds-honest-hero-eyebrow-sep" aria-hidden="true">·</span>
-            <div
-              className={`hqds-honest-status-badge is-${statusLabel.toLowerCase()}`}
-              aria-label="Protocol status indicator"
-            >
-              <span className="hqds-honest-status-dot" />
-              <span className="hqds-honest-status-label">{statusLabel}</span>
-            </div>
-          </div>
-
           {/* Centered Display Title & Supporting Narrative */}
           <div className="hqds-honest-hero-center-content hqds-reveal" style={{ '--reveal-delay': '80ms' }}>
             <h1 id="honest-hero-title" className="hqds-honest-hero-title">
@@ -996,21 +983,16 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
             <span className="hqds-honest-meta-segment">VERIFICATION</span>
           </div>
 
-          {/* Centered Primary Action CTA: RUN PROTOCOL */}
+          {/* Centered Primary Action CTA: Run Protocol */}
           <div className="hqds-honest-hero-action-row hqds-reveal" style={{ '--reveal-delay': '200ms' }}>
             <button
               type="button"
-              className={`hqds-honest-hero-run-btn ${isRunning ? 'is-running' : ''} hqds-cursor-light`}
+              className={`hqds-nav-pill-btn hqds-honest-hero-run-btn ${isRunning ? 'is-running' : ''}`}
               onClick={handleRunProtocol}
               disabled={isRunning}
-              onMouseMove={handleMouseMove}
               aria-label="Execute Honest Quantum Digital Signature Protocol"
             >
-              <span className="btn-glow" aria-hidden="true" />
-              <span className="btn-icon">{isRunning ? '⏳' : '⚡'}</span>
-              <span className="btn-label">
-                {isRunning ? simStep || 'RUNNING PROTOCOL...' : 'RUN PROTOCOL'}
-              </span>
+              <span>{isRunning ? (simStep || 'Running Protocol...') : 'Run Protocol'}</span>
             </button>
           </div>
 

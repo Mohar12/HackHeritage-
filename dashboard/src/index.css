@@ -13501,71 +13501,49 @@ body::-webkit-scrollbar,
 }
 
 .hqds-honest-hero-run-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 14px 38px;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);
-  border: 1px solid rgba(34, 211, 238, 0.55);
-  color: #ffffff;
-  font-family: var(--font-sub, 'Space Grotesk', system-ui, sans-serif);
-  font-size: 0.92rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  box-shadow: 0 0 24px rgba(34, 211, 238, 0.3), 0 8px 28px rgba(0, 0, 0, 0.5);
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.22s ease;
-  overflow: hidden;
-  outline: none;
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 8px 24px !important;
+  border-radius: 12px !important;
+  background: rgba(8, 14, 26, 0.72) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  color: #ffffff !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-size: 0.86rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  text-transform: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+  overflow: hidden !important;
+  transform: none !important;
+  transition: border-color 0.45s ease, box-shadow 0.45s ease, background 0.45s ease !important;
 }
 
 .hqds-honest-hero-run-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  border-color: rgba(34, 211, 238, 0.85);
-  box-shadow: 0 0 36px rgba(34, 211, 238, 0.55), 0 12px 36px rgba(0, 0, 0, 0.65);
+  transform: none !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 16px rgba(56, 189, 248, 0.25) !important;
 }
 
 .hqds-honest-hero-run-btn:active:not(:disabled) {
-  transform: translateY(0);
+  transform: none !important;
 }
 
 .hqds-honest-hero-run-btn.is-running,
 .hqds-honest-hero-run-btn:disabled {
-  cursor: wait;
-  opacity: 0.88;
-  background: linear-gradient(135deg, #0369a1 0%, #0f766e 100%);
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
-}
-
-.hqds-honest-hero-run-btn .btn-glow {
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.25) 0%, transparent 60%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-.hqds-honest-hero-run-btn:hover .btn-glow {
-  opacity: 1;
-}
-
-.hqds-honest-hero-run-btn .btn-icon {
-  font-size: 1rem;
-  line-height: 1;
-  display: inline-flex;
-}
-
-.hqds-honest-hero-run-btn .btn-label {
-  display: inline-flex;
-  align-items: center;
+  cursor: wait !important;
+  opacity: 0.72 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
 }
 
 /* ── STITCH LANDING-STYLE HONEST SUBNAV CAPSULE (01–08) ── */
