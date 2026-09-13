@@ -196,9 +196,9 @@ def main() -> None:
         "uvicorn",
         "backend.main:app",
         "--host",
-        "127.0.0.1",
+        os.environ.get("BACKEND_HOST", "0.0.0.0"),
         "--port",
-        "8000",
+        os.environ.get("BACKEND_PORT", "8000"),
         "--reload",
     ]
     if env_file.exists():

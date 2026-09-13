@@ -12,9 +12,31 @@ import QuantumEntanglementCanvas from './QuantumEntanglementCanvas.jsx';
 import { loginUser, registerUser } from '../services/authApi.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
-const API_BASE = (typeof window !== 'undefined' && window.__VITE_API_URL__) 
-  || import.meta.env.VITE_API_URL 
-  || '';
+const getApiBase = () => {
+  if (typeof window !== 'undefined' && window.__VITE_API_URL__) {
+    return window.__VITE_API_URL__;
+  }
+  const envUrl = import.meta.env.VITE_API_URL || '';
+  if (envUrl && typeof window !== 'undefined') {
+    try {
+      const parsed = new URL(envUrl, window.location.href);
+      if (window.location.hostname === '127.0.0.1' && parsed.hostname === 'localhost') {
+        parsed.hostname = '127.0.0.1';
+        return parsed.origin;
+      }
+      if (window.location.hostname === 'localhost' && parsed.hostname === '127.0.0.1') {
+        parsed.hostname = 'localhost';
+        return parsed.origin;
+      }
+      return parsed.origin;
+    } catch {
+      return envUrl;
+    }
+  }
+  return envUrl;
+};
+
+const API_BASE = getApiBase();
 
 export default function SignInPage({ onNavigate, onLoginSuccess }) {
   const auth = useAuth();
@@ -43,12 +65,6 @@ export default function SignInPage({ onNavigate, onLoginSuccess }) {
         window.history.replaceState(null, '', cleanUrl);
       }
     }
-
-    const origOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = origOverflow;
-    };
   }, []);
 
   // Redirect if already authenticated
@@ -72,45 +88,38 @@ export default function SignInPage({ onNavigate, onLoginSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
-    setSocialNotice('');
 
-    // Basic client validation
-    if (!email || !email.includes('@')) {
-      setErrorMessage('Please provide a valid email address.');
-      return;
-    }
-    if (!password) {
-      setErrorMessage('Please enter your password.');
+    if (!email || !password) {
+      setErrorMessage('Please provide both email and password.');
       return;
     }
 
     if (mode === 'register') {
-      if (password.length < 8) {
-        setErrorMessage('Password must be at least 8 characters long.');
+      if (password !== confirmPassword) {
+        setErrorMessage('Passwords do not match. Please verify.');
         return;
       }
-      if (password !== confirmPassword) {
-        setErrorMessage('Passwords do not match.');
+      if (password.length < 8) {
+        setErrorMessage('Password must be at least 8 characters in length.');
         return;
       }
     }
 
     setIsLoading(true);
-
     try {
-      if (mode === 'signin') {
-        const user = (auth && auth.login) 
-          ? await auth.login({ email, password }) 
-          : (await loginUser({ email, password })).user;
+      if (mode === 'register') {
+        const user = auth?.register 
+          ? await auth.register({ email, password, fullName })
+          : (await registerUser({ email, password, fullName })).user;
         if (onLoginSuccess) {
           onLoginSuccess(user);
         } else if (onNavigate) {
           onNavigate('honest');
         }
       } else {
-        const user = (auth && auth.register) 
-          ? await auth.register({ email, password, fullName }) 
-          : (await registerUser({ email, password, fullName })).user;
+        const user = auth?.login 
+          ? await auth.login({ email, password })
+          : (await loginUser({ email, password })).user;
         if (onLoginSuccess) {
           onLoginSuccess(user);
         } else if (onNavigate) {
@@ -124,7 +133,9 @@ export default function SignInPage({ onNavigate, onLoginSuccess }) {
     }
   };
 
-  const handleSocialClick = (providerKey) => {
+  const handleFormSubmit = handleSubmit;
+
+  const handleSocialClick = async (providerKey) => {
     if (connectingProvider || isLoading) return;
     const providerName = providerKey.toLowerCase() === 'google' 
       ? 'Google' 
@@ -132,12 +143,39 @@ export default function SignInPage({ onNavigate, onLoginSuccess }) {
         ? 'GitHub' 
         : 'Microsoft';
     setConnectingProvider(providerName);
-    setSocialNotice(`Connecting to ${providerName}…`);
+    setSocialNotice(`Connecting to ${providerName}...`);
     setErrorMessage('');
 
-    // Seamless browser redirect to FastAPI OAuth initiator
-    const targetUrl = `${API_BASE}/auth/${providerKey.toLowerCase()}/login`;
-    window.location.href = targetUrl;
+    // Fetch OAuth initiation endpoint with format=json, setting the state cookie seamlessly
+    try {
+      const endpoint = `${API_BASE}/auth/${providerKey.toLowerCase()}/login?format=json`;
+      const res = await fetch(endpoint, {
+        headers: { Accept: 'application/json' },
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.url) {
+          window.location.href = data.url;
+          return;
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setErrorMessage(errData.message || `${providerName} sign-in is not configured on the server.`);
+        setConnectingProvider(null);
+        setSocialNotice('');
+        return;
+      }
+    } catch (err) {
+      console.warn('OAuth pre-fetch notice:', err);
+      // If pre-fetch had network issues, attempt direct browser navigation as fallback
+      const targetUrl = `${API_BASE}/auth/${providerKey.toLowerCase()}/login`;
+      window.location.href = targetUrl;
+      return;
+    }
+
+    setConnectingProvider(null);
+    setSocialNotice('');
   };
 
 
