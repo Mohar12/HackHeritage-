@@ -1417,7 +1417,7 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
                       <span className="readout-val mono">{nQubits}</span>
                       <span className="readout-lbl">QUBITS</span>
                     </div>
-                    <div className="noise-readout-badge">
+                    <div className={`noise-readout-badge ${willReject ? 'is-abort' : 'is-accept'}`}>
                       <span className="readout-qber-val mono">{(inducedQber * 100).toFixed(1)}%</span>
                       <span className="readout-qber-lbl">QBER</span>
                     </div>
@@ -1426,7 +1426,7 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
                   {/* Slider Control with Subtle Quantum Signal Waveform & Dynamic Value Indicator */}
                   {/* Slider Control with Thumb-Locked Traveling Quantum Wave & Dynamic Value Indicator */}
                   <div
-                    className="hqds-honest-slider-workspace"
+                    className={`hqds-honest-slider-workspace ${willReject ? 'is-abort' : 'is-accept'}`}
                     style={{
                       '--noise-progress': `${noiseProgressPercent}%`,
                       '--noise-ratio': noiseProgressRatio,
@@ -1462,16 +1462,38 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
                         >
                           <defs>
                             <linearGradient id="hqdsKineticWaveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                              <stop offset="0%" stopColor="#ff0055" stopOpacity="1" />
-                              <stop offset="25%" stopColor="#ff1744" stopOpacity="1" />
-                              <stop offset="50%" stopColor="#ff3d00" stopOpacity="1" />
-                              <stop offset="75%" stopColor="#ff1744" stopOpacity="1" />
-                              <stop offset="100%" stopColor="#ff0055" stopOpacity="1" />
+                              {willReject ? (
+                                <>
+                                  <stop offset="0%" stopColor="#ff0055" stopOpacity="1" />
+                                  <stop offset="25%" stopColor="#ff1744" stopOpacity="1" />
+                                  <stop offset="50%" stopColor="#ff3d00" stopOpacity="1" />
+                                  <stop offset="75%" stopColor="#ff1744" stopOpacity="1" />
+                                  <stop offset="100%" stopColor="#ff0055" stopOpacity="1" />
+                                </>
+                              ) : (
+                                <>
+                                  <stop offset="0%" stopColor="#10b981" stopOpacity="1" />
+                                  <stop offset="25%" stopColor="#14b8a6" stopOpacity="1" />
+                                  <stop offset="50%" stopColor="#06b6d4" stopOpacity="1" />
+                                  <stop offset="75%" stopColor="#22d3ee" stopOpacity="1" />
+                                  <stop offset="100%" stopColor="#10b981" stopOpacity="1" />
+                                </>
+                              )}
                             </linearGradient>
                             <linearGradient id="hqdsKineticWaveGradSec" x1="0%" y1="0%" x2="100%" y2="0%">
-                              <stop offset="0%" stopColor="#ff6b81" stopOpacity="0.9" />
-                              <stop offset="50%" stopColor="#fda4af" stopOpacity="0.75" />
-                              <stop offset="100%" stopColor="#ff758c" stopOpacity="0.9" />
+                              {willReject ? (
+                                <>
+                                  <stop offset="0%" stopColor="#ff6b81" stopOpacity="0.9" />
+                                  <stop offset="50%" stopColor="#fda4af" stopOpacity="0.75" />
+                                  <stop offset="100%" stopColor="#ff758c" stopOpacity="0.9" />
+                                </>
+                              ) : (
+                                <>
+                                  <stop offset="0%" stopColor="#34d399" stopOpacity="0.9" />
+                                  <stop offset="50%" stopColor="#6ee7b7" stopOpacity="0.75" />
+                                  <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0.9" />
+                                </>
+                              )}
                             </linearGradient>
                           </defs>
                           <path
