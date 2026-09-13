@@ -732,8 +732,13 @@ export default function StitchLandingPage({ onEnterSOC, onNavigate }) {
         </div>
       </div>
 
-      {/* Canonical HyperQDS Top Navigation with 5 tabs */}
-      <StitchHeader activeTab="landing" onNavigate={onNavigate} />
+      {/* Canonical HyperQDS Top Navigation (Landing: 3 section buttons) */}
+      <StitchHeader 
+        activeTab="landing" 
+        onNavigate={onNavigate} 
+        activeSection={activeAct} 
+        onScrollToSection={scrollToAct} 
+      />
 
       {/* Main Narrative Flow */}
       <main className="hqds-flow-stream">
