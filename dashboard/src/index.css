@@ -16777,7 +16777,7 @@ body::-webkit-scrollbar,
   margin: 0;
 }
 
-/* Sub-Scene 02: Bloch Sphere Layout */
+/* Sub-Scene 02: Bloch Sphere Layout with Enhanced Vertical Depth */
 .subscene-bloch-layout {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
@@ -16788,15 +16788,16 @@ body::-webkit-scrollbar,
 
 .subscene-canvas-mount {
   width: 100%;
-  min-height: 460px;
-  height: 460px;
-  background: radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.06) 0%, rgba(3, 6, 14, 0.85) 70%);
-  border: 1px solid rgba(168, 85, 247, 0.22);
-  border-radius: 14px;
+  min-height: 560px;
+  height: 560px;
+  background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08) 0%, rgba(14, 26, 52, 0.45) 50%, rgba(3, 6, 14, 0.95) 85%);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 16px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .subscene-math-sidebar {
@@ -16804,43 +16805,237 @@ body::-webkit-scrollbar,
   flex-direction: column;
   gap: 16px;
   justify-content: space-between;
+  text-align: left;
 }
 
-.math-equation-hero {
-  background: rgba(3, 5, 12, 0.92);
-  border: 1px solid rgba(168, 85, 247, 0.35);
-  border-radius: 10px;
+/* Superposition Formula Card */
+.bloch-formula-card {
+  background: rgba(10, 16, 32, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 14px;
   padding: 16px 20px;
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.86rem;
-  color: #e2eaf6;
-  text-align: center;
-  letter-spacing: 0.05em;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.math-guarantee-card {
-  background: rgba(5, 8, 18, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+.bloch-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.bloch-header-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.08em;
+}
+
+.bloch-header-badge {
+  font-size: 0.60rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.math-term-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.math-func {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.math-paren {
+  font-size: 1.2rem;
+  color: #64748b;
+  font-weight: 300;
+}
+
+.math-exp {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #38bdf8;
+  margin-right: 4px;
+}
+
+.math-basis {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #38bdf8;
+  margin-left: 3px;
+}
+
+.bloch-norm-sub {
+  font-size: 0.65rem;
+  color: #64748b;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  gap: 6px;
+}
+
+.bloch-norm-sub .norm-v {
+  color: #34d399;
+}
+
+/* 2x2 Parameter Grid */
+.math-properties-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.math-prop-item {
+  background: rgba(8, 14, 28, 0.8);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 12px;
   padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.math-prop-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.38);
+}
+
+.prop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.prop-label {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.prop-symbol {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.prop-val {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.prop-meta {
+  font-size: 0.68rem;
+  color: #8da2c0;
+}
+
+/* Uhlmann-Jozsa Guarantee Card */
+.math-guarantee-card {
+  background: rgba(10, 16, 32, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.guarantee-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
 .guarantee-tag {
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
   font-size: 0.65rem;
   font-weight: 700;
-  color: #c084fc;
-  display: block;
-  margin-bottom: 6px;
+  color: #38bdf8;
+  letter-spacing: 0.06em;
+}
+
+.guarantee-badge {
+  font-size: 0.60rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.04em;
+}
+
+.guarantee-badge.is-good {
+  background: rgba(16, 185, 129, 0.14);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.32);
+}
+
+.guarantee-formula-row {
+  background: rgba(6, 11, 24, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.guarantee-math-expr {
+  font-size: 0.84rem;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.guarantee-math-expr .g-lhs {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.guarantee-math-expr .g-rad {
+  color: #93c5fd;
 }
 
 .guarantee-text {
   font-family: var(--font-body, 'Plus Jakarta Sans', system-ui, sans-serif);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: #cbd5e1;
-  line-height: 1.55;
+  line-height: 1.5;
   margin: 0;
+}
+
+.guarantee-proof-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.proof-pill {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 3px 8px;
+  border-radius: 4px;
 }
 
 /* Sub-Scene 03: Quantum Mesh */
@@ -17649,13 +17844,13 @@ body::-webkit-scrollbar,
 
 /* ── 3. Final Verdict Hero Card (Section 08) ── */
 .hqds-honest-verdict-hero-card {
-  background: rgba(6, 11, 24, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(6, 11, 24, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.16);
   border-radius: 20px;
-  padding: 56px 40px;
-  backdrop-filter: blur(20px);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-  max-width: 980px;
+  padding: 46px 56px;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  max-width: 1240px;
   margin: 0 auto;
   position: relative;
   overflow: hidden;
@@ -17668,150 +17863,234 @@ body::-webkit-scrollbar,
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 }
 
-.verdict-status-capsule {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 18px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  margin-bottom: 24px;
-}
-
-.status-indicator-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-
-.status-indicator-dot.is-ready {
-  background: #38bdf8;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.7);
-}
-
-.status-indicator-dot.is-emerald {
-  background: #34d399;
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.85);
-}
-
-.status-indicator-dot.is-danger {
-  background: #f87171;
-  box-shadow: 0 0 8px rgba(248, 113, 113, 0.85);
-}
-
-.status-indicator-text {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: #e2e8f0;
-  text-transform: uppercase;
+.verdict-status-pill {
+  margin-bottom: 22px !important;
 }
 
 .verdict-hero-title {
-  font-family: var(--font-display, 'Space Grotesk', sans-serif);
-  font-size: clamp(2.6rem, 5.5vw, 4.4rem);
+  font-family: var(--font-display, 'Epilogue', system-ui, sans-serif) !important;
+  font-size: clamp(2.4rem, 4.4vw, 3.8rem);
   font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-  margin-bottom: 16px;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin: 0 0 14px;
+  text-transform: uppercase;
 }
 
 .verdict-hero-title.is-verified {
-  background: linear-gradient(135deg, #ffffff 0%, #34d399 50%, #22d3ee 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #ecfdf5 45%, #34d399 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 40px rgba(52, 211, 153, 0.25);
+  text-shadow: 0 0 32px rgba(52, 211, 153, 0.25);
 }
 
 .verdict-hero-title.is-aborted {
-  background: linear-gradient(135deg, #ffffff 0%, #f87171 50%, #f59e0b 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #fff1f2 45%, #f43f5e 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 40px rgba(248, 113, 113, 0.25);
+  text-shadow: 0 0 32px rgba(244, 63, 94, 0.25);
 }
 
 .verdict-hero-title.is-ready {
-  background: linear-gradient(135deg, #ffffff 0%, #38bdf8 60%, #818cf8 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #e0f2fe 45%, #38bdf8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 40px rgba(56, 189, 248, 0.2);
+  text-shadow: 0 0 32px rgba(56, 189, 248, 0.25);
 }
 
 .verdict-hero-subtitle {
-  font-size: 1.15rem;
+  font-family: var(--font-body, 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-size: 1.05rem;
   color: #94a3b8;
-  max-width: 680px;
-  margin: 0 auto 36px;
+  max-width: 720px;
+  margin: 0 auto 34px;
   line-height: 1.6;
 }
 
+/* Symmetrical, center-aligned telemetry strip */
 .verdict-telemetry-strip {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   width: 100%;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  padding: 20px 24px;
-  margin-bottom: 30px;
-  text-align: left;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 28px;
+  text-align: center;
+  align-items: center;
 }
 
 .verdict-strip-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 10px;
+  border-radius: 10px;
+  background: rgba(10, 18, 36, 0.45);
+  border: 1px solid rgba(56, 189, 248, 0.1);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.verdict-strip-item:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+  transform: translateY(-2px);
 }
 
 .verdict-strip-item .strip-label {
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.60rem;
-  font-weight: 600;
+  font-size: 0.62rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   color: #64748b;
   text-transform: uppercase;
 }
 
 .verdict-strip-item .strip-val {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
   color: #f8fafc;
 }
 
 .verdict-strip-item .strip-hint {
-  font-size: 0.62rem;
-  color: #64748b;
+  font-size: 0.65rem;
+  color: #8da2c0;
 }
 
-.verdict-meta-row {
-  display: flex;
-  justify-content: center;
-  gap: 36px;
-  flex-wrap: wrap;
+/* Cryptographic Provenance Cards */
+.verdict-provenance-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  width: 100%;
   margin-bottom: 34px;
-  font-size: 0.74rem;
+}
+
+.provenance-card {
+  background: rgba(8, 14, 28, 0.65);
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  border-radius: 12px;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.2s ease;
+}
+
+.provenance-card:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.provenance-card .prov-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.provenance-card .prov-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
   color: #64748b;
-}
-
-.verdict-meta-row .cell-label {
   letter-spacing: 0.08em;
-  margin-right: 6px;
+  text-transform: uppercase;
 }
 
-.verdict-meta-row .cell-value {
-  color: #cbd5e1;
+.provenance-card .prov-badge {
+  font-size: 0.58rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
 }
 
+.provenance-card .prov-badge.is-good {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.provenance-card .prov-badge.is-pending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.provenance-card .prov-value-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.provenance-card .prov-key {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.provenance-card .prov-val {
+  font-size: 0.90rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.provenance-card .prov-subtext {
+  font-size: 0.66rem;
+  color: #64748b;
+  font-family: var(--font-body, 'Plus Jakarta Sans', sans-serif);
+}
+
+/* Final Action Buttons with Exact Navbar Logout Button Principles */
 .verdict-cta-group {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
+}
+
+.verdict-action-pill-btn.hqds-nav-pill-btn {
+  padding: 12px 36px !important;
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+  cursor: pointer !important;
+  text-transform: none !important;
+  letter-spacing: 0.03em !important;
+  min-height: 46px !important;
+}
+
+.verdict-action-pill-btn.hqds-nav-pill-btn:hover:not(:disabled) {
+  transform: none !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 16px rgba(56, 189, 248, 0.25) !important;
+}
+
+.verdict-action-pill-btn.verdict-secondary-pill.hqds-nav-pill-btn {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
+.verdict-action-pill-btn.verdict-secondary-pill.hqds-nav-pill-btn:hover:not(:disabled) {
+  border-color: rgba(56, 189, 248, 0.75) !important;
+  background: rgba(15, 23, 42, 0.95) !important;
 }
 
 /* ── 4. Responsive Breakpoints for Stage 7 ── */
@@ -17821,6 +18100,9 @@ body::-webkit-scrollbar,
   }
   .verdict-telemetry-strip {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  .verdict-provenance-row {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -17833,6 +18115,10 @@ body::-webkit-scrollbar,
     gap: 12px;
     padding: 16px;
   }
+    .verdict-provenance-row {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
   .trace-event-row {
     flex-wrap: wrap;
     gap: 6px;
