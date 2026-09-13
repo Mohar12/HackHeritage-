@@ -7157,12 +7157,7 @@ a,
   cursor: pointer;
 }
 
-#btn-run-honest:hover:not(:disabled) {
-  transform: translateY(-1px) scale(1.015);
-  box-shadow: 0 6px 24px rgba(0, 230, 118, 0.38) !important;
-  border-color: #00e676 !important;
-  cursor: pointer;
-}
+/* #btn-run-honest hover styling moved to match navbar logout button specification */
 
 .btn-preset:hover:not(:disabled):not(.active) {
   border-color: var(--accent-cyan);
@@ -15077,9 +15072,13 @@ body::-webkit-scrollbar,
   box-shadow: 0 0 8px rgba(255, 23, 68, 0.8);
 }
 
+.hqds-honest-slider-workspace.is-dragging .hqds-honest-slider-track-fill,
+.hqds-honest-slider-workspace.is-dragging .hqds-honest-kinetic-wave-clip,
+.hqds-honest-slider-workspace.is-dragging .hqds-honest-slider-bubble,
 .hqds-honest-slider-workspace:has(.is-dragging) .hqds-honest-slider-track-fill,
-.hqds-honest-slider-workspace:has(.is-dragging) .hqds-honest-kinetic-wave-clip {
-  transition: opacity 0.2s ease !important;
+.hqds-honest-slider-workspace:has(.is-dragging) .hqds-honest-kinetic-wave-clip,
+.hqds-honest-slider-workspace:has(.is-dragging) .hqds-honest-slider-bubble {
+  transition: none !important;
 }
 
 /* Active Kinetic Motion Wave starting from left and terminating at selected level */
@@ -15361,81 +15360,41 @@ body::-webkit-scrollbar,
   margin-top: 24px;
 }
 
-.hqds-honest-btn-run {
-  position: relative;
-  width: fit-content;
-  min-width: 250px;
-  max-width: 320px;
-  height: 44px;
-  padding: 0 22px;
-  border-radius: 9999px;
-  background: linear-gradient(180deg, rgba(16, 28, 44, 0.94) 0%, rgba(10, 18, 30, 0.98) 100%);
-  border: 1px solid rgba(34, 211, 238, 0.28);
-  color: #f1f5f9;
-  font-family: var(--font-sub, 'Space Grotesk', system-ui, sans-serif);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+/* Primary Action Run Protocol Button matching exact design specification & caustics of top navbar logout button */
+.hqds-honest-run-cta.hqds-nav-pill-btn,
+#btn-run-honest.hqds-nav-pill-btn {
+  padding: 8px 26px !important;
+  font-size: 0.86rem !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+  cursor: pointer !important;
+  text-transform: none !important;
+  letter-spacing: 0.03em !important;
 }
 
-.hqds-honest-btn-run .btn-glyph {
-  font-size: 0.85rem;
-  color: #38bdf8;
-  display: flex;
-  align-items: center;
+.hqds-honest-run-cta.hqds-nav-pill-btn:hover:not(:disabled),
+#btn-run-honest.hqds-nav-pill-btn:hover:not(:disabled) {
+  transform: none !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 16px rgba(56, 189, 248, 0.25) !important;
 }
 
-.hqds-honest-btn-run .btn-divider {
-  width: 1px;
-  height: 14px;
-  background: rgba(255, 255, 255, 0.12);
-  flex-shrink: 0;
+.hqds-honest-run-cta.hqds-nav-pill-btn:disabled,
+#btn-run-honest.hqds-nav-pill-btn:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
 }
 
-.hqds-honest-btn-run .btn-label {
-  white-space: nowrap;
-  letter-spacing: 0.08em;
-}
-
-.hqds-honest-btn-run .btn-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #38bdf8;
-  transition: transform 0.2s ease;
-}
-
-.hqds-honest-btn-run:hover:not(:disabled) {
-  background: linear-gradient(180deg, rgba(22, 38, 60, 0.96) 0%, rgba(13, 24, 38, 1) 100%);
-  border-color: rgba(34, 211, 238, 0.48);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-.hqds-honest-btn-run:hover:not(:disabled) .btn-arrow {
-  transform: translateX(2px);
-}
-
-.hqds-honest-btn-run:active:not(:disabled) {
-  transform: scale(0.985);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-.hqds-honest-btn-run:disabled {
-  opacity: 0.75;
-  cursor: not-allowed;
-}
-
-.hqds-honest-btn-run.is-running {
-  background: rgba(10, 16, 26, 0.92);
-  border-color: rgba(34, 211, 238, 0.3);
+.hqds-honest-run-cta.hqds-nav-pill-btn.is-running span,
+#btn-run-honest.hqds-nav-pill-btn.is-running span {
+  opacity: 0.9;
 }
 
 @media (prefers-reduced-motion: reduce) {

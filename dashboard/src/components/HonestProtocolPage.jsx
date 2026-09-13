@@ -1409,7 +1409,9 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
                   {/* Compact Technical Readout */}
                   <div className="hqds-honest-noise-readout">
                     <div className="noise-readout-unit">
-                      <span className="readout-val mono">{injectedBitErrors}</span>
+                      <span className="readout-val mono">
+                        {Number(injectedBitErrors).toFixed(injectedBitErrors % 1 === 0 ? 0 : 1)}
+                      </span>
                       <span className="readout-lbl">ERRORS</span>
                     </div>
                     <span className="readout-divider" aria-hidden="true">/</span>
@@ -1426,7 +1428,7 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
                   {/* Slider Control with Subtle Quantum Signal Waveform & Dynamic Value Indicator */}
                   {/* Slider Control with Thumb-Locked Traveling Quantum Wave & Dynamic Value Indicator */}
                   <div
-                    className={`hqds-honest-slider-workspace ${willReject ? 'is-abort' : 'is-accept'}`}
+                    className={`hqds-honest-slider-workspace ${willReject ? 'is-abort' : 'is-accept'} ${isDraggingNoise ? 'is-dragging' : ''}`}
                     style={{
                       '--noise-progress': `${noiseProgressPercent}%`,
                       '--noise-ratio': noiseProgressRatio,
@@ -1532,9 +1534,11 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
                       type="range"
                       min="0"
                       max={nQubits}
+                      step="any"
                       value={injectedBitErrors}
                       onChange={(e) => {
-                        setInjectedBitErrors(Number(e.target.value));
+                        const val = parseFloat(e.target.value) || 0;
+                        setInjectedBitErrors(val);
                         setIsDraggingNoise(true);
                         clearTimeout(noiseDragTimer.current);
                         noiseDragTimer.current = setTimeout(() => setIsDraggingNoise(false), 260);
@@ -1580,32 +1584,18 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
                   </div>
                 </div>
 
-                {/* Primary Action CTA Button (Centered, refined capsule: ⚡ | EXECUTE PROTOCOL | →) */}
+                {/* Primary Action CTA Button matching exact design specification and animation of navbar logout button */}
                 <div className="hqds-honest-execute-wrap">
                   <button
                     id="btn-run-honest"
                     type="button"
-                    className={`hqds-honest-btn-run ${isRunning ? 'is-running' : ''} hqds-cursor-light`}
+                    className={`hqds-nav-pill-btn hqds-honest-run-cta ${isRunning ? 'is-running' : ''}`}
                     onClick={handleRunProtocol}
                     disabled={isRunning}
-                    onMouseMove={handleMouseMove}
-                    aria-label="Execute Honest Quantum Digital Signature Protocol"
+                    aria-label="Run Protocol"
+                    title="Run Quantum Digital Signature Protocol"
                   >
-                    <span className="btn-glyph" aria-hidden="true">
-                      {isRunning ? '⏳' : '⚡'}
-                    </span>
-                    <span className="btn-divider" aria-hidden="true" />
-                    <span className="btn-label">
-                      {isRunning
-                        ? simStep || 'EXECUTING HONEST QDS...'
-                        : 'EXECUTE PROTOCOL'}
-                    </span>
-                    <span className="btn-divider" aria-hidden="true" />
-                    <span className="btn-arrow" aria-hidden="true">
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2.5 6H9.5M9.5 6L6.5 3M9.5 6L6.5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
+                    <span>{isRunning ? simStep || 'Running Protocol...' : 'Run Protocol'}</span>
                   </button>
                 </div>
 
