@@ -107,12 +107,12 @@ function Teleportation3DComponent({
     }
 
     const width = container.clientWidth || 540;
-    const height = customHeight || (cinematic ? 460 : 270);
+    const height = customHeight || (cinematic ? 540 : 270);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
-    camera.position.set(0, 3.6, 6.2);
-    camera.lookAt(0, 0, 0);
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+    camera.position.set(0, 3.2, 5.8);
+    camera.lookAt(0, -0.1, 0);
 
     let renderer;
     try {
@@ -126,51 +126,116 @@ function Teleportation3DComponent({
       return;
     }
 
-    // Laboratory Quantum Optics Materials
-    const matAlice = new THREE.MeshStandardMaterial({ color: 0xc084fc, metalness: 0.8, roughness: 0.25 });
-    const matBob = new THREE.MeshStandardMaterial({ color: 0x818cf8, metalness: 0.8, roughness: 0.25 });
-    const matCharlie = new THREE.MeshStandardMaterial({ color: 0xd8b4fe, metalness: 0.8, roughness: 0.25 });
-    const matEPR = new THREE.MeshStandardMaterial({ color: 0x7e22ce, metalness: 0.8, roughness: 0.25 });
-    const matEve = new THREE.MeshStandardMaterial({ color: 0xf43f5e, metalness: 0.8, roughness: 0.25 });
+    // Laboratory Quantum Optics Materials with Distinct Signature Colors
+    const matAlice = new THREE.MeshStandardMaterial({ color: 0x00f2fe, metalness: 0.82, roughness: 0.22 }); // Electric Cyan
+    const matBob = new THREE.MeshStandardMaterial({ color: 0x00e676, metalness: 0.82, roughness: 0.22 }); // Neon Emerald
+    const matCharlie = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.82, roughness: 0.22 }); // Solar Amber
+    const matEPR = new THREE.MeshStandardMaterial({ color: 0xa855f7, metalness: 0.82, roughness: 0.22 }); // Quantum Violet
+    const matEve = new THREE.MeshStandardMaterial({ color: 0xff1744, metalness: 0.85, roughness: 0.25 }); // Crimson Red
 
-    // Optical Breadboard Base
-    const tableGeo = new THREE.BoxGeometry(7.2, 0.15, 3.6);
-    const tableMat = new THREE.MeshStandardMaterial({ color: 0x070b14, metalness: 0.9, roughness: 0.3 });
-    const tableMesh = new THREE.Mesh(tableGeo, tableMat);
-    tableMesh.position.y = -1.6;
-    scene.add(tableMesh);
+    // Precision Circular Quantum Optical Bench (Centered vertically in stage)
+    const benchGroup = new THREE.Group();
+    const tableTopY = -1.14;
 
-    const holeGrid = new THREE.GridHelper(6.8, 24, 0x818cf8, 0x111624);
-    holeGrid.position.y = -1.52;
-    scene.add(holeGrid);
+    // Solid dark titanium breadboard base
+    const benchGeo = new THREE.CylinderGeometry(3.65, 3.8, 0.14, 64);
+    const benchMat = new THREE.MeshStandardMaterial({
+      color: 0x060a14,
+      metalness: 0.9,
+      roughness: 0.28,
+    });
+    const benchMesh = new THREE.Mesh(benchGeo, benchMat);
+    benchMesh.position.y = tableTopY - 0.07;
+    benchGroup.add(benchMesh);
 
-    const createNode = (mat, pos, radius = 0.28) => {
+    // Beveled outer ring with subtle cyan accent
+    const rimGeo = new THREE.TorusGeometry(3.66, 0.035, 16, 64);
+    const rimMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      metalness: 0.92,
+      roughness: 0.2,
+    });
+    const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+    rimMesh.rotation.x = Math.PI / 2;
+    rimMesh.position.y = tableTopY;
+    benchGroup.add(rimMesh);
+
+    // Holographic concentric alignment metric rings on bench surface
+    const createBenchRing = (r, colorHex, opacity) => {
+      const geo = new THREE.RingGeometry(r - 0.015, r + 0.015, 64);
+      const mat = new THREE.MeshBasicMaterial({
+        color: colorHex,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: opacity,
+      });
+      const ring = new THREE.Mesh(geo, mat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = tableTopY + 0.003;
+      benchGroup.add(ring);
+      return ring;
+    };
+    createBenchRing(1.1, 0x00f2fe, 0.22);
+    createBenchRing(2.1, 0x38bdf8, 0.16);
+    createBenchRing(3.1, 0x818cf8, 0.24);
+
+    // High-precision optical breadboard grid
+    const holeGrid = new THREE.GridHelper(5.8, 28, 0x00f2fe, 0x0f1c38);
+    holeGrid.position.y = tableTopY + 0.004;
+    if (holeGrid.material) {
+      holeGrid.material.transparent = true;
+      holeGrid.material.opacity = 0.32;
+    }
+    benchGroup.add(holeGrid);
+    scene.add(benchGroup);
+
+    // Node Factory Helper
+    const createNode = (mat, pos, radius = 0.28, signatureColor = 0x00f2fe) => {
       const group = new THREE.Group();
+      const postHeight = Math.max(0.1, pos[1] - tableTopY - radius * 0.45);
 
-      // Precision Anodized Aluminum Mount
-      const postGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.5, 16);
-      const postMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.2 });
+      // Precision Anodized Aluminum Mount anchored to the breadboard
+      const postGeo = new THREE.CylinderGeometry(0.05, 0.06, postHeight, 16);
+      const postMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.25 });
       const post = new THREE.Mesh(postGeo, postMat);
-      post.position.y = -radius - 0.25;
+      post.position.y = -radius * 0.45 - postHeight / 2;
       group.add(post);
 
+      // Base collar clamp
+      const collarGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.04, 16);
+      const collarMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
+      const collar = new THREE.Mesh(collarGeo, collarMat);
+      collar.position.y = -radius * 0.45 - postHeight + 0.02;
+      group.add(collar);
+
       // Optics Housing
-      const housingGeo = new THREE.CylinderGeometry(radius, radius * 1.1, radius * 0.9, 8);
+      const housingGeo = new THREE.CylinderGeometry(radius, radius * 1.12, radius * 0.85, 16);
       const housingMat = new THREE.MeshStandardMaterial({ color: 0x0b1329, metalness: 0.85, roughness: 0.3 });
       const housing = new THREE.Mesh(housingGeo, housingMat);
       group.add(housing);
 
-      // Laser Aperture Glass Lens
-      const lensGeo = new THREE.CylinderGeometry(radius * 0.65, radius * 0.65, 0.05, 24);
-      const lensMat = new THREE.MeshBasicMaterial({ color: mat.color });
+      // Laser Aperture Glass Lens (emissive glow with signature color)
+      const lensGeo = new THREE.CylinderGeometry(radius * 0.68, radius * 0.68, 0.06, 24);
+      const lensMat = new THREE.MeshStandardMaterial({
+        color: signatureColor,
+        emissive: signatureColor,
+        emissiveIntensity: 0.45,
+        metalness: 0.2,
+        roughness: 0.1,
+      });
       const lens = new THREE.Mesh(lensGeo, lensMat);
-      lens.position.y = radius * 0.46;
+      lens.position.y = radius * 0.44;
       group.add(lens);
       group.lensMesh = lens;
 
       // Alignment Reticle Ring
-      const ringGeo = new THREE.RingGeometry(radius * 1.15, radius * 1.35, 32);
-      const ringMat = new THREE.MeshBasicMaterial({ color: mat.color, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+      const ringGeo = new THREE.RingGeometry(radius * 1.18, radius * 1.42, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: signatureColor,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.65,
+      });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.rotation.x = Math.PI / 2;
       group.add(ring);
@@ -181,10 +246,11 @@ function Teleportation3DComponent({
       return group;
     };
 
-    const aliceNode = createNode(matAlice, [-2.4, 0.2, 0]);
-    const bobNode = createNode(matBob, [2.2, 0.8, -0.6]);
-    const charlieNode = createNode(matCharlie, [2.2, -0.8, 0.6]);
-    const eprNode = createNode(matEPR, [0, -1.1, 0], 0.24);
+    // Four distinct quantum network nodes
+    const aliceNode = createNode(matAlice, [-2.4, 0.2, 0], 0.28, 0x00f2fe);
+    const bobNode = createNode(matBob, [2.2, 0.8, -0.6], 0.28, 0x00e676);
+    const charlieNode = createNode(matCharlie, [2.2, -0.55, 0.6], 0.28, 0xf59e0b);
+    const eprNode = createNode(matEPR, [0, -0.55, 0], 0.24, 0xa855f7);
 
     // High-Resolution Canvas Text Sprite Label Generator
     const createTextSprite = (initialText, initialColor = '#ffffff', fontSize = 30) => {
@@ -234,82 +300,162 @@ function Teleportation3DComponent({
       return sprite;
     };
 
-    // In-Scene Character Role Labels (Positioned cleanly above optics apertures)
-    const labelAlice = createTextSprite('ALICE (Signer)', '#c084fc');
-    labelAlice.position.set(-2.4, 0.72, 0);
+    // In-Scene Character Role Labels matching node signature colors
+    const labelAlice = createTextSprite('ALICE (Signer)', '#00f2fe');
+    labelAlice.position.set(-2.4, 0.76, 0);
     scene.add(labelAlice);
 
-    const labelBob = createTextSprite('BOB (Verifier)', '#818cf8');
-    labelBob.position.set(2.2, 1.35, -0.6);
+    const labelBob = createTextSprite('BOB (Verifier)', '#00e676');
+    labelBob.position.set(2.2, 1.38, -0.6);
     scene.add(labelBob);
 
-    const labelCharlie = createTextSprite('CHARLIE (Witness)', '#d8b4fe');
-    labelCharlie.position.set(2.2, -0.28, 0.6);
+    const labelCharlie = createTextSprite('CHARLIE (Witness)', '#f59e0b');
+    labelCharlie.position.set(2.2, -0.05, 0.6);
     scene.add(labelCharlie);
 
     const labelEPR = createTextSprite('EPR SOURCE (|Φ⁺⟩)', '#a855f7', 28);
-    labelEPR.position.set(0, -0.65, 0);
+    labelEPR.position.set(0, -0.08, 0);
     scene.add(labelEPR);
 
-    // Channels Factory Helper
-    const createChannel = (p1, p2, color, dashed = false) => {
-      const geo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(...p1),
-        new THREE.Vector3(...p2),
-      ]);
-      const mat = dashed
-        ? new THREE.LineDashedMaterial({ color, dashSize: 0.18, gapSize: 0.09, linewidth: 2 })
-        : new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.45, linewidth: 2 });
-      const line = new THREE.Line(geo, mat);
-      if (dashed) line.computeLineDistances();
-      scene.add(line);
-      return line;
+    // 3D Volumetric Sinusoidal Waveguide Geometry Generator
+    const buildWavyTubeGeometry = (p1, p2, waveCount = 6, amplitude = 0.08, radius = 0.018, segments = 60, radialSegments = 8) => {
+      const v1 = new THREE.Vector3(...p1);
+      const v2 = new THREE.Vector3(...p2);
+      const dir = new THREE.Vector3().subVectors(v2, v1);
+      dir.normalize();
+
+      // Compute orthonormal frame: normal tilted ~30 deg for optimal 3D perspective
+      const up = new THREE.Vector3(0, 1, 0);
+      let horizontalNormal = new THREE.Vector3().crossVectors(dir, up);
+      if (horizontalNormal.lengthSq() < 0.001) {
+        horizontalNormal = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 0, 1));
+      }
+      horizontalNormal.normalize();
+
+      const normal = new THREE.Vector3()
+        .addScaledVector(horizontalNormal, 0.85)
+        .addScaledVector(up, 0.35)
+        .normalize();
+      const binormal = new THREE.Vector3().crossVectors(dir, normal).normalize();
+
+      const numRings = segments + 1;
+      const numRadial = radialSegments + 1;
+      const positions = new Float32Array(numRings * numRadial * 3);
+      const indices = [];
+
+      for (let i = 0; i < segments; i++) {
+        for (let j = 0; j < radialSegments; j++) {
+          const a = i * numRadial + j;
+          const b = (i + 1) * numRadial + j;
+          const c = (i + 1) * numRadial + (j + 1);
+          const d = i * numRadial + (j + 1);
+          indices.push(a, b, d);
+          indices.push(b, c, d);
+        }
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setIndex(indices);
+
+      geometry.updateWave = (phase) => {
+        const pos = geometry.attributes.position.array;
+        let ptr = 0;
+        for (let i = 0; i <= segments; i++) {
+          const s = i / segments;
+          // Smooth sine envelope: 0 at nodes, maximum in center
+          const env = Math.sin(s * Math.PI);
+          const wave = Math.sin(s * Math.PI * 2 * waveCount - phase) * amplitude * env;
+
+          const cx = v1.x + s * (v2.x - v1.x) + normal.x * wave;
+          const cy = v1.y + s * (v2.y - v1.y) + normal.y * wave;
+          const cz = v1.z + s * (v2.z - v1.z) + normal.z * wave;
+
+          for (let j = 0; j <= radialSegments; j++) {
+            const theta = (j / radialSegments) * Math.PI * 2;
+            const cosT = Math.cos(theta) * radius;
+            const sinT = Math.sin(theta) * radius;
+
+            pos[ptr++] = cx + normal.x * cosT + binormal.x * sinT;
+            pos[ptr++] = cy + normal.y * cosT + binormal.y * sinT;
+            pos[ptr++] = cz + normal.z * cosT + binormal.z * sinT;
+          }
+        }
+        geometry.attributes.position.needsUpdate = true;
+        geometry.computeVertexNormals();
+      };
+
+      geometry.updateWave(0);
+      return { geometry, v1, v2, normal, waveCount, amplitude };
     };
 
-    // Primary Quantum Channel (Alice -> Bob): Multi-segment for physical in-transit noise jitter
-    const NUM_CHANNEL_SEGMENTS = 16;
-    const pAlice = new THREE.Vector3(-2.4, 0.2, 0);
-    const pBob = new THREE.Vector3(2.2, 0.8, -0.6);
-    const lineQuantumGeo = new THREE.BufferGeometry();
-    const linePositions = new Float32Array((NUM_CHANNEL_SEGMENTS + 1) * 3);
-    for (let i = 0; i <= NUM_CHANNEL_SEGMENTS; i++) {
-      const t = i / NUM_CHANNEL_SEGMENTS;
-      linePositions[i * 3] = pAlice.x + t * (pBob.x - pAlice.x);
-      linePositions[i * 3 + 1] = pAlice.y + t * (pBob.y - pAlice.y);
-      linePositions[i * 3 + 2] = pAlice.z + t * (pBob.z - pAlice.z);
-    }
-    lineQuantumGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
-    const lineQuantumMat = new THREE.LineDashedMaterial({
-      color: 0x00e5ff,
-      dashSize: 0.18,
-      gapSize: 0.09,
-      linewidth: 2,
-      transparent: true,
-      opacity: 0.55,
-    });
-    const lineQuantum = new THREE.Line(lineQuantumGeo, lineQuantumMat);
-    lineQuantum.computeLineDistances();
-    scene.add(lineQuantum);
+    // Helper to construct a complete wavy waveguide (emissive core + translucent sheath)
+    const createWavyWaveguide = (p1, p2, colorHex, waveCount = 6, amplitude = 0.08, coreRadius = 0.018, sheathRadius = 0.038) => {
+      const group = new THREE.Group();
 
-    // Classical Pauli Correction Channel (Alice -> Bob)
-    const lineClassical = createChannel([-2.4, -0.1, 0], [2.2, 0.5, -0.6], 0xf59e0b, false);
-    // EPR Entanglement Distribution Channels
-    const lineEPRtoAlice = createChannel([0, -1.1, 0], [-2.4, 0.2, 0], 0x0284c7, true);
-    const lineEPRtoBob = createChannel([0, -1.1, 0], [2.2, 0.8, -0.6], 0x0284c7, true);
+      const coreObj = buildWavyTubeGeometry(p1, p2, waveCount, amplitude, coreRadius, 60, 8);
+      const coreMat = new THREE.MeshBasicMaterial({
+        color: colorHex,
+        transparent: true,
+        opacity: 0.92,
+      });
+      const coreMesh = new THREE.Mesh(coreObj.geometry, coreMat);
+      group.add(coreMesh);
+
+      const sheathObj = buildWavyTubeGeometry(p1, p2, waveCount, amplitude, sheathRadius, 60, 8);
+      const sheathMat = new THREE.MeshBasicMaterial({
+        color: colorHex,
+        transparent: true,
+        opacity: 0.22,
+        side: THREE.DoubleSide,
+      });
+      const sheathMesh = new THREE.Mesh(sheathObj.geometry, sheathMat);
+      group.add(sheathMesh);
+
+      scene.add(group);
+
+      return {
+        group,
+        coreMesh,
+        coreMat,
+        sheathMesh,
+        sheathMat,
+        update: (phase) => {
+          coreObj.geometry.updateWave(phase);
+          sheathObj.geometry.updateWave(phase);
+        },
+        getPointAt: (t, phase = 0) => {
+          const s = Math.max(0, Math.min(1, t));
+          const env = Math.sin(s * Math.PI);
+          const wave = Math.sin(s * Math.PI * 2 * waveCount - phase) * amplitude * env;
+          return new THREE.Vector3(
+            coreObj.v1.x + s * (coreObj.v2.x - coreObj.v1.x) + coreObj.normal.x * wave,
+            coreObj.v1.y + s * (coreObj.v2.y - coreObj.v1.y) + coreObj.normal.y * wave,
+            coreObj.v1.z + s * (coreObj.v2.z - coreObj.v1.z) + coreObj.normal.z * wave
+          );
+        }
+      };
+    };
+
+    // Primary 3D Volumetric Sinusoidal Waveguides (Wave-like carrier links)
+    const waveguideQuantum = createWavyWaveguide([-2.4, 0.2, 0], [2.2, 0.8, -0.6], 0x00f2fe, 7.5, 0.085, 0.02, 0.044);
+    const waveguideClassical = createWavyWaveguide([-2.4, -0.05, 0], [2.2, 0.55, -0.6], 0xf59e0b, 6.5, 0.07, 0.015, 0.035);
+    const waveguideEPRtoAlice = createWavyWaveguide([0, -0.55, 0], [-2.4, 0.2, 0], 0x818cf8, 4.5, 0.075, 0.018, 0.04);
+    const waveguideEPRtoBob = createWavyWaveguide([0, -0.55, 0], [2.2, 0.8, -0.6], 0x00e676, 4.5, 0.075, 0.018, 0.04);
 
     // Eve Wiretap Apparatus (For Attack Lab Mode)
     const eveGroup = new THREE.Group();
-    const eveNode = createNode(matEve, [0, 1.2, 0], 0.32);
+    const eveNode = createNode(matEve, [0, 1.2, 0], 0.32, 0xff1744);
     eveGroup.add(eveNode);
     const clampGeo = new THREE.BoxGeometry(0.5, 0.25, 0.4);
     const clampMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.85, roughness: 0.25 });
     const clamp = new THREE.Mesh(clampGeo, clampMat);
     clamp.position.set(0, 1.05, 0);
     eveGroup.add(clamp);
-    const eveBeam1 = createChannel([-2.4, 0.2, 0], [0, 1.2, 0], 0xf43f5e, true);
-    const eveBeam2 = createChannel([0, 1.2, 0], [2.2, 0.8, -0.6], 0xf43f5e, true);
-    eveGroup.add(eveBeam1);
-    eveGroup.add(eveBeam2);
+    const eveBeam1 = createWavyWaveguide([-2.4, 0.2, 0], [0, 1.2, 0], 0xff1744, 4, 0.07, 0.016, 0.036);
+    const eveBeam2 = createWavyWaveguide([0, 1.2, 0], [2.2, 0.8, -0.6], 0xff1744, 4, 0.07, 0.016, 0.036);
+    eveGroup.add(eveBeam1.group);
+    eveGroup.add(eveBeam2.group);
     eveGroup.visible = false;
     scene.add(eveGroup);
 
@@ -317,11 +463,11 @@ function Teleportation3DComponent({
 
     // STAGE 1: Twin Entangled EPR Photons
     const eprPhoton1 = new THREE.Mesh(
-      new THREE.SphereGeometry(0.09, 16, 16),
+      new THREE.SphereGeometry(0.1, 20, 20),
       new THREE.MeshBasicMaterial({ color: 0xa855f7 })
     );
     const eprPhoton2 = new THREE.Mesh(
-      new THREE.SphereGeometry(0.09, 16, 16),
+      new THREE.SphereGeometry(0.1, 20, 20),
       new THREE.MeshBasicMaterial({ color: 0x00f2fe })
     );
     scene.add(eprPhoton1);
@@ -329,12 +475,12 @@ function Teleportation3DComponent({
 
     // STAGE 2: Alice Message State Preparation (|ψ⟩)
     const prepPhoton = new THREE.Mesh(
-      new THREE.SphereGeometry(0.12, 16, 16),
+      new THREE.SphereGeometry(0.12, 20, 20),
       new THREE.MeshBasicMaterial({ color: 0x00f2fe })
     );
     const prepHaloGeo = new THREE.RingGeometry(0.2, 0.38, 32);
     const prepHaloMat = new THREE.MeshBasicMaterial({
-      color: 0xc084fc,
+      color: 0x00f2fe,
       side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.7,
@@ -368,33 +514,29 @@ function Teleportation3DComponent({
     scene.add(bsmPhoton2);
 
     // STAGE 4: Classical Bit Packets (c0, c1)
-    const classicalBit1 = new THREE.Mesh(
-      new THREE.BoxGeometry(0.11, 0.11, 0.11),
-      new THREE.MeshBasicMaterial({ color: 0xffd600 })
-    );
-    const classicalBit2 = new THREE.Mesh(
-      new THREE.BoxGeometry(0.11, 0.11, 0.11),
-      new THREE.MeshBasicMaterial({ color: 0xffa000 })
-    );
+    const bitGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const bitMat1 = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+    const bitMat2 = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+    const classicalBit1 = new THREE.Mesh(bitGeo, bitMat1);
+    const classicalBit2 = new THREE.Mesh(bitGeo, bitMat2);
     scene.add(classicalBit1);
     scene.add(classicalBit2);
 
-    // STAGE 5: Bob's Pauli Correction Unitary Gate (X^c1 · Z^c0)
-    const pauliGateGeo = new THREE.TorusGeometry(0.46, 0.035, 16, 32);
-    const pauliGateMat = new THREE.MeshBasicMaterial({ color: 0x00e676, wireframe: true });
-    const pauliGate = new THREE.Mesh(pauliGateGeo, pauliGateMat);
+    // STAGE 5: Conditional Pauli Correction Unitary Operator Ring (Bob)
+    const pauliGeo = new THREE.TorusGeometry(0.38, 0.035, 16, 32);
+    const pauliMat = new THREE.MeshBasicMaterial({ color: 0x00e676, wireframe: true });
+    const pauliGate = new THREE.Mesh(pauliGeo, pauliMat);
     pauliGate.position.set(2.2, 0.8, -0.6);
     scene.add(pauliGate);
 
-    // STAGE 6: Teleported State Sifting Photon
-    const siftingPhoton = new THREE.Mesh(
-      new THREE.SphereGeometry(0.10, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0x00e5ff })
-    );
+    // STAGE 6: Teleported State Sifting Probe
+    const siftingGeo = new THREE.SphereGeometry(0.09, 16, 16);
+    const siftingMat = new THREE.MeshBasicMaterial({ color: 0x00e676 });
+    const siftingPhoton = new THREE.Mesh(siftingGeo, siftingMat);
     scene.add(siftingPhoton);
 
-    // STAGE 7: Threat Detection Sweeps (Safe Shield vs Compromised Glitch at Bob's Verifier Node)
-    const shieldGeo = new THREE.RingGeometry(0.1, 0.22, 32);
+    // STAGE 7: Statistical Threat Verification Ring (Bob)
+    const shieldGeo = new THREE.RingGeometry(0.2, 0.42, 32);
     const shieldMat = new THREE.MeshBasicMaterial({
       color: 0x00e676,
       side: THREE.DoubleSide,
@@ -435,14 +577,13 @@ function Teleportation3DComponent({
     const ledgerRing = new THREE.Mesh(ledgerRingGeo, ledgerRingMat);
     ledgerRing.rotation.x = Math.PI / 2;
     ledgerGroup.add(ledgerRing);
-    // Positioned directly above Bob's node [2.2, 0.8, -0.6], NOT floating at (0, -0.25, 0.6)
     ledgerGroup.position.set(2.2, 1.45, -0.6);
     scene.add(ledgerGroup);
 
     // Dynamic Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-    const mainLight = new THREE.PointLight(0x00f2fe, 1.8, 12);
-    mainLight.position.set(0, 3, 2);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+    const mainLight = new THREE.PointLight(0x00f2fe, 1.8, 14);
+    mainLight.position.set(0, 3.2, 2.4);
     scene.add(mainLight);
 
     // Threat Alert Strobe focused specifically at Bob's verifier aperture
@@ -454,7 +595,7 @@ function Teleportation3DComponent({
     let isDisposed = false;
     let isVisible = true;
 
-    // Primary 60FPS Render & Physical Animation Loop
+    // Primary 60FPS Render & Smooth Physical Animation Loop
     const animate = () => {
       if (isDisposed) return;
       if (!isVisible) {
@@ -467,15 +608,16 @@ function Teleportation3DComponent({
       const isCompromisedNow = isCompromisedRef.current;
       const isHonestMode = modeRef.current === 'honest';
 
-      // Advance dynamic progress smoothly
-      progressRef.current = (progressRef.current + 0.012) % 1.0;
+      // Advance dynamic progress smoothly (~2.3s per complete cycle at 60fps)
+      progressRef.current = (progressRef.current + 0.0072) % 1.0;
       const progress = progressRef.current;
+      const easeProg = 0.5 - 0.5 * Math.cos(progress * Math.PI); // Sinusoidal smooth ease
 
-      // Base idle rotations
-      if (aliceNode?.ringMesh) aliceNode.ringMesh.rotation.z += 0.02;
-      if (bobNode?.ringMesh) bobNode.ringMesh.rotation.z += 0.02;
-      if (charlieNode?.ringMesh) charlieNode.ringMesh.rotation.z += 0.02;
-      if (eprNode?.ringMesh) eprNode.ringMesh.rotation.z += 0.03;
+      // Smooth idle orbital rotations
+      if (aliceNode?.ringMesh) aliceNode.ringMesh.rotation.z += 0.015;
+      if (bobNode?.ringMesh) bobNode.ringMesh.rotation.z += 0.015;
+      if (charlieNode?.ringMesh) charlieNode.ringMesh.rotation.z += 0.015;
+      if (eprNode?.ringMesh) eprNode.ringMesh.rotation.z += 0.02;
 
       // Attack Lab Eve Wiretap Visibility
       if (!isHonestMode && isCompromisedNow) {
@@ -501,47 +643,38 @@ function Teleportation3DComponent({
       ledgerGroup.visible = false;
       threatAlertLight.intensity = 0;
 
-      // ==========================================
-      // Quantum Channel Animation (Alice -> Bob)
-      // Cause and effect: If channel is noisy/compromised, animate real-time vertex jitter and degraded red warning
-      // ==========================================
-      const posAttr = lineQuantumGeo.attributes.position;
-      const nowTime = Date.now() * 0.005;
-      for (let i = 0; i <= NUM_CHANNEL_SEGMENTS; i++) {
-        const t = i / NUM_CHANNEL_SEGMENTS;
-        const x0 = pAlice.x + t * (pBob.x - pAlice.x);
-        const y0 = pAlice.y + t * (pBob.y - pAlice.y);
-        const z0 = pAlice.z + t * (pBob.z - pAlice.z);
+      // Dynamic Wavy Waveguide Undulation (Continuous traveling wave propagation)
+      const wavePhase = Date.now() * 0.0036;
+      waveguideQuantum.update(wavePhase);
+      waveguideClassical.update(wavePhase * 0.88);
+      waveguideEPRtoAlice.update(wavePhase);
+      waveguideEPRtoBob.update(wavePhase);
+      if (!isHonestMode && isCompromisedNow) {
+        eveBeam1.update(wavePhase * 1.15);
+        eveBeam2.update(wavePhase * 1.15);
+      }
 
+      // Dynamic Quantum Waveguide state
+      if (waveguideQuantum) {
         if (isCompromisedNow) {
-          // Bell-curve envelope: 0 at node anchors, maximum in transit
-          const env = Math.sin(t * Math.PI);
-          const jX = Math.sin(i * 1.7 + nowTime * 6.0) * 0.04 * env;
-          const jY = Math.cos(i * 2.1 + nowTime * 7.5) * 0.06 * env;
-          const jZ = Math.sin(i * 1.3 + nowTime * 5.5) * 0.04 * env;
-          posAttr.setXYZ(i, x0 + jX, y0 + jY, z0 + jZ);
+          const flicker = Math.sin(Date.now() * 0.03) > -0.2;
+          waveguideQuantum.coreMat.color.setHex(flicker ? 0xff1744 : 0xf43f5e);
+          waveguideQuantum.sheathMat.color.setHex(0xff1744);
+          waveguideQuantum.sheathMat.opacity = flicker ? 0.35 : 0.12;
         } else {
-          posAttr.setXYZ(i, x0, y0, z0);
+          waveguideQuantum.coreMat.color.setHex(0x00f2fe);
+          waveguideQuantum.sheathMat.color.setHex(0x00f2fe);
+          waveguideQuantum.sheathMat.opacity = 0.22 + Math.sin(Date.now() * 0.003) * 0.06;
         }
       }
-      posAttr.needsUpdate = true;
-      lineQuantum.computeLineDistances();
 
-      // Optical beam degradation visual treatment
-      if (isCompromisedNow) {
-        const flicker = Math.sin(Date.now() * 0.035) > -0.15;
-        lineQuantum.material.color.setHex(flicker ? 0xff1744 : 0xf43f5e);
-        lineQuantum.material.opacity = flicker ? 0.85 : 0.25;
-      } else {
-        lineQuantum.material.color.setHex(0x00e5ff);
-        lineQuantum.material.opacity = 0.55;
-      }
-
-      // Neutral role maintenance for Charlie (Witness) & Alice (Signer)
-      if (charlieNode?.lensMesh) charlieNode.lensMesh.material.color.setHex(0xd8b4fe);
-      if (charlieNode?.ringMesh) charlieNode.ringMesh.material.color.setHex(0xd8b4fe);
-      if (aliceNode?.lensMesh) aliceNode.lensMesh.material.color.setHex(0xc084fc);
-      if (aliceNode?.ringMesh) aliceNode.ringMesh.material.color.setHex(0xc084fc);
+      // Maintain signature node colors
+      if (aliceNode?.lensMesh) aliceNode.lensMesh.material.color.setHex(0x00f2fe);
+      if (aliceNode?.ringMesh) aliceNode.ringMesh.material.color.setHex(0x00f2fe);
+      if (charlieNode?.lensMesh) charlieNode.lensMesh.material.color.setHex(0xf59e0b);
+      if (charlieNode?.ringMesh) charlieNode.ringMesh.material.color.setHex(0xf59e0b);
+      if (eprNode?.lensMesh) eprNode.lensMesh.material.color.setHex(0xa855f7);
+      if (eprNode?.ringMesh) eprNode.ringMesh.material.color.setHex(0xa855f7);
 
       // ==========================================
       // STAGE 1: EPR Pair Distribution
@@ -550,17 +683,11 @@ function Teleportation3DComponent({
         eprPhoton1.visible = true;
         eprPhoton2.visible = true;
 
-        // EPR Photon 1: [0, -1.1, 0] -> Alice [-2.4, 0.2, 0]
-        eprPhoton1.position.x = 0 + progress * (-2.4);
-        eprPhoton1.position.y = -1.1 + progress * 1.3;
-        eprPhoton1.position.z = 0;
+        // EPR Photons ride the wavy links from central source to nodes
+        eprPhoton1.position.copy(waveguideEPRtoAlice.getPointAt(easeProg, wavePhase));
+        eprPhoton2.position.copy(waveguideEPRtoBob.getPointAt(easeProg, wavePhase));
 
-        // EPR Photon 2: [0, -1.1, 0] -> Bob [2.2, 0.8, -0.6]
-        eprPhoton2.position.x = 0 + progress * 2.2;
-        eprPhoton2.position.y = -1.1 + progress * 1.9;
-        eprPhoton2.position.z = 0 + progress * (-0.6);
-
-        eprNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 4) * 0.18);
+        eprNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.04);
       }
 
       // ==========================================
@@ -570,14 +697,14 @@ function Teleportation3DComponent({
         prepPhoton.visible = true;
         prepHalo.visible = true;
 
-        // Pulsing preparation packet at Alice's aperture
-        prepPhoton.position.set(-2.4, 0.2 + Math.sin(progress * Math.PI * 4) * 0.12 + 0.35, 0);
+        // Smooth preparation packet at Alice's aperture
+        prepPhoton.position.set(-2.4, 0.2 + Math.sin(progress * Math.PI * 2) * 0.06 + 0.35, 0);
         prepHalo.position.set(-2.4, 0.55, 0);
-        prepHalo.scale.setScalar(0.7 + Math.sin(progress * Math.PI * 2) * 0.4);
-        prepHalo.rotation.z += 0.06;
+        prepHalo.scale.setScalar(0.85 + Math.sin(progress * Math.PI * 2) * 0.15);
+        prepHalo.rotation.z += 0.02;
 
-        if (aliceNode?.ringMesh) aliceNode.ringMesh.rotation.z += 0.08;
-        aliceNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.12);
+        if (aliceNode?.ringMesh) aliceNode.ringMesh.rotation.z += 0.04;
+        aliceNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.04);
       }
 
       // ==========================================
@@ -589,16 +716,16 @@ function Teleportation3DComponent({
         bsmPhoton2.visible = true;
 
         // Two photons converge into joint Alice BSM detector
-        const conv = Math.min(1.0, progress * 1.4);
-        bsmPhoton1.position.set(-2.4, 0.6 - conv * 0.38, 0);
-        bsmPhoton2.position.set(-2.4, -0.15 + conv * 0.37, 0);
+        const conv = Math.min(1.0, progress * 1.3);
+        bsmPhoton1.position.set(-2.4, 0.55 - conv * 0.35, 0);
+        bsmPhoton2.position.set(-2.4, -0.15 + conv * 0.35, 0);
 
         // Flash expands as particles merge
-        const flashScale = 0.2 + progress * 2.6;
+        const flashScale = 0.3 + progress * 2.2;
         bsmFlashRing.scale.set(flashScale, flashScale, flashScale);
-        bsmFlashMat.opacity = Math.max(0, 0.95 - progress * 0.9);
+        bsmFlashMat.opacity = Math.max(0, 0.9 - progress * 0.85);
 
-        aliceNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 4) * 0.16);
+        aliceNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.04);
       }
 
       // ==========================================
@@ -612,25 +739,21 @@ function Teleportation3DComponent({
           classicalBit1.material.color.setHex(0xff1744);
           classicalBit2.material.color.setHex(0xf59e0b);
         } else {
-          classicalBit1.material.color.setHex(0xffd600);
-          classicalBit2.material.color.setHex(0xffa000);
+          classicalBit1.material.color.setHex(0xf59e0b);
+          classicalBit2.material.color.setHex(0xfbbf24);
         }
 
-        // Packet 1: Alice -> Bob
-        const bitJitterY = isCompromisedNow ? Math.sin(progress * Math.PI * 12) * 0.05 : 0;
-        classicalBit1.position.x = -2.4 + progress * 4.6;
-        classicalBit1.position.y = -0.1 + progress * 0.6 + bitJitterY;
-        classicalBit1.position.z = 0.0 - progress * 0.6;
-        classicalBit1.rotation.x += 0.08;
-        classicalBit1.rotation.y += 0.06;
+        // Packet 1: Rides along classical wavy channel
+        classicalBit1.position.copy(waveguideClassical.getPointAt(easeProg, wavePhase * 0.88));
+        classicalBit1.rotation.x += 0.04;
+        classicalBit1.rotation.y += 0.03;
 
-        // Packet 2: Follows behind
-        const prog2 = Math.max(0, (progress - 0.18 + 1.0) % 1.0);
-        classicalBit2.position.x = -2.4 + prog2 * 4.6;
-        classicalBit2.position.y = -0.1 + prog2 * 0.6 - bitJitterY;
-        classicalBit2.position.z = 0.0 - prog2 * 0.6;
-        classicalBit2.rotation.x -= 0.06;
-        classicalBit2.rotation.z += 0.08;
+        // Packet 2: Follows behind along classical wavy channel
+        const prog2 = Math.max(0, (progress - 0.2 + 1.0) % 1.0);
+        const easeProg2 = 0.5 - 0.5 * Math.cos(prog2 * Math.PI);
+        classicalBit2.position.copy(waveguideClassical.getPointAt(easeProg2, wavePhase * 0.88));
+        classicalBit2.rotation.x -= 0.03;
+        classicalBit2.rotation.z += 0.04;
       }
 
       // ==========================================
@@ -639,14 +762,14 @@ function Teleportation3DComponent({
       else if (stage === 5) {
         pauliGate.visible = true;
 
-        // Dynamic 3-axis unitary Pauli operator rotation
-        pauliGate.rotation.x += 0.07;
-        pauliGate.rotation.y += 0.09;
-        pauliGate.rotation.z += 0.05;
+        // Smooth 3-axis unitary Pauli operator rotation
+        pauliGate.rotation.x += 0.04;
+        pauliGate.rotation.y += 0.05;
+        pauliGate.rotation.z += 0.03;
 
-        const gateScale = 1.0 + Math.sin(progress * Math.PI * 2) * 0.35;
+        const gateScale = 1.0 + Math.sin(progress * Math.PI * 2) * 0.12;
         pauliGate.scale.set(gateScale, gateScale, gateScale);
-        bobNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 4) * 0.14);
+        bobNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.04);
       }
 
       // ==========================================
@@ -658,18 +781,15 @@ function Teleportation3DComponent({
         if (isCompromisedNow) {
           siftingPhoton.material.color.setHex(0xff1744);
         } else {
-          siftingPhoton.material.color.setHex(0x00e5ff);
+          siftingPhoton.material.color.setHex(0x00e676);
         }
 
-        // Sifting scan traversing Alice declared bases to Bob
+        // Sifting scan traversing Alice declared bases to Bob along quantum wavy channel
         const siftingParam = Math.sin(progress * Math.PI);
-        const siftingJitter = isCompromisedNow ? (Math.sin(progress * Math.PI * 16) * 0.04) : 0;
-        siftingPhoton.position.x = -2.4 + siftingParam * 4.6;
-        siftingPhoton.position.y = 0.2 + siftingParam * 0.6 + siftingJitter;
-        siftingPhoton.position.z = 0.0 - siftingParam * 0.6;
+        siftingPhoton.position.copy(waveguideQuantum.getPointAt(siftingParam, wavePhase));
 
-        aliceNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.1);
-        bobNode.scale.setScalar(1.0 + Math.cos(progress * Math.PI * 2) * 0.1);
+        aliceNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.03);
+        bobNode.scale.setScalar(1.0 + Math.cos(progress * Math.PI * 2) * 0.03);
       }
 
       // ==========================================
@@ -679,26 +799,26 @@ function Teleportation3DComponent({
         if (!isCompromisedNow) {
           // SAFE: Calm expanding emerald green security shield anchored to Bob
           shieldRing.visible = true;
-          const shieldScale = 1.0 + progress * 4.2;
+          const shieldScale = 1.0 + progress * 3.2;
           shieldRing.scale.set(shieldScale, shieldScale, shieldScale);
           shieldMat.opacity = Math.max(0, 0.85 - progress * 0.8);
-          bobNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.12);
+          bobNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.04);
 
           if (bobNode?.lensMesh) bobNode.lensMesh.material.color.setHex(0x00e676);
-          if (bobNode?.ringMesh) bobNode.ringMesh.material.color.setHex(0x818cf8);
+          if (bobNode?.ringMesh) bobNode.ringMesh.material.color.setHex(0x00e676);
           labelBob.updateText('BOB: VERIFIED (QBER < 11%)', '#00e676', 'rgba(7, 11, 20, 0.90)', '#00e676');
         } else {
           // COMPROMISED: Threat alert ring expanding specifically from Bob's position [2.2, 0.8, -0.6]
           threatAlertRing.visible = true;
-          const alertScale = 0.6 + progress * 4.8;
+          const alertScale = 0.8 + progress * 3.6;
           threatAlertRing.scale.set(alertScale, alertScale, alertScale);
-          alertRingMat.opacity = Math.max(0, 1.0 - progress * 0.9);
+          alertRingMat.opacity = Math.max(0, 0.95 - progress * 0.9);
 
           const glitch = Math.sin(Date.now() * 0.04) > 0;
-          threatAlertLight.intensity = glitch ? 4.2 : 0.8;
+          threatAlertLight.intensity = glitch ? 3.0 : 0.6;
 
-          // Bob node specifically pulses and flashes crimson red (the entity issuing the abort)
-          bobNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 8) * 0.22);
+          // Bob node pulses crimson red
+          bobNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 4) * 0.06);
           if (bobNode?.lensMesh) bobNode.lensMesh.material.color.setHex(0xff1744);
           if (bobNode?.ringMesh) bobNode.ringMesh.material.color.setHex(0xff1744);
           labelBob.updateText('🚨 BOB: ABORT (QBER > Limit)', '#ff1744', 'rgba(35, 0, 8, 0.94)', '#ff1744');
@@ -715,24 +835,24 @@ function Teleportation3DComponent({
           // SAFE: Emerald green cryptographic commit anchored above Bob
           ledgerBlockMat.color.setHex(0x00e676);
           ledgerRingMat.color.setHex(0x00f2fe);
-          ledgerRing.rotation.y += 0.04;
+          ledgerRing.rotation.y += 0.03;
           ledgerRing.rotation.x = Math.PI / 2;
-          ledgerGroup.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.08);
-          bobNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.08);
+          ledgerGroup.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.05);
+          bobNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 2) * 0.04);
 
           if (bobNode?.lensMesh) bobNode.lensMesh.material.color.setHex(0x00e676);
-          if (bobNode?.ringMesh) bobNode.ringMesh.material.color.setHex(0x818cf8);
+          if (bobNode?.ringMesh) bobNode.ringMesh.material.color.setHex(0x00e676);
           labelBob.updateText('BOB: LEDGER COMMITTED', '#00e676', 'rgba(7, 11, 20, 0.90)', '#00e676');
         } else {
           // COMPROMISED: Crimson red abort quarantine block anchored directly above Bob
           ledgerBlockMat.color.setHex(0xff1744);
           ledgerRingMat.color.setHex(0xff1744);
-          ledgerRing.rotation.z += 0.08;
-          ledgerGroup.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 6) * 0.14);
-          threatAlertLight.intensity = 2.4;
+          ledgerRing.rotation.z += 0.05;
+          ledgerGroup.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 4) * 0.06);
+          threatAlertLight.intensity = 2.0;
 
           // Bob node locked in red abort state
-          bobNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 4) * 0.14);
+          bobNode.scale.setScalar(1.0 + Math.sin(progress * Math.PI * 4) * 0.06);
           if (bobNode?.lensMesh) bobNode.lensMesh.material.color.setHex(0xff1744);
           if (bobNode?.ringMesh) bobNode.ringMesh.material.color.setHex(0xff1744);
           labelBob.updateText('🚨 BOB: QUARANTINE ABORT', '#ff1744', 'rgba(35, 0, 8, 0.94)', '#ff1744');
@@ -741,17 +861,17 @@ function Teleportation3DComponent({
 
       // Default label & node colors for Bob when in stages 1-6
       if (stage < 7) {
-        if (bobNode?.lensMesh) bobNode.lensMesh.material.color.setHex(0x818cf8);
-        if (bobNode?.ringMesh) bobNode.ringMesh.material.color.setHex(0x818cf8);
+        if (bobNode?.lensMesh) bobNode.lensMesh.material.color.setHex(0x00e676);
+        if (bobNode?.ringMesh) bobNode.ringMesh.material.color.setHex(0x00e676);
         if (isCompromisedNow) {
           labelBob.updateText('BOB (Verifier · ALERT)', '#f43f5e', 'rgba(25, 5, 12, 0.88)', '#f43f5e');
         } else {
-          labelBob.updateText('BOB (Verifier)', '#818cf8', 'rgba(7, 11, 20, 0.88)', '#818cf8');
+          labelBob.updateText('BOB (Verifier)', '#00e676', 'rgba(7, 11, 20, 0.88)', '#00e676');
         }
       }
 
       // Subtle camera orbit for laboratory depth
-      scene.rotation.y = Math.sin(Date.now() * 0.0003) * 0.12;
+      scene.rotation.y = Math.sin(Date.now() * 0.00025) * 0.09;
 
       if (renderer && scene && camera) {
         renderer.render(scene, camera);
@@ -776,15 +896,22 @@ function Teleportation3DComponent({
     const handleResize = () => {
       if (!container || isDisposed || !renderer) return;
       const w = container.clientWidth || 540;
-      camera.aspect = w / height;
+      const h = container.clientHeight || customHeight || (cinematic ? 540 : 270);
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(w, height);
+      renderer.setSize(w, h);
     };
+
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+    resizeObserver.observe(container);
     window.addEventListener('resize', handleResize);
 
     return () => {
       isDisposed = true;
       observer.disconnect();
+      resizeObserver.disconnect();
       if (reqId) cancelAnimationFrame(reqId);
       window.removeEventListener('resize', handleResize);
 

@@ -850,66 +850,100 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
     }
   }, [activeSection]);
 
-  // ── 3. AUTHORITATIVE PROTOCOL EXECUTION HANDLER (PRESERVED) ──
+  // ── 3. AUTHORITATIVE PROTOCOL EXECUTION HANDLER (SMOOTH 8-STAGE PACING) ──
   async function handleRunProtocol() {
     if (status === 'running') return;
     setStatus('running');
     setErrorMsg('');
-    setSimStep('INITIALIZING QUANTUM PROTOCOL...');
+    setSimStep('01/08 · EPR DISTRIBUTION');
     addLog(`[INIT] Initializing quantum protocol for ${currentEntity.id} on Qiskit Aer...`, 'sys');
 
     try {
-      // 1. Stage 1: EPR Distribution
-      setActiveStage3D(1);
-      setActiveProtocolStage(1);
-      setActiveNetworkNode('Alice');
-      setActiveNetworkLink('Alice-Bob');
-      setSimStep('PREPARING MESSAGE STATE & EPR PAIRS...');
+      // ==========================================
+      // STAGE 1: EPR Pair Distribution
+      // ==========================================
+      handleStageSelect(1);
+      setSimStep('01/08 · EPR DISTRIBUTION');
       addLog(
-        `[ENCODE] Preparing Alice message state |psi> for "${currentEntity.documentPayload.slice(0, 36)}..."`,
+        `[STAGE 01] Central EPR source distributes entangled twin photons (|Φ⁺⟩) to Alice & Bob...`,
         'info'
       );
-      await sleep(350);
-
       addLog(`[ENTANGLE] Generating ${nQubits} Bell/EPR pairs (|Phi+>) on Qiskit Aer...`, 'info');
-      const keys = await generateKeys({
+      const keysPromise = generateKeys({
         n_qubits: Number(nQubits),
         shots: Number(shots),
         seed: 42,
       });
+      await sleep(2200);
+      const keys = await keysPromise;
 
-      // 2. Stage 2: Teleportation & BSM
-      setActiveStage3D(3);
-      setActiveProtocolStage(3);
-      setSimStep('BELL-STATE MEASUREMENT (BSM)...');
-      addLog('[BSM] Performing joint Bell-State Measurement (BSM) at Alice detector...', 'info');
-      await sleep(350);
-      const sig = await signMessage({
+      // ==========================================
+      // STAGE 2: Message State Preparation (|ψ⟩)
+      // ==========================================
+      handleStageSelect(2);
+      setSimStep('02/08 · STATE PREPARATION');
+      addLog(
+        `[STAGE 02] Alice encodes signature state |ψ⟩ into MUB eigenstate bases for "${currentEntity.documentPayload.slice(0, 36)}..."`,
+        'info'
+      );
+      await sleep(2200);
+
+      // ==========================================
+      // STAGE 3: Bell-State Measurement (BSM)
+      // ==========================================
+      handleStageSelect(3);
+      setSimStep('03/08 · BELL MEASUREMENT');
+      addLog('[STAGE 03] Alice performs joint projective Bell-State Measurement (BSM) at Alice detector...', 'info');
+      const sigPromise = signMessage({
         message: currentEntity.documentPayload,
         private_key: keys.alice_public_key,
         n_qubits: Number(nQubits),
         shots: Number(shots),
         seed: 42,
       });
+      await sleep(2200);
+      const sig = await sigPromise;
 
-      // 3. Stage 3: Pauli Correction & Transit Verification
-      setActiveStage3D(5);
-      setActiveProtocolStage(5);
-      setSimStep('PAULI CORRECTION & VERIFICATION...');
-      addLog('[TELEPORT] Applying Pauli correction bits (c0, c1) over classical channel...', 'info');
-      await sleep(350);
-      const verify = await verifySignature({
+      // ==========================================
+      // STAGE 4: Classical Bit Transmission
+      // ==========================================
+      handleStageSelect(4);
+      setSimStep('04/08 · CLASSICAL CHANNEL');
+      addLog('[STAGE 04] Transmitting classical Pauli correction bits (c0, c1) over classical channel to Bob...', 'info');
+      await sleep(2200);
+
+      // ==========================================
+      // STAGE 5: Conditional Pauli Correction (X^c1 · Z^c0)
+      // ==========================================
+      handleStageSelect(5);
+      setSimStep('05/08 · PAULI CORRECTION');
+      addLog('[STAGE 05] Bob applies conditional unitary operators (X^c1 · Z^c0) to recover state |ψ⟩...', 'info');
+      const verifyPromise = verifySignature({
         signature: sig.signature,
         public_key: keys.bob_shared_material,
         message: currentEntity.documentPayload,
       });
+      await sleep(2200);
+      const verify = await verifyPromise;
 
-      // 4. Stage 4: Statistical Threat Detection
-      setActiveStage3D(7);
-      setActiveProtocolStage(7);
-      setSimStep('STATISTICAL THREAT DETECTION & BORN TEST...');
+      // ==========================================
+      // STAGE 6: Teleported State Sifting
+      // ==========================================
+      handleStageSelect(6);
+      setSimStep('06/08 · STATE SIFTING');
+      addLog('[STAGE 06] Projective measurements in Alice declared bases yield raw key bits...', 'info');
+      await sleep(2200);
+
+      // ==========================================
+      // STAGE 7: Statistical Threat Detection & Born Test
+      // ==========================================
+      handleStageSelect(7);
+      setSimStep('07/08 · THREAT CHECK');
+      addLog(
+        `[STAGE 07] Statistical threat detection: Testing QBER vs bound (${(currentQberThreshold * 100).toFixed(0)}%) & Born test...`,
+        'sys'
+      );
       addLog(`[MEASURE] Sampling Bell measurement distribution across ${shots} shots...`, 'sys');
-      await sleep(350);
 
       const totalShots = Number(shots) || 1024;
       const errorFraction = nQubits > 0 ? injectedBitErrors / nQubits : 0;
@@ -1052,16 +1086,21 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
         detect,
       };
 
+      await sleep(2400);
+
+      // ==========================================
+      // STAGE 8: Immutable Audit Ledger Commit
+      // ==========================================
+      handleStageSelect(8);
+      setSimStep('08/08 · LEDGER COMMIT');
       setLatestTelemetry(calculatedTelemetry);
       if (onResultData) onResultData(fullPayload);
-
-      setActiveStage3D(8);
-      setActiveProtocolStage(8);
       setStatus(shouldReject ? 'aborted' : 'verified');
       addLog(
-        `[LEDGER] Execution recorded: Session ${calculatedTelemetry.executionId} committed to immutable audit ledger.`,
+        `[STAGE 08] Execution recorded: Session ${calculatedTelemetry.executionId} committed to immutable audit ledger.`,
         'sys'
       );
+      await sleep(2200);
     } catch (err) {
       console.error('Honest protocol execution failed:', err);
       setStatus('error');
@@ -1942,13 +1981,14 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
                   mode="honest"
                   onStageChange={handleStageSelect}
                   cinematic={true}
-                  height={380}
+                  height={540}
                 />
               </div>
 
-              {/* Live Stage Scientific Description Bar */}
-              <div className="protocol-description-bar">
-                <span className="desc-icon">{PROTOCOL_STAGES[activeProtocolStage - 1]?.icon}</span>
+              {/* Live Stage Floating Description Pill */}
+              <div className="protocol-description-pill" role="status" aria-live="polite">
+                <span className="desc-badge">STAGE {PROTOCOL_STAGES[activeProtocolStage - 1]?.code}</span>
+                <span className="desc-divider" aria-hidden="true" />
                 <span className="desc-text">{PROTOCOL_STAGES[activeProtocolStage - 1]?.desc}</span>
               </div>
             </div>
@@ -1981,26 +2021,58 @@ export const HonestProtocolPage = React.memo(function HonestProtocolPage({
               </div>
             </nav>
 
-            {/* Waveguide Physical Telemetry Anchor */}
-            <div className="hqds-honest-waveguide-bar hqds-reveal" style={{ '--reveal-delay': '160ms' }}>
-              <div className="waveguide-item">
-                <span className="waveguide-label">OPTICAL ATTENUATION</span>
-                <span className="waveguide-val">-0.18 dB/km (Telecom C-Band 1550nm)</span>
+            {/* Waveguide Physical Telemetry Grid */}
+            <div className="hqds-honest-waveguide-grid hqds-reveal" style={{ '--reveal-delay': '160ms' }}>
+              <div className="waveguide-card">
+                <div className="waveguide-card-header">
+                  <span className="waveguide-dot is-cyan" />
+                  <span className="waveguide-label">OPTICAL ATTENUATION</span>
+                  <span className="waveguide-status is-emerald">OPTIMAL</span>
+                </div>
+                <div className="waveguide-val-row">
+                  <span className="waveguide-val">-0.18</span>
+                  <span className="waveguide-unit">dB/km</span>
+                </div>
+                <div className="waveguide-subtext">Telecom C-Band · 1550nm SMF-28 Ultra-Low Loss</div>
               </div>
-              <div className="waveguide-divider" aria-hidden="true">/</div>
-              <div className="waveguide-item">
-                <span className="waveguide-label">DARK COUNT RATE</span>
-                <span className="waveguide-val">1.2e-5 per gate pulse</span>
+
+              <div className="waveguide-card">
+                <div className="waveguide-card-header">
+                  <span className="waveguide-dot is-purple" />
+                  <span className="waveguide-label">DARK COUNT RATE</span>
+                  <span className="waveguide-status is-cyan">CRYO 100mK</span>
+                </div>
+                <div className="waveguide-val-row">
+                  <span className="waveguide-val">1.2 × 10⁻⁵</span>
+                  <span className="waveguide-unit">/ pulse</span>
+                </div>
+                <div className="waveguide-subtext">InGaAs Cryo-SPAD Dual Array · Thermal Noise Subdued</div>
               </div>
-              <div className="waveguide-divider" aria-hidden="true">/</div>
-              <div className="waveguide-item">
-                <span className="waveguide-label">PHASE VISIBILITY</span>
-                <span className="waveguide-val">99.4% (Interferometric Intact)</span>
+
+              <div className="waveguide-card">
+                <div className="waveguide-card-header">
+                  <span className="waveguide-dot is-green" />
+                  <span className="waveguide-label">PHASE VISIBILITY</span>
+                  <span className="waveguide-status is-emerald">COHERENT</span>
+                </div>
+                <div className="waveguide-val-row">
+                  <span className="waveguide-val">99.4%</span>
+                  <span className="waveguide-unit">visibility</span>
+                </div>
+                <div className="waveguide-subtext">Hong-Ou-Mandel Dip · Quantum Wavepacket Overlap</div>
               </div>
-              <div className="waveguide-divider" aria-hidden="true">/</div>
-              <div className="waveguide-item">
-                <span className="waveguide-label">CLASSICAL LATENCY</span>
-                <span className="waveguide-val">0.42 ms (Pauli Bit Dispatch)</span>
+
+              <div className="waveguide-card">
+                <div className="waveguide-card-header">
+                  <span className="waveguide-dot is-amber" />
+                  <span className="waveguide-label">CLASSICAL LATENCY</span>
+                  <span className="waveguide-status is-amber">LOW LATENCY</span>
+                </div>
+                <div className="waveguide-val-row">
+                  <span className="waveguide-val">0.42</span>
+                  <span className="waveguide-unit">ms</span>
+                </div>
+                <div className="waveguide-subtext">Pauli Bit Dispatch · Fast Classical Feed-Forward</div>
               </div>
             </div>
           </div>
