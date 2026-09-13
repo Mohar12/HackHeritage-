@@ -38,6 +38,8 @@ function Teleportation3DComponent({
   isCompromised = false,
   mode = 'attack',
   onStageChange,
+  cinematic = false,
+  height: customHeight,
 }) {
   const mountRef = useRef(null);
   const [currentStage, setCurrentStage] = useState(activeStage);
@@ -105,7 +107,7 @@ function Teleportation3DComponent({
     }
 
     const width = container.clientWidth || 540;
-    const height = 270;
+    const height = customHeight || (cinematic ? 460 : 270);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
@@ -813,6 +815,24 @@ function Teleportation3DComponent({
 
   const isHonest = mode === 'honest';
 
+  if (cinematic) {
+    return (
+      <div className="teleportation-widget is-cinematic">
+        <div ref={mountRef} className="teleportation-canvas-mount cinematic-mount">
+          {!webglSupported && (
+            <div className="fallback-2d-teleport">
+              <div className="node alice-node">Alice (Signer)</div>
+              <div className={`quantum-bridge ${isCompromised ? 'compromised' : 'secure'}`}>
+                ~~~~ Flying EPR Entanglement Channel ~~~~
+              </div>
+              <div className="node bob-node">Bob &amp; Charlie (Verifiers)</div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="teleportation-widget">
       <div className="widget-header">
@@ -887,7 +907,7 @@ function Teleportation3DComponent({
       </div>
 
       <div className="stage-description">
-        <strong>Stage {currentStage}: {STAGES[currentStage - 1]?.name || 'Protocol Verification'}</strong> — {STAGES[currentStage - 1]?.desc || ''}
+        <strong>Stage {currentStage}: {STAGES[currentStage - 1]?.name || 'Protocol Verification'}</strong> · {STAGES[currentStage - 1]?.desc || ''}
       </div>
     </div>
   );

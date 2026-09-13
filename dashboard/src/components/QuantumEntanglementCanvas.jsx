@@ -267,12 +267,14 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
   threatAttackType = null,
   isDashboard = false,
   visualContext = 'landing',
+  activeSection = null,
 }) {
   const mountRef = useRef(null);
   const activePillarRef = useRef(activePillar);
   const activeDimensionRef = useRef(activeDimension);
   const isDashboardRef = useRef(isDashboard);
   const visualContextRef = useRef(visualContext);
+  const activeSectionRef = useRef(activeSection);
 
   useEffect(() => {
     activePillarRef.current = activePillar;
@@ -289,6 +291,10 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
   useEffect(() => {
     visualContextRef.current = visualContext;
   }, [visualContext]);
+
+  useEffect(() => {
+    activeSectionRef.current = activeSection;
+  }, [activeSection]);
 
   const threatAlertRef = useRef(threatAlert);
 
@@ -440,7 +446,7 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
 
     const getDocScrollHeight = () => {
       const realScrollable = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-      if (visualContextRef.current === 'audit') {
+      if (visualContextRef.current === 'audit' || visualContextRef.current === 'honest') {
         return realScrollable;
       }
       return Math.max(MIN_VIRTUAL_SCROLL_HEIGHT, realScrollable);
@@ -809,9 +815,220 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
         let noiseAmplitude = prefersReducedMotion ? 0.2 : 1.0;
 
         // ─────────────────────────────────────────────────────────────
+        // HONEST PROTOCOL VISUAL CONTEXT MAPPING (8 Vertical Scenes)
+        // ─────────────────────────────────────────────────────────────
+        if (visualContextRef.current === 'honest') {
+          const currentSection = activeSectionRef.current || 'honest-hero';
+          splitMix = 0.0;
+
+          switch (currentSection) {
+            case 'honest-telemetry':
+              // 02 TELEMETRY: cyan/blue analytical state (problemBlue)
+              targetX = 0;
+              targetY = -2.6;
+              targetScale = 0.98;
+              targetCameraZ = 14.0;
+              turbulence = 0.35;
+              internalFlux = 0.45;
+              fresnelPower = 2.6;
+              fresnelStrength = 1.2;
+              haloIntensity = 0.68;
+              wireframeMix = 0.35;
+              fillDensity = 1.0;
+              smokeMix = 0.0;
+              targetColors.deepVoid.copy(stateColors.problemBlue.deepVoid);
+              targetColors.core.copy(stateColors.problemBlue.core);
+              targetColors.mid.copy(stateColors.problemBlue.mid);
+              targetColors.bright.copy(stateColors.problemBlue.bright);
+              targetColors.torchGlint.copy(stateColors.problemBlue.torchGlint);
+              targetColors.specGlint.copy(stateColors.problemBlue.specGlint);
+              targetColors.rim.copy(stateColors.problemBlue.rim);
+              targetColors.wireframe.copy(stateColors.problemBlue.wireframe);
+              targetColors.halo.copy(stateColors.problemBlue.halo);
+              break;
+
+            case 'honest-config':
+              // 03 CONFIG: controlled technical state (dimensionStates[0]: optical cyan & Born-rule)
+              targetX = 0;
+              targetY = -2.5;
+              targetScale = 0.98;
+              targetCameraZ = 14.0;
+              turbulence = 0.0;
+              internalFlux = 0.35;
+              fresnelPower = 2.8;
+              fresnelStrength = 1.15;
+              haloIntensity = 0.70;
+              wireframeMix = 0.0;
+              fillDensity = 1.0;
+              smokeMix = 0.0;
+              targetColors.deepVoid.copy(stateColors.dimensionStates[0].deepVoid);
+              targetColors.core.copy(stateColors.dimensionStates[0].core);
+              targetColors.mid.copy(stateColors.dimensionStates[0].mid);
+              targetColors.bright.copy(stateColors.dimensionStates[0].bright);
+              targetColors.torchGlint.copy(stateColors.dimensionStates[0].torchGlint);
+              targetColors.specGlint.copy(stateColors.dimensionStates[0].specGlint);
+              targetColors.rim.copy(stateColors.dimensionStates[0].rim);
+              targetColors.wireframe.copy(stateColors.dimensionStates[0].wireframe);
+              targetColors.halo.copy(stateColors.dimensionStates[0].halo);
+              break;
+
+            case 'honest-protocol':
+              // 04 PROTOCOL: quantum entanglement state (pillarP1: Cyan-Indigo Bell invariant)
+              targetX = 0;
+              targetY = -2.45;
+              targetScale = 1.0;
+              targetCameraZ = 14.0;
+              turbulence = 0.3;
+              internalFlux = 0.65;
+              fresnelPower = 3.0;
+              fresnelStrength = 1.25;
+              haloIntensity = 0.76;
+              wireframeMix = 0.0;
+              fillDensity = 1.0;
+              smokeMix = 0.0;
+              targetColors.deepVoid.copy(stateColors.pillarP1.deepVoid);
+              targetColors.core.copy(stateColors.pillarP1.core);
+              targetColors.mid.copy(stateColors.pillarP1.mid);
+              targetColors.bright.copy(stateColors.pillarP1.bright);
+              targetColors.torchGlint.copy(stateColors.pillarP1.torchGlint);
+              targetColors.specGlint.copy(stateColors.pillarP1.specGlint);
+              targetColors.rim.copy(stateColors.pillarP1.rim);
+              targetColors.wireframe.copy(stateColors.pillarP1.wireframe);
+              targetColors.halo.copy(stateColors.pillarP1.halo);
+              break;
+
+            case 'honest-analysis':
+              // 05 STATE VECTOR: cyan/photonic state (dimensionStates[1]: electric cobalt & photonic dissipation)
+              targetX = 0;
+              targetY = -2.45;
+              targetScale = 0.98;
+              targetCameraZ = 14.0;
+              turbulence = 0.15;
+              internalFlux = 0.50;
+              fresnelPower = 2.8;
+              fresnelStrength = 1.2;
+              haloIntensity = 0.72;
+              wireframeMix = 0.0;
+              fillDensity = 1.0;
+              smokeMix = 0.0;
+              targetColors.deepVoid.copy(stateColors.dimensionStates[1].deepVoid);
+              targetColors.core.copy(stateColors.dimensionStates[1].core);
+              targetColors.mid.copy(stateColors.dimensionStates[1].mid);
+              targetColors.bright.copy(stateColors.dimensionStates[1].bright);
+              targetColors.torchGlint.copy(stateColors.dimensionStates[1].torchGlint);
+              targetColors.specGlint.copy(stateColors.dimensionStates[1].specGlint);
+              targetColors.rim.copy(stateColors.dimensionStates[1].rim);
+              targetColors.wireframe.copy(stateColors.dimensionStates[1].wireframe);
+              targetColors.halo.copy(stateColors.dimensionStates[1].halo);
+              break;
+
+            case 'honest-network':
+              // 06 NETWORK: deeper quantum state (pillarP2: Radiant Violet / Muted Magenta multi-node superposition)
+              targetX = 0;
+              targetY = -2.45;
+              targetScale = 0.98;
+              targetCameraZ = 14.0;
+              turbulence = 0.35;
+              internalFlux = 0.75;
+              fresnelPower = 3.0;
+              fresnelStrength = 1.2;
+              haloIntensity = 0.75;
+              wireframeMix = 0.0;
+              fillDensity = 1.0;
+              smokeMix = 0.0;
+              targetColors.deepVoid.copy(stateColors.pillarP2.deepVoid);
+              targetColors.core.copy(stateColors.pillarP2.core);
+              targetColors.mid.copy(stateColors.pillarP2.mid);
+              targetColors.bright.copy(stateColors.pillarP2.bright);
+              targetColors.torchGlint.copy(stateColors.pillarP2.torchGlint);
+              targetColors.specGlint.copy(stateColors.pillarP2.specGlint);
+              targetColors.rim.copy(stateColors.pillarP2.rim);
+              targetColors.wireframe.copy(stateColors.pillarP2.wireframe);
+              targetColors.halo.copy(stateColors.pillarP2.halo);
+              break;
+
+            case 'honest-trace':
+              // 07 TRACE: verification-oriented state (dimensionStates[2]: Statistical Model / Chi-Square hypothesis testing)
+              targetX = 0;
+              targetY = -2.5;
+              targetScale = 0.96;
+              targetCameraZ = 14.0;
+              turbulence = 0.1;
+              internalFlux = 0.40;
+              fresnelPower = 2.8;
+              fresnelStrength = 1.15;
+              haloIntensity = 0.70;
+              wireframeMix = 0.15;
+              fillDensity = 1.0;
+              smokeMix = 0.0;
+              targetColors.deepVoid.copy(stateColors.dimensionStates[2].deepVoid);
+              targetColors.core.copy(stateColors.dimensionStates[2].core);
+              targetColors.mid.copy(stateColors.dimensionStates[2].mid);
+              targetColors.bright.copy(stateColors.dimensionStates[2].bright);
+              targetColors.torchGlint.copy(stateColors.dimensionStates[2].torchGlint);
+              targetColors.specGlint.copy(stateColors.dimensionStates[2].specGlint);
+              targetColors.rim.copy(stateColors.dimensionStates[2].rim);
+              targetColors.wireframe.copy(stateColors.dimensionStates[2].wireframe);
+              targetColors.halo.copy(stateColors.dimensionStates[2].halo);
+              break;
+
+            case 'honest-verdict':
+            case 'honest-closing':
+              // 08 CLOSING: existing Stitch closing/recession state (closingRuby)
+              targetX = 0;
+              targetY = -2.75;
+              targetScale = 0.92;
+              targetCameraZ = 14.0;
+              turbulence = 0.0;
+              internalFlux = 0.25;
+              fresnelPower = 2.4;
+              fresnelStrength = 0.75;
+              haloIntensity = 0.32;
+              wireframeMix = 0.0;
+              fillDensity = 0.88;
+              smokeMix = 0.65;
+              targetColors.deepVoid.copy(stateColors.closingRuby.deepVoid);
+              targetColors.core.copy(stateColors.closingRuby.core);
+              targetColors.mid.copy(stateColors.closingRuby.mid);
+              targetColors.bright.copy(stateColors.closingRuby.bright);
+              targetColors.torchGlint.copy(stateColors.closingRuby.torchGlint);
+              targetColors.specGlint.copy(stateColors.closingRuby.specGlint);
+              targetColors.rim.copy(stateColors.closingRuby.rim);
+              targetColors.wireframe.copy(stateColors.closingRuby.wireframe);
+              targetColors.halo.copy(stateColors.closingRuby.halo);
+              break;
+
+            case 'honest-hero':
+            default:
+              // 01 HERO: opening Stitch state (heroViolet: deep violet liquid metal)
+              targetX = 0;
+              targetY = -2.8;
+              targetScale = 1.0;
+              targetCameraZ = 14.0;
+              turbulence = 0.0;
+              internalFlux = 0.25;
+              fresnelPower = 2.8;
+              fresnelStrength = 1.1;
+              haloIntensity = 0.72;
+              wireframeMix = 0.0;
+              fillDensity = 1.0;
+              smokeMix = 0.0;
+              targetColors.deepVoid.copy(stateColors.heroViolet.deepVoid);
+              targetColors.core.copy(stateColors.heroViolet.core);
+              targetColors.mid.copy(stateColors.heroViolet.mid);
+              targetColors.bright.copy(stateColors.heroViolet.bright);
+              targetColors.torchGlint.copy(stateColors.heroViolet.torchGlint);
+              targetColors.specGlint.copy(stateColors.heroViolet.specGlint);
+              targetColors.rim.copy(stateColors.heroViolet.rim);
+              targetColors.wireframe.copy(stateColors.heroViolet.wireframe);
+              targetColors.halo.copy(stateColors.heroViolet.halo);
+              break;
+          }
+        }
+        // ─────────────────────────────────────────────────────────────
         // ACT 1: HERO (0.00 - 0.18) · Deep Violet Liquid Metal
         // ─────────────────────────────────────────────────────────────
-        if (p < 0.18) {
+        else if (p < 0.18) {
           const t = p / 0.18;
           targetX = 0;
           targetY = -2.8 + t * 0.2;
@@ -1014,6 +1231,19 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
         if (isDashboardRef.current) {
           targetScale = 0.65;
           targetY = -1.0;
+        } else {
+          // Responsive scale adjustments for full-canvas experiences
+          let responsiveScale = 1.0;
+          let responsiveYOffset = 0;
+          if (width < 768) {
+            responsiveScale = 0.78;
+            responsiveYOffset = 0.25;
+          } else if (width < 1024) {
+            responsiveScale = 0.88;
+            responsiveYOffset = 0.12;
+          }
+          targetScale *= responsiveScale;
+          targetY += responsiveYOffset;
         }
 
         // Layer a slow, subtle sinusoidal drift on top of the scroll-driven transform (Stage 3)
@@ -1088,7 +1318,7 @@ const QuantumEntanglementCanvas = React.memo(function QuantumEntanglementCanvas(
         haloMaterial.uniforms.uGlowColor.value.lerp(targetColors.halo, colorFactor);
 
         // Slow, majestic continuous rotation
-        const rotSpeed = prefersReducedMotion ? 0.02 : 0.07;
+        const rotSpeed = prefersReducedMotion ? 0.01 : 0.07;
         heroMesh.rotation.y = elapsed * rotSpeed + p * 1.6;
         heroMesh.rotation.x = Math.sin(elapsed * 0.22) * 0.06;
 

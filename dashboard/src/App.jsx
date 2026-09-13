@@ -39,6 +39,12 @@ import { Component as AiLoader } from './components/ui/ai-loader.jsx';
 import './index.css';
 
 const NAV_TRANSITION_METADATA = {
+  overview: {
+    title: 'Overview',
+    colorTheme: 'overview',
+    statusBadge: 'PHYSICAL MATRIX · SYNCHRONIZING',
+    subtext: 'Calibrating topological optics & quantum narrative layers...',
+  },
   landing: {
     title: 'Overview',
     colorTheme: 'overview',
@@ -348,7 +354,7 @@ function AppContent() {
       <AiLoader
         visible={isNavigating}
         size={180}
-        colorTheme={navMeta.colorTheme}
+        colorTheme={navMeta?.colorTheme || 'overview'}
       />
     </>
   );
